@@ -13,7 +13,10 @@ The main app lives in the `Frontend` folder:
 
 ```bash
 cd Frontend
+python -m venv .venv
+.\.venv\Scripts\activate
 npm install
+
 npm run dev
 ```
 

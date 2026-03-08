@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import NBV from "./NBV";
 
 // ── Data types ──────────────────────────────────────────────────────────────
 
@@ -311,6 +312,8 @@ export default function ChromosomeTrack3D() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [availableSampleIds, setAvailableSampleIds] = useState<number[]>([]);
+  const [nbvOpen, setNbvOpen] = useState(false);
+  const [nbvMinimized, setNbvMinimized] = useState(false);
 
   const dataset = AVAILABLE_DATASETS[datasetIdx];
 
@@ -427,6 +430,19 @@ export default function ChromosomeTrack3D() {
           </select>
         </label>
 
+        <button
+          type="button"
+          onClick={() => setNbvOpen((o) => !o)}
+          style={{
+            ...selectStyle,
+            cursor: "pointer",
+            fontWeight: nbvOpen ? 600 : 400,
+            borderColor: nbvOpen ? "rgba(25, 118, 210, 0.8)" : "rgba(255,255,255,0.2)",
+          }}
+        >
+          NBV
+        </button>
+
         <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
 
         {/* Track toggles */}
@@ -452,8 +468,8 @@ export default function ChromosomeTrack3D() {
         ))}
       </div>
 
-      {/* ── 3D viewport ── */}
-      <div style={{ flex: 1, position: "relative" }}>
+      {/* ── 3D viewport + optional NBV panel (centered at bottom, 30% × 30%) ── */}
+      <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
         {loading && (
           <div style={overlayStyle}>
             <div style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}>Loading 3D structure...</div>
@@ -479,6 +495,30 @@ export default function ChromosomeTrack3D() {
           )}
           <OrbitControls enableZoom enablePan enableRotate />
         </Canvas>
+
+        {nbvOpen && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0,
+              right: 0,
+              width: "30vw",
+              height: nbvMinimized ? 20 : "30vh",
+              minWidth: 200,
+              minHeight: nbvMinimized ? 20 : 120,
+              borderRadius: "8px 8px 0 0",
+              overflow: "hidden",
+              boxShadow: "0 -4px 20px rgba(0,0,0,0.4)",
+              zIndex: 10,
+            }}
+          >
+            <NBV
+              minimized={nbvMinimized}
+              onClose={() => setNbvOpen(false)}
+              onMinimize={() => setNbvMinimized((m) => !m)}
+            />
+          </div>
+        )}
       </div>
 
       {/* ── Legend ── */}
