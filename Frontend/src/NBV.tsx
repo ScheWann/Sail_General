@@ -39,7 +39,7 @@ interface Viewpoint {
   position: Vec3;
 }
 
-// Center of beads and max distance from center to any bead
+// Center of sample = centroid of its beads; dataRadius = distance from center to farthest bead/node
 function getCenterAndRadius(beads: NBVBead[]): { center: Vec3; dataRadius: number } {
   const n = beads.length;
   let cx = 0, cy = 0, cz = 0;
