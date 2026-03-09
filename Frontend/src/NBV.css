@@ -1,7 +1,6 @@
 /* NBV panel – matches main window ribbon look */
 .nbv {
   width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
   background: rgba(10, 25, 41, 0.98);
@@ -10,21 +9,29 @@
   font-size: 9px;
   font-family: system-ui, sans-serif;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
-.nbv__ribbon {
+.nbv__bar {
   display: flex;
   align-items: center;
-  gap: 4px;
+  flex-wrap: nowrap;
+  gap: 6px;
   padding: 4px 8px;
   background: rgba(255, 255, 255, 0.06);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
-  min-height: 18px;
+  min-height: 22px;
 }
 
-.nbv__ribbon--minimized {
+.nbv__bar--minimized {
   border-bottom: none;
+}
+
+.nbv__bar--minimized .nbv__tracks,
+.nbv__bar--minimized .nbv__btn--primary,
+.nbv__bar--minimized .nbv__nav {
+  display: none;
 }
 
 .nbv__spacer {
@@ -47,6 +54,64 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-.nbv__btn--title {
+.nbv__title {
   font-weight: 600;
+  margin-right: 8px;
+}
+
+.nbv__tracks {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.nbv__track {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  font-size: 8px;
+  color: rgba(224, 224, 224, 0.9);
+}
+
+.nbv__track-cb {
+  margin: 0;
+  accent-color: var(--track-color, #6c5ce7);
+  cursor: pointer;
+}
+
+.nbv__track:has(.nbv__track-cb:checked) .nbv__track-dot { opacity: 1; }
+.nbv__track:has(.nbv__track-cb:not(:checked)) .nbv__track-dot { opacity: 0.4; }
+
+.nbv__track-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.nbv__track-name {
+  max-width: 48px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nbv__btn--primary {
+  padding: 2px 6px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.nbv__nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.nbv__nav-label {
+  min-width: 3rem;
+  text-align: center;
+  font-size: 9px;
 }

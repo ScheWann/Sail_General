@@ -1,8 +1,29 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
-import { Canvas } from "@react-three/fiber";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import NBV from "./NBV";
+
+// ── Data paths (portable: works on any machine / deployment) ───────────────────
+// Positions: CSV under public/Data/Example/{cellLine}_{chr}_{start}_{end}_original_position.csv
+// One row per bin; columns: pid, cell_line, chrid, sampleid, start_value, end_value, x, y, z
+// Each sample has 110 bins = 110 rows with same sampleid (sampleId 0..4999).
+// Tracks: JSON under public/Data/Tracks/{cellLine}_{chr}_{start}_{end}_tracks_data.json
+// One normalized array per track (110 values); index i = bin i for that track.
+
+function getDataBase(): string {
+  const b = (typeof import.meta !== "undefined" && import.meta.env?.BASE_URL) || "";
+  return b.endsWith("/") ? b.slice(0, -1) : b;
+}
+
+function getPositionCsvUrl(cellLine: string, chrId: string, start: number, end: number, positionPrefix?: string): string {
+  const name = positionPrefix ?? cellLine;
+  return `${getDataBase()}/Data/Example/${name}_${chrId}_${start}_${end}_original_position.csv`;
+}
+
+function getTracksJsonUrl(cellLine: string, chrId: string, start: number, end: number): string {
+  return `${getDataBase()}/Data/Tracks/${cellLine}_${chrId}_${start}_${end}_tracks_data.json`;
+}
 
 // ── Data types ──────────────────────────────────────────────────────────────
 
@@ -56,7 +77,7 @@ function getTrackColor(index: number): string {
 }
 
 // ── Data helpers ────────────────────────────────────────────────────────────
-
+// CSV: sampleid (col 3), x,y,z (cols 6,7,8). 110 rows per sample → 110 bins with (x,y,z).
 function parsePositionCsv(text: string): SampleData[] {
   const lines = text.trim().split("\n");
   const result: SampleData[] = [];
@@ -78,6 +99,7 @@ function parsePositionCsv(text: string): SampleData[] {
   return result;
 }
 
+// Maps 110 bins to positions (CSV) + track normalized[binIndex] from JSON; bin index = row index in filtered sample.
 function matchBeadsToTracks(
   samples: SampleData[],
   tracksJson: TracksJson,
@@ -301,6 +323,18 @@ function ChromosomePipeline({
   );
 }
 
+// Fixed camera for NBV preview canvas (view only, no orbit)
+function NbvPreviewCamera({ view }: { view: { position: [number, number, number]; target: [number, number, number] } | null }) {
+  const { camera } = useThree();
+  useEffect(() => {
+    if (!view) return;
+    camera.position.set(view.position[0], view.position[1], view.position[2]);
+    camera.lookAt(view.target[0], view.target[1], view.target[2]);
+    camera.updateProjectionMatrix();
+  }, [view, camera]);
+  return null;
+}
+
 // ── Main exported viewer ────────────────────────────────────────────────────
 
 export default function ChromosomeTrack3D() {
@@ -314,8 +348,22 @@ export default function ChromosomeTrack3D() {
   const [availableSampleIds, setAvailableSampleIds] = useState<number[]>([]);
   const [nbvOpen, setNbvOpen] = useState(false);
   const [nbvMinimized, setNbvMinimized] = useState(false);
+  const [nbvView, setNbvView] = useState<{ position: [number, number, number]; target: [number, number, number] } | null>(null);
+  const [nbvPreviewTrackIndices, setNbvPreviewTrackIndices] = useState<number[]>([]);
+  const prevNbvOpen = useRef(false);
 
   const dataset = AVAILABLE_DATASETS[datasetIdx];
+
+  const nbvTracks = useMemo(
+    () =>
+      trackNames.map((name, i) => ({
+        id: name,
+        name,
+        color: getTrackColor(i),
+        active: enabledTracks.has(i),
+      })),
+    [trackNames, enabledTracks]
+  );
 
   // Load data whenever dataset / sample / normalize changes
   useEffect(() => {
@@ -325,9 +373,8 @@ export default function ChromosomeTrack3D() {
       setError(null);
       try {
         const { cellLine, chrId, start, end, positionPrefix } = dataset;
-        const posName = positionPrefix ?? cellLine;
-        const posPath = `/Data/Example/${posName}_${chrId}_${start}_${end}_original_position.csv`;
-        const trkPath = `/Data/Tracks/${cellLine}_${chrId}_${start}_${end}_tracks_data.json`;
+        const posPath = getPositionCsvUrl(cellLine, chrId, start, end, positionPrefix);
+        const trkPath = getTracksJsonUrl(cellLine, chrId, start, end);
 
         const [posRes, trkRes] = await Promise.all([fetch(posPath), fetch(trkPath)]);
         if (!posRes.ok) throw new Error(`Position CSV not found (${posRes.status})`);
@@ -355,6 +402,7 @@ export default function ChromosomeTrack3D() {
         if (filtered.length === 0) throw new Error("No position data for selected sample");
 
         setBeads(matchBeadsToTracks(filtered, trkJson, names, true));
+        setNbvView(null);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -369,6 +417,11 @@ export default function ChromosomeTrack3D() {
     () => [...enabledTracks].sort((a, b) => a - b),
     [enabledTracks],
   );
+
+  useEffect(() => {
+    if (nbvOpen && !prevNbvOpen.current) setNbvPreviewTrackIndices([...enabledTrackIndices]);
+    prevNbvOpen.current = nbvOpen;
+  }, [nbvOpen, enabledTrackIndices]);
 
   const toggleTrack = useCallback((idx: number) => {
     setEnabledTracks((prev) => {
@@ -503,20 +556,72 @@ export default function ChromosomeTrack3D() {
               bottom: 0,
               right: 0,
               width: "30vw",
-              height: nbvMinimized ? 20 : "30vh",
+              height: nbvMinimized ? 22 : "30vh",
               minWidth: 200,
-              minHeight: nbvMinimized ? 20 : 120,
+              minHeight: nbvMinimized ? 22 : 140,
               borderRadius: "8px 8px 0 0",
               overflow: "hidden",
               boxShadow: "0 -4px 20px rgba(0,0,0,0.4)",
               zIndex: 10,
+              display: "flex",
+              flexDirection: "column",
+              background: "#0a1929",
             }}
           >
-            <NBV
-              minimized={nbvMinimized}
-              onClose={() => setNbvOpen(false)}
-              onMinimize={() => setNbvMinimized((m) => !m)}
-            />
+            <div style={{ flexShrink: 0 }}>
+              <NBV
+                beads={beads}
+                tracks={nbvTracks}
+                nbvActiveTrackIndices={nbvPreviewTrackIndices}
+                onApplyView={(position, target) => setNbvView({ position, target })}
+                onNbvActiveTracksChange={setNbvPreviewTrackIndices}
+                minimized={nbvMinimized}
+                onClose={() => setNbvOpen(false)}
+                onMinimize={() => setNbvMinimized((m) => !m)}
+              />
+            </div>
+            {!nbvMinimized && (
+              <div
+                style={{
+                  flex: 1,
+                  minHeight: 80,
+                  position: "relative",
+                  background: "#0a1929",
+                }}
+              >
+                {nbvView && beads.length > 1 ? (
+                  <Canvas
+                    camera={{ position: nbvView.position, fov: 60, near: 0.1, far: 100000 }}
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}
+                    gl={{ antialias: true }}
+                  >
+                    <NbvPreviewCamera view={nbvView} />
+                    <ambientLight intensity={0.6} />
+                    <directionalLight position={[100, 100, 100]} intensity={0.8} />
+                    <ChromosomePipeline
+                      beads={beads}
+                      enabledTrackIndices={nbvPreviewTrackIndices.length > 0 ? nbvPreviewTrackIndices : enabledTrackIndices}
+                      trackNames={trackNames}
+                    />
+                    <OrbitControls enableZoom enablePan enableRotate target={nbvView.target} />
+                  </Canvas>
+                ) : (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "rgba(255,255,255,0.5)",
+                      fontSize: 11,
+                    }}
+                  >
+                    Run NBV to see view
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
