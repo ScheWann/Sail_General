@@ -3,6 +3,8 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import NBV from "./NBV";
+import { tree3DTo2D, makeProjectionFrameFromView } from "./2D";
+import type { Vec3 } from "./2D";
 
 // ── Data paths (portable: works on any machine / deployment) ───────────────────
 // Positions: CSV under public/Data/Example/{cellLine}_{chr}_{start}_{end}_original_position.csv
@@ -396,6 +398,7 @@ export default function ChromosomeTrack3D() {
   const [beadRange, setBeadRange] = useState<[number, number] | null>(null);
   const [nbvSelectMode, setNbvSelectMode] = useState(false);
   const [selectionStart, setSelectionStart] = useState<number | null>(null);
+  const [show2D, setShow2D] = useState(false);
   const prevNbvOpen = useRef(false);
 
   const handleBeadSelect = useCallback(
@@ -418,6 +421,25 @@ export default function ChromosomeTrack3D() {
     const [start, end] = beadRange;
     return beads.slice(Math.max(0, start - 1), Math.min(beads.length, end));
   }, [beads, beadRange]);
+
+  const points2D = useMemo(() => {
+    if (!show2D || displayBeads.length < 2) return null;
+    const positions: Vec3[] = displayBeads.map((b) => b.position);
+    let w: Vec3;
+    if (nbvView) {
+      const dx = nbvView.target[0] - nbvView.position[0];
+      const dy = nbvView.target[1] - nbvView.position[1];
+      const dz = nbvView.target[2] - nbvView.position[2];
+      const len = Math.hypot(dx, dy, dz) || 1;
+      w = [dx / len, dy / len, dz / len];
+    } else {
+      w = [0, 0, 1];
+    }
+    const frame = makeProjectionFrameFromView(w);
+    const W = 400;
+    const H = 300;
+    return tree3DTo2D(positions, frame, W, H, 20);
+  }, [show2D, displayBeads, nbvView]);
 
   const dataset = AVAILABLE_DATASETS[datasetIdx];
 
@@ -680,6 +702,8 @@ export default function ChromosomeTrack3D() {
                 }}
                 isSelectMode={nbvSelectMode}
                 selectedRange={beadRange}
+                onToggle2D={() => setShow2D((s) => !s)}
+                show2D={show2D}
                 minimized={nbvMinimized}
                 onClose={() => setNbvOpen(false)}
                 onMinimize={() => setNbvMinimized((m) => !m)}
@@ -694,7 +718,34 @@ export default function ChromosomeTrack3D() {
                   background: "#0a1929",
                 }}
               >
-                {nbvView && displayBeads.length > 1 ? (
+                {show2D && points2D && points2D.length > 0 ? (
+                  <svg
+                    width="100%"
+                    height="100%"
+                    viewBox="0 0 400 300"
+                    preserveAspectRatio="xMidYMid meet"
+                    style={{ display: "block" }}
+                  >
+                    <defs>
+                      <marker id="arrowhead" markerWidth="4" markerHeight="3" refX="3" refY="1.5" orient="auto" />
+                    </defs>
+                    {points2D.slice(0, -1).map((_, i) => (
+                      <line
+                        key={`e-${i}`}
+                        x1={points2D[i][0]}
+                        y1={points2D[i][1]}
+                        x2={points2D[i + 1][0]}
+                        y2={points2D[i + 1][1]}
+                        stroke="rgba(255,255,255,0.8)"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    ))}
+                    {points2D.map((p, i) => (
+                      <circle key={`n-${i}`} cx={p[0]} cy={p[1]} r={3} fill="#6c5ce7" stroke="#fff" strokeWidth="1" />
+                    ))}
+                  </svg>
+                ) : nbvView && displayBeads.length > 1 ? (
                   <Canvas
                     camera={{ position: nbvView.position, fov: 60, near: 0.1, far: 100000 }}
                     style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}
@@ -722,7 +773,7 @@ export default function ChromosomeTrack3D() {
                       fontSize: 11,
                     }}
                   >
-                    Run NBV to see view
+                    {show2D ? "Run NBV first or set range" : "Run NBV to see view"}
                   </div>
                 )}
               </div>

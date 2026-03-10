@@ -32,6 +32,7 @@
 .nbv__bar--minimized .nbv__btn--select,
 .nbv__bar--minimized .nbv__range,
 .nbv__bar--minimized .nbv__btn--primary,
+.nbv__bar--minimized .nbv__btn--2d,
 .nbv__bar--minimized .nbv__nav {
   display: none;
 }

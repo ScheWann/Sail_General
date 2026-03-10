@@ -35,6 +35,10 @@ export interface NBVProps {
   isSelectMode?: boolean;
   /** Range set from scene selection (1-based); syncs to range inputs when set. */
   selectedRange?: [number, number] | null;
+  /** Toggle 2D planar projection view (algorithm from 2D.tsx). */
+  onToggle2D?: () => void;
+  /** Whether 2D projection is shown in the preview area. */
+  show2D?: boolean;
   onClose?: () => void;
   onMinimize?: () => void;
   minimized?: boolean;
@@ -254,7 +258,7 @@ function selectTop10(views: Viewpoint[], scores: Record<string, number>, center:
 
 const DEFAULT_MAX_BEADS = 110;
 
-export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView, onNbvActiveTracksChange, onBeadRangeApply, onToggleSelectMode, isSelectMode, selectedRange, onClose, onMinimize, minimized }: NBVProps) {
+export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView, onNbvActiveTracksChange, onBeadRangeApply, onToggleSelectMode, isSelectMode, selectedRange, onToggle2D, show2D, onClose, onMinimize, minimized }: NBVProps) {
   const [busy, setBusy] = useState(false);
   const [topViews, setTopViews] = useState<Viewpoint[]>([]);
   const [center, setCenter] = useState<Vec3>([0, 0, 0]);
@@ -382,6 +386,16 @@ export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView,
         <button type="button" className="nbv__btn nbv__btn--primary" onClick={runPipeline} disabled={busy || beads.length < 2}>
           {busy ? "…" : "NBV"}
         </button>
+        {onToggle2D && (
+          <button
+            type="button"
+            className={`nbv__btn nbv__btn--2d ${show2D ? "nbv__btn--select-active" : ""}`}
+            onClick={onToggle2D}
+            title={show2D ? "Show 3D preview" : "Show 2D planar projection"}
+          >
+            2D
+          </button>
+        )}
         {topViews.length > 0 && (
           <div className="nbv__nav">
             <button type="button" className="nbv__btn" onClick={goPrev} disabled={currentIndex <= 0}>‹</button>
