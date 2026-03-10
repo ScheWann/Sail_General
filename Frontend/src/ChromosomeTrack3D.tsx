@@ -78,6 +78,10 @@ function getTrackColor(index: number): string {
   return TRACK_COLORS[index % TRACK_COLORS.length];
 }
 
+// Stacked bar on each 2D link: total length and thickness (viewBox units)
+const LINK_STACK_BAR_LEN = 14;
+const LINK_STACK_BAR_THICK = 2.5;
+
 /** White→black gradient for 2D nodes only: start=white, end=black; step by number of nodes. */
 function getNodeGrayColor2D(nodeIndex: number, totalNodes: number): string {
   if (totalNodes <= 1) return "rgb(255,255,255)";
@@ -750,6 +754,55 @@ export default function ChromosomeTrack3D() {
                         strokeLinecap="round"
                       />
                     ))}
+                    {displayBeads.length >= 2 &&
+                      (() => {
+                        const activeTrackIndices = nbvPreviewTrackIndices.length > 0 ? nbvPreviewTrackIndices : enabledTrackIndices;
+                        if (activeTrackIndices.length === 0) return null;
+                        return points2D.slice(0, -1).map((_, segIdx) => {
+                          const [x1, y1] = points2D[segIdx];
+                          const [x2, y2] = points2D[segIdx + 1];
+                          const dx = x2 - x1;
+                          const dy = y2 - y1;
+                          const len = Math.hypot(dx, dy) || 1;
+                          const perpX = -dy / len;
+                          const perpY = dx / len;
+                          const mx = (x1 + x2) / 2;
+                          const my = (y1 + y2) / 2;
+                          const angleDeg = (Math.atan2(perpY, perpX) * 180) / Math.PI;
+                          const b = displayBeads[segIdx];
+                          const bNext = displayBeads[segIdx + 1];
+                          const raw = activeTrackIndices.map((tIdx) => {
+                            const v0 = b.trackValues[tIdx] ?? 0;
+                            const v1 = bNext.trackValues[tIdx] ?? 0;
+                            return Math.max(0, (v0 + v1) / 2);
+                          });
+                          const sum = raw.reduce((a, v) => a + v, 0);
+                          if (sum < 1e-6) return null;
+                          const segLens = raw.map((v) => (v / sum) * LINK_STACK_BAR_LEN);
+                          let y0 = 0;
+                          return (
+                            <g key={`stack-${segIdx}`} transform={`translate(${mx},${my}) rotate(${angleDeg})`}>
+                              {activeTrackIndices.map((tIdx, k) => {
+                                const h = segLens[k];
+                                const y = y0;
+                                y0 += h;
+                                return (
+                                  <rect
+                                    key={k}
+                                    x={-LINK_STACK_BAR_THICK / 2}
+                                    y={y}
+                                    width={LINK_STACK_BAR_THICK}
+                                    height={h}
+                                    fill={getTrackColor(tIdx)}
+                                    stroke="rgba(0,0,0,0.2)"
+                                    strokeWidth="0.3"
+                                  />
+                                );
+                              })}
+                            </g>
+                          );
+                        });
+                      })()}
                     {points2D.map((p, i) => (
                       <circle key={`n-${i}`} cx={p[0]} cy={p[1]} r={3} fill={getNodeGrayColor2D(i, points2D.length)} stroke="#fff" strokeWidth="1" />
                     ))}
