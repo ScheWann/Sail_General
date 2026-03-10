@@ -335,6 +335,49 @@ function NbvPreviewCamera({ view }: { view: { position: [number, number, number]
   return null;
 }
 
+// Invisible (or faint) clickable spheres along the backbone for brush/shrink range selection
+const BEAD_SELECTOR_RADIUS = 2.5;
+
+function BeadSelector({
+  beads,
+  onBeadClick,
+  selectionStart,
+}: {
+  beads: BeadData[];
+  onBeadClick: (beadIndex: number) => void;
+  selectionStart: number | null;
+}) {
+  if (beads.length === 0) return null;
+  return (
+    <group>
+      {beads.map((bead, i) => {
+        const [x, y, z] = bead.position;
+        const isStart = selectionStart === i;
+        return (
+          <mesh
+            key={i}
+            position={[x, y, z]}
+            userData={{ beadIndex: i }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              onBeadClick(i);
+            }}
+          >
+            <sphereGeometry args={[BEAD_SELECTOR_RADIUS, 16, 12]} />
+            <meshBasicMaterial
+              color={isStart ? "#4fc3f7" : "#ffffff"}
+              transparent
+              opacity={isStart ? 0.35 : 0.15}
+              depthTest={false}
+              wireframe
+            />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
 // ── Main exported viewer ────────────────────────────────────────────────────
 
 export default function ChromosomeTrack3D() {
@@ -351,7 +394,24 @@ export default function ChromosomeTrack3D() {
   const [nbvView, setNbvView] = useState<{ position: [number, number, number]; target: [number, number, number] } | null>(null);
   const [nbvPreviewTrackIndices, setNbvPreviewTrackIndices] = useState<number[]>([]);
   const [beadRange, setBeadRange] = useState<[number, number] | null>(null);
+  const [nbvSelectMode, setNbvSelectMode] = useState(false);
+  const [selectionStart, setSelectionStart] = useState<number | null>(null);
   const prevNbvOpen = useRef(false);
+
+  const handleBeadSelect = useCallback(
+    (beadIndex: number) => {
+      if (selectionStart === null) {
+        setSelectionStart(beadIndex);
+        return;
+      }
+      const start = Math.min(selectionStart, beadIndex);
+      const end = Math.max(selectionStart, beadIndex);
+      setBeadRange([start + 1, end + 1]);
+      setSelectionStart(null);
+      setNbvSelectMode(false);
+    },
+    [selectionStart]
+  );
 
   const displayBeads = useMemo(() => {
     if (!beadRange || beads.length === 0) return beads;
@@ -411,6 +471,8 @@ export default function ChromosomeTrack3D() {
         setBeads(matchBeadsToTracks(filtered, trkJson, names, true));
         setBeadRange(null);
         setNbvView(null);
+        setNbvSelectMode(false);
+        setSelectionStart(null);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -541,6 +603,27 @@ export default function ChromosomeTrack3D() {
             <div style={{ color: "#ff6b6b", fontSize: 14 }}>{error}</div>
           </div>
         )}
+        {nbvSelectMode && !loading && !error && (
+          <div
+            style={{
+              position: "absolute",
+              top: 12,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 5,
+              padding: "6px 12px",
+              background: "rgba(25, 118, 210, 0.9)",
+              color: "#fff",
+              fontSize: 12,
+              borderRadius: 6,
+              pointerEvents: "none",
+            }}
+          >
+            {selectionStart === null
+              ? "Click first bead, then click second bead to set range"
+              : `First bead selected (${selectionStart + 1}). Click second bead.`}
+          </div>
+        )}
         <Canvas
           camera={{ position: [0, 0, 500], fov: 60, near: 0.1, far: 10000 }}
           style={{ background: "#0a1929", width: "100%", height: "100%" }}
@@ -552,6 +635,13 @@ export default function ChromosomeTrack3D() {
               beads={beads}
               enabledTrackIndices={enabledTrackIndices}
               trackNames={trackNames}
+            />
+          )}
+          {nbvSelectMode && beads.length > 0 && (
+            <BeadSelector
+              beads={beads}
+              onBeadClick={handleBeadSelect}
+              selectionStart={selectionStart}
             />
           )}
           <OrbitControls enableZoom enablePan enableRotate />
@@ -584,6 +674,12 @@ export default function ChromosomeTrack3D() {
                 onApplyView={(position, target) => setNbvView({ position, target })}
                 onNbvActiveTracksChange={setNbvPreviewTrackIndices}
                 onBeadRangeApply={(start, end) => setBeadRange([start, end])}
+                onToggleSelectMode={() => {
+                  setNbvSelectMode((m) => !m);
+                  if (nbvSelectMode) setSelectionStart(null);
+                }}
+                isSelectMode={nbvSelectMode}
+                selectedRange={beadRange}
                 minimized={nbvMinimized}
                 onClose={() => setNbvOpen(false)}
                 onMinimize={() => setNbvMinimized((m) => !m)}

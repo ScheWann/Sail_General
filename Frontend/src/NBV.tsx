@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import "./NBV.css";
 
 const EPS = 1e-12;
@@ -29,6 +29,12 @@ export interface NBVProps {
   onNbvActiveTracksChange?: (indices: number[]) => void;
   /** When user runs NBV with a range, call this so parent can filter displayed beads to only that range. */
   onBeadRangeApply?: (start: number, end: number) => void;
+  /** Toggle brush/select mode: user goes to main scene and clicks two beads to set range. */
+  onToggleSelectMode?: () => void;
+  /** Whether brush/select mode is active (main scene shows selectable beads). */
+  isSelectMode?: boolean;
+  /** Range set from scene selection (1-based); syncs to range inputs when set. */
+  selectedRange?: [number, number] | null;
   onClose?: () => void;
   onMinimize?: () => void;
   minimized?: boolean;
@@ -248,7 +254,7 @@ function selectTop10(views: Viewpoint[], scores: Record<string, number>, center:
 
 const DEFAULT_MAX_BEADS = 110;
 
-export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView, onNbvActiveTracksChange, onBeadRangeApply, onClose, onMinimize, minimized }: NBVProps) {
+export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView, onNbvActiveTracksChange, onBeadRangeApply, onToggleSelectMode, isSelectMode, selectedRange, onClose, onMinimize, minimized }: NBVProps) {
   const [busy, setBusy] = useState(false);
   const [topViews, setTopViews] = useState<Viewpoint[]>([]);
   const [center, setCenter] = useState<Vec3>([0, 0, 0]);
@@ -256,6 +262,13 @@ export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView,
   const maxBeads = beads.length > 0 ? beads.length : DEFAULT_MAX_BEADS;
   const [rangeStartInput, setRangeStartInput] = useState("");
   const [rangeEndInput, setRangeEndInput] = useState("");
+
+  useEffect(() => {
+    if (selectedRange) {
+      setRangeStartInput(String(selectedRange[0]));
+      setRangeEndInput(String(selectedRange[1]));
+    }
+  }, [selectedRange]);
 
   const activeSet = new Set(nbvActiveTrackIndices);
 
@@ -331,6 +344,16 @@ export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView,
             </label>
           ))}
         </div>
+        {onToggleSelectMode && (
+          <button
+            type="button"
+            className={`nbv__btn nbv__btn--select ${isSelectMode ? "nbv__btn--select-active" : ""}`}
+            onClick={onToggleSelectMode}
+            title={isSelectMode ? "Click two beads in main scene to set range (click again to cancel)" : "Select range in main scene: click first bead, then second bead"}
+          >
+            {isSelectMode ? "Selecting…" : "Select"}
+          </button>
+        )}
         <div className="nbv__range">
           <input
             type="number"

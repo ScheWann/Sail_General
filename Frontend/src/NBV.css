@@ -29,6 +29,7 @@
 }
 
 .nbv__bar--minimized .nbv__tracks,
+.nbv__bar--minimized .nbv__btn--select,
 .nbv__bar--minimized .nbv__range,
 .nbv__bar--minimized .nbv__btn--primary,
 .nbv__bar--minimized .nbv__nav {
@@ -129,6 +130,16 @@
 .nbv__range-sep {
   color: rgba(224, 224, 224, 0.6);
   font-size: 9px;
+}
+
+.nbv__btn--select {
+  flex-shrink: 0;
+}
+
+.nbv__btn--select-active {
+  background: rgba(25, 118, 210, 0.35);
+  border-color: rgba(25, 118, 210, 0.7);
+  color: #90caf9;
 }
 
 .nbv__btn--primary {
