@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -78,9 +78,8 @@ function getTrackColor(index: number): string {
   return TRACK_COLORS[index % TRACK_COLORS.length];
 }
 
-// Stacked bar on each 2D link: total length and thickness (viewBox units)
-const LINK_STACK_BAR_LEN = 14;
-const LINK_STACK_BAR_THICK = 2.5;
+// Each 2D link is split into N segments (N = active tracks); each segment has thickness and track color
+const LINK_SEGMENT_STROKE_WIDTH = 4;
 
 /** White→black gradient for 2D nodes only: start=white, end=black; step by number of nodes. */
 function getNodeGrayColor2D(nodeIndex: number, totalNodes: number): string {
@@ -742,67 +741,60 @@ export default function ChromosomeTrack3D() {
                     <defs>
                       <marker id="arrowhead" markerWidth="4" markerHeight="3" refX="3" refY="1.5" orient="auto" />
                     </defs>
-                    {points2D.slice(0, -1).map((_, i) => (
-                      <line
-                        key={`e-${i}`}
-                        x1={points2D[i][0]}
-                        y1={points2D[i][1]}
-                        x2={points2D[i + 1][0]}
-                        y2={points2D[i + 1][1]}
-                        stroke="rgba(255,255,255,0.8)"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    ))}
-                    {displayBeads.length >= 2 &&
-                      (() => {
-                        const activeTrackIndices = nbvPreviewTrackIndices.length > 0 ? nbvPreviewTrackIndices : enabledTrackIndices;
-                        if (activeTrackIndices.length === 0) return null;
-                        return points2D.slice(0, -1).map((_, segIdx) => {
-                          const [x1, y1] = points2D[segIdx];
-                          const [x2, y2] = points2D[segIdx + 1];
-                          const dx = x2 - x1;
-                          const dy = y2 - y1;
-                          const len = Math.hypot(dx, dy) || 1;
-                          const perpX = -dy / len;
-                          const perpY = dx / len;
-                          const mx = (x1 + x2) / 2;
-                          const my = (y1 + y2) / 2;
-                          const angleDeg = (Math.atan2(perpY, perpX) * 180) / Math.PI;
-                          const b = displayBeads[segIdx];
-                          const bNext = displayBeads[segIdx + 1];
-                          const raw = activeTrackIndices.map((tIdx) => {
-                            const v0 = b.trackValues[tIdx] ?? 0;
-                            const v1 = bNext.trackValues[tIdx] ?? 0;
-                            return Math.max(0, (v0 + v1) / 2);
-                          });
-                          const sum = raw.reduce((a, v) => a + v, 0);
-                          if (sum < 1e-6) return null;
-                          const segLens = raw.map((v) => (v / sum) * LINK_STACK_BAR_LEN);
-                          let y0 = 0;
-                          return (
-                            <g key={`stack-${segIdx}`} transform={`translate(${mx},${my}) rotate(${angleDeg})`}>
-                              {activeTrackIndices.map((tIdx, k) => {
-                                const h = segLens[k];
-                                const y = y0;
-                                y0 += h;
-                                return (
-                                  <rect
-                                    key={k}
-                                    x={-LINK_STACK_BAR_THICK / 2}
-                                    y={y}
-                                    width={LINK_STACK_BAR_THICK}
-                                    height={h}
-                                    fill={getTrackColor(tIdx)}
-                                    stroke="rgba(0,0,0,0.2)"
-                                    strokeWidth="0.3"
-                                  />
-                                );
-                              })}
-                            </g>
-                          );
-                        });
-                      })()}
+                    {(() => {
+                      const activeTrackIndices = nbvPreviewTrackIndices.length > 0 ? nbvPreviewTrackIndices : enabledTrackIndices;
+                      const whiteStroke = "rgba(255,255,255,0.9)";
+                      return points2D.slice(0, -1).flatMap((_, linkIdx) => {
+                        const [x1, y1] = points2D[linkIdx];
+                        const [x2, y2] = points2D[linkIdx + 1];
+                        const dx = x2 - x1;
+                        const dy = y2 - y1;
+                        if (activeTrackIndices.length === 0) {
+                          return [
+                            <line key={`e-${linkIdx}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={whiteStroke} strokeWidth="1.5" strokeLinecap="round" />,
+                          ];
+                        }
+                        const startNode = displayBeads[linkIdx];
+                        const N = activeTrackIndices.length;
+                        const out: Array<React.ReactElement> = [];
+                        for (let k = 0; k < N; k++) {
+                          const tIdx = activeTrackIndices[k];
+                          const v = Math.max(0, Math.min(1, startNode.trackValues[tIdx] ?? 0));
+                          const tStart = k / N;
+                          const tEnd = (k + 1) / N;
+                          const segLen = 1 / N;
+                          if (v > 1e-6) {
+                            out.push(
+                              <line
+                                key={`e-${linkIdx}-t${k}-fill`}
+                                x1={x1 + tStart * dx}
+                                y1={y1 + tStart * dy}
+                                x2={x1 + (tStart + segLen * v) * dx}
+                                y2={y1 + (tStart + segLen * v) * dy}
+                                stroke={getTrackColor(tIdx)}
+                                strokeWidth={LINK_SEGMENT_STROKE_WIDTH}
+                                strokeLinecap="butt"
+                              />
+                            );
+                          }
+                          if (v < 1 - 1e-6) {
+                            out.push(
+                              <line
+                                key={`e-${linkIdx}-t${k}-rest`}
+                                x1={x1 + (tStart + segLen * v) * dx}
+                                y1={y1 + (tStart + segLen * v) * dy}
+                                x2={x1 + tEnd * dx}
+                                y2={y1 + tEnd * dy}
+                                stroke={whiteStroke}
+                                strokeWidth={LINK_SEGMENT_STROKE_WIDTH}
+                                strokeLinecap="butt"
+                              />
+                            );
+                          }
+                        }
+                        return out;
+                      });
+                    })()}
                     {points2D.map((p, i) => (
                       <circle key={`n-${i}`} cx={p[0]} cy={p[1]} r={3} fill={getNodeGrayColor2D(i, points2D.length)} stroke="#fff" strokeWidth="1" />
                     ))}
