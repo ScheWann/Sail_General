@@ -78,6 +78,15 @@ function getTrackColor(index: number): string {
   return TRACK_COLORS[index % TRACK_COLORS.length];
 }
 
+/** White→black gradient for 2D nodes only: start=white, end=black; step by number of nodes. */
+function getNodeGrayColor2D(nodeIndex: number, totalNodes: number): string {
+  if (totalNodes <= 1) return "rgb(255,255,255)";
+  const t = totalNodes - 1;
+  const gray = Math.round(255 - (nodeIndex / t) * 255);
+  const g = Math.min(255, Math.max(0, gray));
+  return `rgb(${g},${g},${g})`;
+}
+
 // ── Data helpers ────────────────────────────────────────────────────────────
 // CSV: sampleid (col 3), x,y,z (cols 6,7,8). 110 rows per sample → 110 bins with (x,y,z).
 function parsePositionCsv(text: string): SampleData[] {
@@ -742,7 +751,7 @@ export default function ChromosomeTrack3D() {
                       />
                     ))}
                     {points2D.map((p, i) => (
-                      <circle key={`n-${i}`} cx={p[0]} cy={p[1]} r={3} fill="#6c5ce7" stroke="#fff" strokeWidth="1" />
+                      <circle key={`n-${i}`} cx={p[0]} cy={p[1]} r={3} fill={getNodeGrayColor2D(i, points2D.length)} stroke="#fff" strokeWidth="1" />
                     ))}
                   </svg>
                 ) : nbvView && displayBeads.length > 1 ? (

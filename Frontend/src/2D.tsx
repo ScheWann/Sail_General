@@ -572,8 +572,46 @@ export function makeProjectionFrameFromView(w: Vec3): ProjectionFrame {
 }
 
 /**
+ * Continuous path projection: project each 3D point onto the view plane in order (first → last, node by node).
+ * Use this when the structure is a single thread so it never breaks; output order is always 0,1,…,n-1.
+ */
+export function projectPathTo2D(
+  positions: Vec3[],
+  frame: ProjectionFrame,
+  width: number,
+  height: number,
+  margin: number = 20
+): Vec2[] {
+  if (positions.length === 0) return [];
+  const u = frame.u, v = frame.v;
+  const points: Vec2[] = positions.map((p) => [
+    p[0] * u[0] + p[1] * u[1] + p[2] * u[2],
+    p[0] * v[0] + p[1] * v[1] + p[2] * v[2],
+  ]);
+  let uMin = points[0][0], uMax = points[0][0], vMin = points[0][1], vMax = points[0][1];
+  for (const [a, b] of points) {
+    if (a < uMin) uMin = a;
+    if (a > uMax) uMax = a;
+    if (b < vMin) vMin = b;
+    if (b > vMax) vMax = b;
+  }
+  const rangeU = uMax - uMin || 1;
+  const rangeV = vMax - vMin || 1;
+  const scale = Math.min((width - 2 * margin) / rangeU, (height - 2 * margin) / rangeV);
+  return points.map(([a, b]) => [
+    margin + scale * (a - uMin),
+    margin + scale * (b - vMin),
+  ]);
+}
+
+/**
  * Full pipeline: 3D positions + view frame → 2D planar layout (no crossings, shape preserved).
  * Input: positions, frame, widget size, margin, options. Output: 2D coordinates per node.
+ */
+/**
+ * Full pipeline (Planar Visualization of Treelike Structures):
+ * orthographic projection → target angles → leaf counts → sibling order (placement weights)
+ * → radial planar embedding → iterative shape recovery (κ·Δ, reject if intersection) → normalize.
  */
 export function tree3DTo2D(
   positions: Vec3[],
@@ -583,7 +621,7 @@ export function tree3DTo2D(
   margin: number = 20,
   kappa: number = 0.1,
   epsilon: number = 1e-4,
-  maxIter: number = 200
+  maxIter: number = 50
 ): Vec2[] {
   const nodes = buildTreeData({ positions });
   orthographicProject(nodes, frame);
