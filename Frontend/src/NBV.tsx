@@ -27,6 +27,8 @@ export interface NBVProps {
   nbvActiveTrackIndices: number[];
   onApplyView?: (position: [number, number, number], target: [number, number, number]) => void;
   onNbvActiveTracksChange?: (indices: number[]) => void;
+  /** When user runs NBV with a range, call this so parent can filter displayed beads to only that range. */
+  onBeadRangeApply?: (start: number, end: number) => void;
   onClose?: () => void;
   onMinimize?: () => void;
   minimized?: boolean;
@@ -244,13 +246,25 @@ function selectTop10(views: Viewpoint[], scores: Record<string, number>, center:
   return out;
 }
 
-export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView, onNbvActiveTracksChange, onClose, onMinimize, minimized }: NBVProps) {
+const DEFAULT_MAX_BEADS = 110;
+
+export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView, onNbvActiveTracksChange, onBeadRangeApply, onClose, onMinimize, minimized }: NBVProps) {
   const [busy, setBusy] = useState(false);
   const [topViews, setTopViews] = useState<Viewpoint[]>([]);
   const [center, setCenter] = useState<Vec3>([0, 0, 0]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const maxBeads = beads.length > 0 ? beads.length : DEFAULT_MAX_BEADS;
+  const [rangeStartInput, setRangeStartInput] = useState("");
+  const [rangeEndInput, setRangeEndInput] = useState("");
 
   const activeSet = new Set(nbvActiveTrackIndices);
+
+  // Resolve bead range: default 1 to maxBeads; clamp and validate inputs
+  const getBeadRange = useCallback((): [number, number] => {
+    const start = rangeStartInput.trim() === "" ? 1 : Math.max(1, Math.min(maxBeads, parseInt(rangeStartInput, 10) || 1));
+    const end = rangeEndInput.trim() === "" ? maxBeads : Math.max(1, Math.min(maxBeads, parseInt(rangeEndInput, 10) || maxBeads));
+    return [Math.min(start, end), Math.max(start, end)];
+  }, [rangeStartInput, rangeEndInput, maxBeads]);
 
   const handleTrackToggle = useCallback(
     (i: number) => {
@@ -263,16 +277,19 @@ export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView,
   );
 
   const runPipeline = useCallback(() => {
+    const [start, end] = getBeadRange();
+    const beadsInRange = beads.slice(start - 1, end);
     const set = new Set(nbvActiveTrackIndices);
     const forCalc = tracks.map((t, i) => ({ ...t, active: set.has(i) }));
     const activeTracks = forCalc.filter((t) => t.active);
-    if (beads.length < 2 || activeTracks.length === 0) return;
+    if (beadsInRange.length < 2 || activeTracks.length === 0) return;
+    onBeadRangeApply?.(start, end);
     setBusy(true);
     requestAnimationFrame(() => {
-      const { center: c, dataRadius } = getCenterAndRadius(beads);
+      const { center: c, dataRadius } = getCenterAndRadius(beadsInRange);
       setCenter(c);
       const views = generateViewpoints(c, dataRadius);
-      const visibility = computeVisibility(views, forCalc, beads, c);
+      const visibility = computeVisibility(views, forCalc, beadsInRange, c);
       const pCond = computePCond(views, forCalc, visibility);
       const pMarginal = computePMarginal(views, forCalc, pCond);
       const pTarget = computePTarget(forCalc, pMarginal);
@@ -283,7 +300,7 @@ export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView,
       setBusy(false);
       if (top.length > 0) onApplyView?.(top[0].position, c);
     });
-  }, [beads, tracks, nbvActiveTrackIndices, onApplyView]);
+  }, [beads, tracks, nbvActiveTrackIndices, onApplyView, onBeadRangeApply, getBeadRange]);
 
   const goPrev = useCallback(() => {
     const prevIdx = Math.max(0, currentIndex - 1);
@@ -313,6 +330,31 @@ export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView,
               <span className="nbv__track-name">{t.name}</span>
             </label>
           ))}
+        </div>
+        <div className="nbv__range">
+          <input
+            type="number"
+            className="nbv__range-input"
+            placeholder="1"
+            min={1}
+            max={maxBeads}
+            value={rangeStartInput}
+            onChange={(e) => setRangeStartInput(e.target.value)}
+            title={`Bead range start (1–${maxBeads})`}
+            aria-label="Bead range from"
+          />
+          <span className="nbv__range-sep">–</span>
+          <input
+            type="number"
+            className="nbv__range-input"
+            placeholder={String(maxBeads)}
+            min={1}
+            max={maxBeads}
+            value={rangeEndInput}
+            onChange={(e) => setRangeEndInput(e.target.value)}
+            title={`Bead range end (1–${maxBeads})`}
+            aria-label="Bead range to"
+          />
         </div>
         <button type="button" className="nbv__btn nbv__btn--primary" onClick={runPipeline} disabled={busy || beads.length < 2}>
           {busy ? "…" : "NBV"}

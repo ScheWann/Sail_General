@@ -350,7 +350,14 @@ export default function ChromosomeTrack3D() {
   const [nbvMinimized, setNbvMinimized] = useState(false);
   const [nbvView, setNbvView] = useState<{ position: [number, number, number]; target: [number, number, number] } | null>(null);
   const [nbvPreviewTrackIndices, setNbvPreviewTrackIndices] = useState<number[]>([]);
+  const [beadRange, setBeadRange] = useState<[number, number] | null>(null);
   const prevNbvOpen = useRef(false);
+
+  const displayBeads = useMemo(() => {
+    if (!beadRange || beads.length === 0) return beads;
+    const [start, end] = beadRange;
+    return beads.slice(Math.max(0, start - 1), Math.min(beads.length, end));
+  }, [beads, beadRange]);
 
   const dataset = AVAILABLE_DATASETS[datasetIdx];
 
@@ -402,6 +409,7 @@ export default function ChromosomeTrack3D() {
         if (filtered.length === 0) throw new Error("No position data for selected sample");
 
         setBeads(matchBeadsToTracks(filtered, trkJson, names, true));
+        setBeadRange(null);
         setNbvView(null);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
@@ -575,6 +583,7 @@ export default function ChromosomeTrack3D() {
                 nbvActiveTrackIndices={nbvPreviewTrackIndices}
                 onApplyView={(position, target) => setNbvView({ position, target })}
                 onNbvActiveTracksChange={setNbvPreviewTrackIndices}
+                onBeadRangeApply={(start, end) => setBeadRange([start, end])}
                 minimized={nbvMinimized}
                 onClose={() => setNbvOpen(false)}
                 onMinimize={() => setNbvMinimized((m) => !m)}
@@ -589,7 +598,7 @@ export default function ChromosomeTrack3D() {
                   background: "#0a1929",
                 }}
               >
-                {nbvView && beads.length > 1 ? (
+                {nbvView && displayBeads.length > 1 ? (
                   <Canvas
                     camera={{ position: nbvView.position, fov: 60, near: 0.1, far: 100000 }}
                     style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}
@@ -599,7 +608,7 @@ export default function ChromosomeTrack3D() {
                     <ambientLight intensity={0.6} />
                     <directionalLight position={[100, 100, 100]} intensity={0.8} />
                     <ChromosomePipeline
-                      beads={beads}
+                      beads={displayBeads}
                       enabledTrackIndices={nbvPreviewTrackIndices.length > 0 ? nbvPreviewTrackIndices : enabledTrackIndices}
                       trackNames={trackNames}
                     />

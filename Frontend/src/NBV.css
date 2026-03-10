@@ -29,6 +29,7 @@
 }
 
 .nbv__bar--minimized .nbv__tracks,
+.nbv__bar--minimized .nbv__range,
 .nbv__bar--minimized .nbv__btn--primary,
 .nbv__bar--minimized .nbv__nav {
   display: none;
@@ -95,6 +96,39 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.nbv__range {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.nbv__range-input {
+  width: 2.2rem;
+  padding: 1px 3px;
+  font-size: 9px;
+  line-height: 1.2;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  color: #e0e0e0;
+  text-align: center;
+}
+
+.nbv__range-input::placeholder {
+  color: rgba(224, 224, 224, 0.5);
+}
+
+.nbv__range-input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.nbv__range-sep {
+  color: rgba(224, 224, 224, 0.6);
+  font-size: 9px;
 }
 
 .nbv__btn--primary {
