@@ -411,7 +411,16 @@ export default function ChromosomeTrack3D() {
   const [nbvSelectMode, setNbvSelectMode] = useState(false);
   const [selectionStart, setSelectionStart] = useState<number | null>(null);
   const [show2D, setShow2D] = useState(false);
+  /** View direction used for 2D projection only; fixed when 2D is toggled on so one projection (unchanged by next/prev). */
+  const [viewFor2DProjection, setViewFor2DProjection] = useState<{ position: [number, number, number]; target: [number, number, number] } | null>(null);
   const prevNbvOpen = useRef(false);
+
+  useEffect(() => {
+    if (show2D && nbvView) setViewFor2DProjection(nbvView);
+  }, [show2D]);
+  useEffect(() => {
+    if (show2D && nbvView && viewFor2DProjection === null) setViewFor2DProjection(nbvView);
+  }, [show2D, nbvView, viewFor2DProjection]);
 
   const handleBeadSelect = useCallback(
     (beadIndex: number) => {
@@ -437,11 +446,12 @@ export default function ChromosomeTrack3D() {
   const points2D = useMemo(() => {
     if (!show2D || displayBeads.length < 2) return null;
     const positions: Vec3[] = displayBeads.map((b) => b.position);
+    const view = viewFor2DProjection ?? nbvView;
     let w: Vec3;
-    if (nbvView) {
-      const dx = nbvView.target[0] - nbvView.position[0];
-      const dy = nbvView.target[1] - nbvView.position[1];
-      const dz = nbvView.target[2] - nbvView.position[2];
+    if (view) {
+      const dx = view.target[0] - view.position[0];
+      const dy = view.target[1] - view.position[1];
+      const dz = view.target[2] - view.position[2];
       const len = Math.hypot(dx, dy, dz) || 1;
       w = [dx / len, dy / len, dz / len];
     } else {
@@ -451,7 +461,7 @@ export default function ChromosomeTrack3D() {
     const W = 400;
     const H = 300;
     return tree3DTo2D(positions, frame, W, H, 20);
-  }, [show2D, displayBeads, nbvView]);
+  }, [show2D, displayBeads, viewFor2DProjection, nbvView]);
 
   const dataset = AVAILABLE_DATASETS[datasetIdx];
 
