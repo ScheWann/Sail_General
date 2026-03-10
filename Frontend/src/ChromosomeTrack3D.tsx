@@ -677,7 +677,7 @@ export default function ChromosomeTrack3D() {
               right: 0,
               width: "35vw",
               height: nbvMinimized ? 22 : "30vh",
-              minWidth: 300,
+              minWidth: 200,
               minHeight: nbvMinimized ? 22 : 140,
               borderRadius: "8px 8px 0 0",
               overflow: "hidden",

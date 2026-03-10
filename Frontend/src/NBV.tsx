@@ -173,56 +173,38 @@ function computeVisibility(views: Viewpoint[], tracks: NBVTrack[], beads: NBVBea
   return vis;
 }
 
-// p(o|v) from visibility
-function computePCond(views: Viewpoint[], tracks: NBVTrack[], visibility: Record<string, Record<string, number>>): Record<string, Record<string, number>> {
-  const pCond: Record<string, Record<string, number>> = {};
+/**
+ * Score views by visible track surface. For one track: pick view that maximizes that track's
+ * visible area. For multiple tracks: maximize sum of per-track normalized visibility so
+ * all tracks are shown as much as possible in the same ratio (balanced).
+ * Returns viewId -> score (higher = more visible surface).
+ */
+function computeVisibleSurfaceScores(
+  views: Viewpoint[],
+  tracks: NBVTrack[],
+  visibility: Record<string, Record<string, number>>,
+): Record<string, number> {
   const active = tracks.filter((t) => t.active);
-  for (const v of views) {
-    pCond[v.id] = {};
-    let total = 0;
-    for (const t of active) total += visibility[v.id][t.id] ?? 0;
-    const denom = Math.max(total, EPS);
-    for (const t of active) pCond[v.id][t.id] = (visibility[v.id][t.id] ?? 0) / denom;
-  }
-  return pCond;
-}
+  if (active.length === 0) return {};
 
-// p(o) = average over views of p(o|v)
-function computePMarginal(views: Viewpoint[], tracks: NBVTrack[], pCond: Record<string, Record<string, number>>): Record<string, number> {
-  const p: Record<string, number> = {};
-  const active = tracks.filter((t) => t.active);
-  const n = views.length;
+  // Per track: max visibility over all views (best possible for that track)
+  const maxVis: Record<string, number> = {};
   for (const t of active) {
-    let sum = 0;
-    for (const v of views) sum += pCond[v.id][t.id] ?? 0;
-    p[t.id] = sum / n;
+    let m = 0;
+    for (const v of views) m = Math.max(m, visibility[v.id]?.[t.id] ?? 0);
+    maxVis[t.id] = m;
   }
-  return p;
-}
 
-// p'(o) with importance (active=100, inactive=1)
-function computePTarget(tracks: NBVTrack[], pMarginal: Record<string, number>): Record<string, number> {
-  const pTarget: Record<string, number> = {};
-  const active = tracks.filter((t) => t.active);
-  let z = 0;
-  for (const t of active) z += (pMarginal[t.id] ?? 0) * (t.active ? 100 : 1);
-  z = Math.max(z, EPS);
-  for (const t of active) pTarget[t.id] = ((pMarginal[t.id] ?? 0) * (t.active ? 100 : 1)) / z;
-  return pTarget;
-}
-
-// VMI per view
-function computeVMI(views: Viewpoint[], tracks: NBVTrack[], pCond: Record<string, Record<string, number>>, pTarget: Record<string, number>): Record<string, number> {
+  // Per view: sum of (visibility / maxVis) so each track contributes 0..1; same ratio = balanced
   const scores: Record<string, number> = {};
-  const active = tracks.filter((t) => t.active);
   for (const v of views) {
-    let vmi = 0;
+    let s = 0;
     for (const t of active) {
-      const p = Math.max(pCond[v.id][t.id] ?? 0, EPS);
-      const q = Math.max(pTarget[t.id] ?? 0, EPS);
-      vmi += p * Math.log(p / q);
+      const vis = visibility[v.id]?.[t.id] ?? 0;
+      const mx = maxVis[t.id];
+      if (mx > EPS) s += vis / mx;
     }
-    scores[v.id] = vmi;
+    scores[v.id] = s;
   }
   return scores;
 }
@@ -238,9 +220,9 @@ function angleDiffDeg(posA: Vec3, posB: Vec3, center: Vec3): number {
   return (rad * 180) / Math.PI;
 }
 
-// Top 10 views with at least 45° between any two
+// Top 10 views with at least 45° between any two (higher score = better; best view first)
 function selectTop10(views: Viewpoint[], scores: Record<string, number>, center: Vec3): Viewpoint[] {
-  const sorted = [...views].sort((a, b) => scores[a.id] - scores[b.id]);
+  const sorted = [...views].sort((a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0));
   const out: Viewpoint[] = [];
   for (const v of sorted) {
     let ok = true;
@@ -293,6 +275,7 @@ export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView,
     [nbvActiveTrackIndices, onNbvActiveTracksChange]
   );
 
+  // Recalculate NBV from current node range (start/end inputs). First view in list is the best view.
   const runPipeline = useCallback(() => {
     const [start, end] = getBeadRange();
     const beadsInRange = beads.slice(start - 1, end);
@@ -307,14 +290,12 @@ export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView,
       setCenter(c);
       const views = generateViewpoints(c, dataRadius);
       const visibility = computeVisibility(views, forCalc, beadsInRange, c);
-      const pCond = computePCond(views, forCalc, visibility);
-      const pMarginal = computePMarginal(views, forCalc, pCond);
-      const pTarget = computePTarget(forCalc, pMarginal);
-      const scores = computeVMI(views, forCalc, pCond, pTarget);
+      const scores = computeVisibleSurfaceScores(views, forCalc, visibility);
       const top = selectTop10(views, scores, c);
       setTopViews(top);
       setCurrentIndex(0);
       setBusy(false);
+      // Apply best view first (index 0 is highest visible-surface score)
       if (top.length > 0) onApplyView?.(top[0].position, c);
     });
   }, [beads, tracks, nbvActiveTrackIndices, onApplyView, onBeadRangeApply, getBeadRange]);
