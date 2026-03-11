@@ -328,7 +328,15 @@ function ChromosomePipeline({
         <meshBasicMaterial vertexColors transparent opacity={0.8 * opacity} side={THREE.DoubleSide} />
       </mesh>
       <mesh geometry={rectGeo}>
-        <meshBasicMaterial vertexColors transparent opacity={1 * opacity} side={THREE.DoubleSide} />
+        <meshBasicMaterial
+          vertexColors
+          transparent
+          opacity={1 * opacity}
+          side={THREE.DoubleSide}
+          polygonOffset
+          polygonOffsetFactor={-2}
+          polygonOffsetUnits={-2}
+        />
       </mesh>
       <mesh geometry={tubeGeo}>
         <meshStandardMaterial color="#ffffff" transparent opacity={0.9 * opacity} metalness={0.3} roughness={0.4} />
