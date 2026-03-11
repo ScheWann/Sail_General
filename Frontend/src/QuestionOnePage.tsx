@@ -31,6 +31,102 @@ const PEAK_MIN_HEIGHT = 0.25;
 const PEAK_MIN_DISTANCE = 3;
 const PEAK_LABELS = "ABCDEF".split("");
 
+/** Build and download results as a readable JSON file, organized by Phase-Question */
+function downloadResultsFile(data: {
+  answers: Array<{ similarity: number | null; confidence: number | null }>;
+  phase1Times: number[];
+  phase2Results: Array<{ correctAnswer: string; userAnswer: string | null; correct: boolean; timeSpentMs: number }>;
+  phase3Results: Array<{ correctBeadIndex: number; userBeadIndex: number | null; correct: boolean; timeSpentMs: number }>;
+  phase4Results: Array<{ userAnswer: number | null; timeSpentMs: number }>;
+  phase5Results: Array<{ correctAnswer: number; userAnswer: number | null; correct: boolean; timeSpentMs: number; confidence: number | null }>;
+}) {
+  const { answers, phase1Times, phase2Results, phase3Results, phase4Results, phase5Results } = data;
+
+  const results: Record<string, unknown> = {};
+
+  // Phase 1: similarity & confidence (no correct answer)
+  for (let i = 0; i < NUM_QUESTIONS; i++) {
+    const key = `Phase1-Question${i + 1}`;
+    results[key] = {
+      timeSpentMs: phase1Times[i] ?? null,
+      timeSpentSeconds: phase1Times[i] != null ? (phase1Times[i] / 1000).toFixed(2) : null,
+      similarity: answers[i]?.similarity ?? null,
+      confidence: answers[i]?.confidence ?? null,
+    };
+  }
+
+  // Phase 2: has correct answer
+  for (let i = 0; i < phase2Results.length; i++) {
+    const r = phase2Results[i];
+    const key = `Phase2-Question${i + 1}`;
+    results[key] = {
+      timeSpentMs: r.timeSpentMs,
+      timeSpentSeconds: (r.timeSpentMs / 1000).toFixed(2),
+      correct: r.correct,
+      userAnswer: r.userAnswer,
+      correctAnswer: r.correctAnswer,
+    };
+  }
+
+  // Phase 3: has correct answer (bead index)
+  for (let i = 0; i < phase3Results.length; i++) {
+    const r = phase3Results[i];
+    const key = `Phase3-Question${i + 1}`;
+    results[key] = {
+      timeSpentMs: r.timeSpentMs,
+      timeSpentSeconds: (r.timeSpentMs / 1000).toFixed(2),
+      correct: r.correct,
+      userBeadIndex: r.userBeadIndex,
+      correctBeadIndex: r.correctBeadIndex,
+    };
+  }
+
+  // Phase 4: confidence only (no correct answer)
+  for (let i = 0; i < phase4Results.length; i++) {
+    const r = phase4Results[i];
+    const key = `Phase4-Question${i + 1}`;
+    results[key] = {
+      timeSpentMs: r.timeSpentMs,
+      timeSpentSeconds: (r.timeSpentMs / 1000).toFixed(2),
+      userAnswer: r.userAnswer,
+    };
+  }
+
+  // Phase 5: has correct answer
+  for (let i = 0; i < phase5Results.length; i++) {
+    const r = phase5Results[i];
+    const key = `Phase5-Question${i + 1}`;
+    results[key] = {
+      timeSpentMs: r.timeSpentMs,
+      timeSpentSeconds: (r.timeSpentMs / 1000).toFixed(2),
+      correct: r.correct,
+      userAnswer: r.userAnswer,
+      correctAnswer: r.correctAnswer,
+      confidence: r.confidence,
+    };
+  }
+
+  const exportData = {
+    exportedAt: new Date().toISOString(),
+    summary: {
+      totalQuestions: NUM_QUESTIONS + NUM_PHASE2_QUESTIONS + NUM_PHASE3_QUESTIONS + NUM_PHASE4_QUESTIONS + NUM_PHASE5_QUESTIONS,
+      phase2Correct: phase2Results.filter((r) => r.correct).length,
+      phase3Correct: phase3Results.filter((r) => r.correct).length,
+      phase5Correct: phase5Results.filter((r) => r.correct).length,
+    },
+    results,
+  };
+
+  const json = JSON.stringify(exportData, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `chromvis-results-${new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function colorToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
@@ -545,6 +641,7 @@ export default function QuestionOnePage() {
     Array<{ correctAnswer: number; userAnswer: number | null; correct: boolean; timeSpentMs: number; confidence: number | null }>
   >([]);
   const [phase1Times, setPhase1Times] = useState<number[]>([]);
+  const [phase1Q1TimerStarted, setPhase1Q1TimerStarted] = useState(false);
   const [gamma, setGamma] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -909,38 +1006,45 @@ export default function QuestionOnePage() {
     });
   };
 
-  const handlePrevious = () => {
-    if (phase === 1 && currentBlock > 0) {
-      setCurrentBlock((c) => c - 1);
-    } else if (phase === 2 && currentBlock > 0) {
-      setCurrentBlock((c) => c - 1);
-    } else if (phase === 2 && currentBlock === 0) {
-      setPhase(1);
-      setCurrentBlock(NUM_QUESTIONS - 1);
-    } else if (phase === 3 && currentBlock > 0) {
-      setCurrentBlock((c) => c - 1);
-      setPhase3HoveredBead(null);
-    } else if (phase === 3 && currentBlock === 0) {
-      setPhase(2);
-      setCurrentBlock(NUM_PHASE2_QUESTIONS - 1);
-      setPhase3HoveredBead(null);
-    } else if (phase === 4 && currentBlock > 0) {
-      setCurrentBlock((c) => c - 1);
-    } else if (phase === 4 && currentBlock === 0) {
-      setPhase(3);
-      setCurrentBlock(NUM_PHASE3_QUESTIONS - 1);
-      setPhase3HoveredBead(null);
-    } else if (phase === 5 && currentBlock > 0) {
-      setCurrentBlock((c) => c - 1);
-    } else if (phase === 5 && currentBlock === 0) {
-      setPhase(4);
-      setCurrentBlock(NUM_PHASE4_QUESTIONS - 1);
-    }
-  };
-
   const handleNext = () => {
+    // Validate: current question must be answered before proceeding
+    if (phase === 1) {
+      if (currentBlock === 0 && !phase1Q1TimerStarted) {
+        window.alert("Please click Start to begin the timer before proceeding.");
+        return;
+      }
+      const a = answers[currentBlock];
+      if (a == null || a.similarity == null || a.confidence == null) {
+        window.alert("Please complete both similarity and confidence ratings for this question before proceeding.");
+        return;
+      }
+    } else if (phase === 2) {
+      if (phase2Answers[currentBlock] == null) {
+        window.alert("Please select your answer for this question before proceeding.");
+        return;
+      }
+    } else if (phase === 3) {
+      if (phase3Answers[currentBlock] == null) {
+        window.alert("Please click the corresponding bead on the 3D chromosome to complete this question before proceeding.");
+        return;
+      }
+    } else if (phase === 4) {
+      if (phase4Answers[currentBlock] == null) {
+        window.alert("Please complete the confidence rating for this question before proceeding.");
+        return;
+      }
+    } else if (phase === 5) {
+      const ans = phase5AnswersRef.current[currentBlock];
+      const conf = phase5ConfidenceRef.current[currentBlock];
+      if (ans == null || conf == null) {
+        window.alert("Please complete both value selection and confidence rating for this question before proceeding.");
+        return;
+      }
+    }
+
     const timeSpentMs = Date.now() - questionStartTimeRef.current;
     questionStartTimeRef.current = Date.now();
+    setGamma(1); // Reset gamma when moving to next question
 
     if (phase === 1) {
       setPhase1Times((prev) => [...prev, timeSpentMs]);
@@ -1013,24 +1117,34 @@ export default function QuestionOnePage() {
         setCurrentBlock(0);
       }
     } else {
+      let lastPhase5Result: { correctAnswer: number; userAnswer: number | null; correct: boolean; timeSpentMs: number; confidence: number | null } | null = null;
       if (phase5Block && phase5Results.length <= currentBlock) {
         const userAns = phase5AnswersRef.current[currentBlock];
         const correct = userAns === phase5Block.correctAnswer;
         const conf = phase5ConfidenceRef.current[currentBlock];
+        lastPhase5Result = {
+          correctAnswer: phase5Block.correctAnswer,
+          userAnswer: userAns,
+          correct,
+          timeSpentMs,
+          confidence: conf,
+        };
         console.log(`[Phase 5] Question ${currentBlock + 1} completed in ${(timeSpentMs / 1000).toFixed(2)} seconds | Your answer ${userAns}, correct ${phase5Block.correctAnswer}, confidence ${conf} → ${correct ? "✓" : "✗"}`);
-        setPhase5Results((prev) => [
-          ...prev,
-          {
-            correctAnswer: phase5Block.correctAnswer,
-            userAnswer: userAns,
-            correct,
-            timeSpentMs,
-            confidence: phase5ConfidenceRef.current[currentBlock],
-          },
-        ]);
+        setPhase5Results((prev) => [...prev, lastPhase5Result!]);
       }
       if (currentBlock < NUM_PHASE5_QUESTIONS - 1) {
         setCurrentBlock((c) => c + 1);
+      } else {
+        // All questions complete — export results to file
+        const phase5Full = lastPhase5Result != null ? [...phase5Results, lastPhase5Result] : phase5Results;
+        downloadResultsFile({
+          answers,
+          phase1Times,
+          phase2Results,
+          phase3Results,
+          phase4Results,
+          phase5Results: phase5Full,
+        });
       }
     }
   };
@@ -1066,8 +1180,10 @@ export default function QuestionOnePage() {
   }, [phase5Results]);
 
   useEffect(() => {
+    // Don't start timer for Phase 1 Q1 until user clicks Start
+    if (phase === 1 && currentBlock === 0 && !phase1Q1TimerStarted) return;
     questionStartTimeRef.current = Date.now();
-  }, [phase, currentBlock]);
+  }, [phase, currentBlock, phase1Q1TimerStarted]);
 
   useEffect(() => {
     if (phase === 3 && phase3HoveredBead != null) {
@@ -1608,21 +1724,12 @@ export default function QuestionOnePage() {
       )}
 
       {/* ── Footer ── */}
-      <div style={footerStyle}>
-        <button
-          style={{
-            ...btnStyle,
-            ...(phase === 1 && currentBlock === 0
-              ? { opacity: 0.5, cursor: "not-allowed" }
-              : phase === 2 && currentBlock === 0
-                ? { opacity: 0.5, cursor: "not-allowed" }
-                : {}),
-          }}
-          onClick={handlePrevious}
-          disabled={(phase === 1 && currentBlock === 0) || (phase === 2 && currentBlock === 0)}
-        >
-          ← Previous
-        </button>
+      <div style={{ ...footerStyle, ...(phase === 1 && currentBlock === 0 && !phase1Q1TimerStarted ? { justifyContent: "space-between" } : {}) }}>
+        {phase === 1 && currentBlock === 0 && !phase1Q1TimerStarted && (
+          <button style={btnStyle} onClick={() => { setPhase1Q1TimerStarted(true); questionStartTimeRef.current = Date.now(); }}>
+            Start
+          </button>
+        )}
         <button
           style={btnStyle}
           onClick={handleNext}
@@ -1881,7 +1988,7 @@ const peakOptionBtnActiveStyle: React.CSSProperties = {
 
 const footerStyle: React.CSSProperties = {
   display: "flex",
-  justifyContent: "space-between",
+  justifyContent: "flex-end",
   alignItems: "center",
   padding: "12px 32px",
   background: "rgba(255,255,255,0.04)",
