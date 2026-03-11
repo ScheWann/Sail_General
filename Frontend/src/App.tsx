@@ -1,7 +1,7 @@
-import ChromosomeTrack3D from "./ChromosomeTrack3D";
+import QuestionOnePage from "./QuestionOnePage";
 
 function App() {
-  return <ChromosomeTrack3D />;
+  return <QuestionOnePage />;
 }
 
 export default App;

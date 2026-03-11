@@ -5,7 +5,7 @@ import * as THREE from "three";
 
 // ── Data types ──────────────────────────────────────────────────────────────
 
-interface SampleData {
+export interface SampleData {
   pid: number;
   cell_line: string;
   chrId: string;
@@ -17,13 +17,13 @@ interface SampleData {
   z: number;
 }
 
-interface BeadData {
+export interface BeadData {
   position: [number, number, number];
   trackValues: number[];
   sampleData: SampleData;
 }
 
-interface TracksJson {
+export interface TracksJson {
   region: { chromosome: string; start: number; end: number; bin_size: number };
   tracks: Record<string, { raw: number[]; normalized: number[] }>;
 }
@@ -56,7 +56,7 @@ function getTrackColor(index: number): string {
 
 // ── Data helpers ────────────────────────────────────────────────────────────
 
-function parsePositionCsv(text: string): SampleData[] {
+export function parsePositionCsv(text: string): SampleData[] {
   const lines = text.trim().split("\n");
   const result: SampleData[] = [];
   for (let i = 1; i < lines.length; i++) {
@@ -77,7 +77,7 @@ function parsePositionCsv(text: string): SampleData[] {
   return result;
 }
 
-function matchBeadsToTracks(
+export function matchBeadsToTracks(
   samples: SampleData[],
   tracksJson: TracksJson,
   trackNames: string[],
@@ -101,16 +101,25 @@ function matchBeadsToTracks(
 
 // ── 3D track pipeline ─────────
 
-function ChromosomePipeline({
+const START_BEAD_COLOR = "#22c55e";
+const END_BEAD_COLOR = "#ef4444";
+const HIGHLIGHT_PEAK_COLOR = "#f59e0b"; // amber
+const ENDPOINT_SCALE = 2.5;
+
+export function ChromosomePipeline({
   beads,
   enabledTrackIndices,
   trackNames: _trackNames,
   opacity = 1,
+  highlightStartEnd = false,
+  highlightedBeadIndex,
 }: {
   beads: BeadData[];
   enabledTrackIndices?: number[];
   trackNames: string[];
   opacity?: number;
+  highlightStartEnd?: boolean;
+  highlightedBeadIndex?: number;
 }) {
   const totalTracks = beads[0]?.trackValues.length || 1;
   const activeTrackIndices =
@@ -120,12 +129,28 @@ function ChromosomePipeline({
   const maxRadarRadius = 20;
   const scale = 1;
 
-  // Instanced mesh ref for bead spheres
+  const beadIndicesToRender = useMemo(() => {
+    const exclude = new Set<number>();
+    if (highlightStartEnd && beads.length >= 2) {
+      exclude.add(0);
+      exclude.add(beads.length - 1);
+    }
+    if (highlightedBeadIndex != null && highlightedBeadIndex >= 0 && highlightedBeadIndex < beads.length) {
+      exclude.add(highlightedBeadIndex);
+    }
+    return beads
+      .map((_, i) => i)
+      .filter((i) => !exclude.has(i));
+  }, [beads, highlightStartEnd, highlightedBeadIndex]);
+
+  const middleBeads = beadIndicesToRender.map((i) => beads[i]);
+
+  // Instanced mesh ref for bead spheres (excludes start, end, and highlighted)
   const beadMeshRef = useRef<THREE.InstancedMesh>(null);
   useEffect(() => {
     if (!beadMeshRef.current) return;
     const dummy = new THREE.Object3D();
-    beads.forEach((bead, i) => {
+    middleBeads.forEach((bead, i) => {
       dummy.position.set(
         bead.position[0] * scale,
         bead.position[1] * scale,
@@ -135,7 +160,7 @@ function ChromosomePipeline({
       beadMeshRef.current!.setMatrixAt(i, dummy.matrix);
     });
     beadMeshRef.current.instanceMatrix.needsUpdate = true;
-  }, [beads]);
+  }, [middleBeads]);
 
   if (beads.length < 2 || numTracks === 0) return null;
 
@@ -344,11 +369,39 @@ function ChromosomePipeline({
       <lineSegments geometry={rpGeo}>
         <lineBasicMaterial vertexColors linewidth={3} transparent opacity={0.9 * opacity} />
       </lineSegments>
-      {/* Bead spheres rendered via instanced mesh */}
-      <instancedMesh ref={beadMeshRef} args={[undefined, undefined, beads.length]}>
-        <sphereGeometry args={[beadRadius * 5, 10, 8]} />
-        <meshStandardMaterial color="#ffffff" metalness={0.5} roughness={0.3} transparent opacity={opacity} />
-      </instancedMesh>
+      {/* Bead spheres: instanced mesh for middle beads */}
+      {middleBeads.length > 0 && (
+        <instancedMesh ref={beadMeshRef} args={[undefined, undefined, middleBeads.length]}>
+          <sphereGeometry args={[beadRadius * 5, 10, 8]} />
+          <meshStandardMaterial color="#ffffff" metalness={0.5} roughness={0.3} transparent opacity={opacity} />
+        </instancedMesh>
+      )}
+      {/* Enlarged start/end beads when highlightStartEnd */}
+      {highlightStartEnd && beads.length >= 2 && (
+        <>
+          <mesh position={[beads[0].position[0] * scale, beads[0].position[1] * scale, beads[0].position[2] * scale]}>
+            <sphereGeometry args={[beadRadius * 5 * ENDPOINT_SCALE, 16, 12]} />
+            <meshStandardMaterial color={START_BEAD_COLOR} metalness={0.4} roughness={0.35} transparent opacity={opacity} />
+          </mesh>
+          <mesh position={[beads[beads.length - 1].position[0] * scale, beads[beads.length - 1].position[1] * scale, beads[beads.length - 1].position[2] * scale]}>
+            <sphereGeometry args={[beadRadius * 5 * ENDPOINT_SCALE, 16, 12]} />
+            <meshStandardMaterial color={END_BEAD_COLOR} metalness={0.4} roughness={0.35} transparent opacity={opacity} />
+          </mesh>
+        </>
+      )}
+      {/* Enlarged highlighted bead (e.g. for "which peak" question) */}
+      {highlightedBeadIndex != null && highlightedBeadIndex >= 0 && highlightedBeadIndex < beads.length && (
+        <mesh
+          position={[
+            beads[highlightedBeadIndex].position[0] * scale,
+            beads[highlightedBeadIndex].position[1] * scale,
+            beads[highlightedBeadIndex].position[2] * scale,
+          ]}
+        >
+          <sphereGeometry args={[beadRadius * 5 * ENDPOINT_SCALE, 16, 12]} />
+          <meshStandardMaterial color={HIGHLIGHT_PEAK_COLOR} metalness={0.4} roughness={0.35} transparent opacity={opacity} />
+        </mesh>
+      )}
     </group>
   );
 }
