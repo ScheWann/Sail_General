@@ -17,6 +17,7 @@ const REGION_START = 127_200_000;
 const BIN_SIZE = 5_000;
 const NUM_QUESTIONS = 5;
 const NUM_PHASE2_QUESTIONS = 5;
+const NUM_PHASE3_QUESTIONS = 5;
 const PEAK_MIN_HEIGHT = 0.25;
 const PEAK_MIN_DISTANCE = 3;
 const PEAK_LABELS = "ABCDEF".split("");
@@ -221,16 +222,6 @@ function LineChart({
       .attr("fill", "#b0bec5")
       .attr("font-size", 12)
       .text("Normalized Signal");
-
-    // Track name label
-    svg
-      .append("text")
-      .attr("x", margin.left)
-      .attr("y", 22)
-      .attr("fill", "#45b7d1")
-      .attr("font-size", 13)
-      .attr("font-weight", "600")
-      .text(trackName);
   }, [values, trackName]);
 
   return (
@@ -312,7 +303,6 @@ function LineChartWithPeaks({
 
     svg.append("text").attr("x", W / 2).attr("y", H - 8).attr("text-anchor", "middle").attr("fill", "#b0bec5").attr("font-size", 12).text("Genomic Position (chr8)");
     svg.append("text").attr("transform", "rotate(-90)").attr("x", -(H / 2)).attr("y", 14).attr("text-anchor", "middle").attr("fill", "#b0bec5").attr("font-size", 12).text("Normalized Signal");
-    svg.append("text").attr("x", margin.left).attr("y", 22).attr("fill", "#45b7d1").attr("font-size", 13).attr("font-weight", "600").text(trackName);
 
     peaks.forEach((peak) => {
       const x = xScale(genomicPositions[peak.index]);
@@ -327,6 +317,101 @@ function LineChartWithPeaks({
         .text(peak.label);
     });
   }, [values, trackName, peaks]);
+
+  return <svg ref={svgRef} style={{ width: "100%", height: "100%", display: "block" }} />;
+}
+
+// ── D3 Line Chart with single peak highlight (for Phase 3) ───────────────────
+
+function LineChartWithSinglePeakHighlight({
+  values,
+  trackName,
+  peak,
+}: {
+  values: number[];
+  trackName: string;
+  peak: Peak;
+}) {
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    if (!svgRef.current || values.length === 0) return;
+
+    const container = svgRef.current.parentElement;
+    const W = container?.clientWidth ?? 500;
+    const H = container?.clientHeight ?? 400;
+    const margin = { top: 40, right: 30, bottom: 60, left: 60 };
+    const width = W - margin.left - margin.right;
+    const height = H - margin.top - margin.bottom;
+
+    d3.select(svgRef.current).selectAll("*").remove();
+
+    const svg = d3.select(svgRef.current).attr("width", W).attr("height", H);
+    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const genomicPositions = values.map((_, i) => REGION_START + i * BIN_SIZE);
+    const xScale = d3
+      .scaleLinear()
+      .domain([genomicPositions[0], genomicPositions[genomicPositions.length - 1]])
+      .range([0, width]);
+    const yScale = d3.scaleLinear().domain([0, 1]).range([height, 0]);
+
+    const area = d3
+      .area<number>()
+      .x((_, i) => xScale(genomicPositions[i]))
+      .y0(height)
+      .y1((d) => yScale(d))
+      .curve(d3.curveCatmullRom.alpha(0.5));
+    g.append("path").datum(values).attr("fill", "rgba(69,183,209,0.15)").attr("d", area);
+
+    const line = d3
+      .line<number>()
+      .x((_, i) => xScale(genomicPositions[i]))
+      .y((d) => yScale(d))
+      .curve(d3.curveCatmullRom.alpha(0.5));
+    g.append("path").datum(values).attr("fill", "none").attr("stroke", "#45b7d1").attr("stroke-width", 2).attr("d", line);
+
+    const xAxis = d3.axisBottom(xScale).ticks(5).tickFormat((d) => `${(+d / 1_000_000).toFixed(2)} Mb`);
+    g.append("g").attr("transform", `translate(0,${height})`).call(xAxis).call((ax) => {
+      ax.selectAll("text").attr("fill", "#b0bec5").attr("font-size", 11);
+      ax.selectAll("line, path").attr("stroke", "rgba(255,255,255,0.2)");
+    });
+
+    const yAxis = d3.axisLeft(yScale).ticks(5);
+    g.append("g").call(yAxis).call((ax) => {
+      ax.selectAll("text").attr("fill", "#b0bec5").attr("font-size", 11);
+      ax.selectAll("line, path").attr("stroke", "rgba(255,255,255,0.2)");
+    });
+
+    g.append("g")
+      .call(d3.axisLeft(yScale).ticks(5).tickSize(-width).tickFormat(() => ""))
+      .call((ax) => {
+        ax.selectAll("line").attr("stroke", "rgba(255,255,255,0.06)");
+        ax.select(".domain").remove();
+      });
+
+    svg.append("text").attr("x", W / 2).attr("y", H - 8).attr("text-anchor", "middle").attr("fill", "#b0bec5").attr("font-size", 12).text("Genomic Position (chr8)");
+    svg.append("text").attr("transform", "rotate(-90)").attr("x", -(H / 2)).attr("y", 14).attr("text-anchor", "middle").attr("fill", "#b0bec5").attr("font-size", 12).text("Normalized Signal");
+
+    // Highlight only this peak: glowing circle + label
+    const x = xScale(genomicPositions[peak.index]);
+    const y = yScale(peak.value);
+    g.append("circle")
+      .attr("cx", x)
+      .attr("cy", y)
+      .attr("r", 14)
+      .attr("fill", "rgba(245,158,11,0.25)")
+      .attr("stroke", "#f59e0b")
+      .attr("stroke-width", 3);
+    g.append("text")
+      .attr("x", x)
+      .attr("y", y - 22)
+      .attr("text-anchor", "middle")
+      .attr("fill", "#f59e0b")
+      .attr("font-size", 16)
+      .attr("font-weight", "700")
+      .text(peak.label);
+  }, [values, trackName, peak]);
 
   return <svg ref={svgRef} style={{ width: "100%", height: "100%", display: "block" }} />;
 }
@@ -352,9 +437,10 @@ interface Phase2BlockData {
 }
 
 export default function QuestionOnePage() {
-  const [phase, setPhase] = useState<1 | 2>(1);
+  const [phase, setPhase] = useState<1 | 2 | 3>(1);
   const [blocks, setBlocks] = useState<BlockData[]>([]);
   const [phase2Blocks, setPhase2Blocks] = useState<Phase2BlockData[]>([]);
+  const [phase3Blocks, setPhase3Blocks] = useState<Phase2BlockData[]>([]);
   const [currentBlock, setCurrentBlock] = useState(0);
   const [answers, setAnswers] = useState<Array<{ similarity: number | null; confidence: number | null }>>(
     Array(NUM_QUESTIONS).fill(null).map(() => ({ similarity: null, confidence: null })),
@@ -363,10 +449,20 @@ export default function QuestionOnePage() {
     Array(NUM_PHASE2_QUESTIONS).fill(null),
   );
   const [phase2Results, setPhase2Results] = useState<
-    Array<{ correctAnswer: string; userAnswer: string | null; correct: boolean }>
+    Array<{ correctAnswer: string; userAnswer: string | null; correct: boolean; timeSpentMs: number }>
   >([]);
+  const [phase3Answers, setPhase3Answers] = useState<(number | null)[]>(
+    Array(NUM_PHASE3_QUESTIONS).fill(null),
+  );
+  const [phase3Results, setPhase3Results] = useState<
+    Array<{ correctBeadIndex: number; userBeadIndex: number | null; correct: boolean; timeSpentMs: number }>
+  >([]);
+  const [phase3HoveredBead, setPhase3HoveredBead] = useState<number | null>(null);
+  const [phase1Times, setPhase1Times] = useState<number[]>([]);
+  const [gamma, setGamma] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const questionStartTimeRef = useRef<number>(Date.now());
 
   // Load data and prepare 5 random (track, sample) blocks
   useEffect(() => {
@@ -393,6 +489,7 @@ export default function QuestionOnePage() {
 
         const built: BlockData[] = [];
         const builtPhase2: Phase2BlockData[] = [];
+        const builtPhase3: Phase2BlockData[] = [];
 
         for (let i = 0; i < NUM_QUESTIONS; i++) {
           const trackIdx = Math.floor(Math.random() * allTrackNames.length);
@@ -491,9 +588,78 @@ export default function QuestionOnePage() {
           }
         }
 
+        for (let i = 0; i < NUM_PHASE3_QUESTIONS; i++) {
+          let attempts = 0;
+          const maxAttempts = 20;
+          while (attempts < maxAttempts) {
+            const trackIdx = Math.floor(Math.random() * allTrackNames.length);
+            const chosenName = allTrackNames[trackIdx];
+            const trackVals = trkJson.tracks[chosenName].normalized;
+            const peaks = detectPeaks(trackVals);
+            if (peaks.length < 2) {
+              attempts++;
+              continue;
+            }
+            const sampleIdx = Math.floor(Math.random() * sampleIds.length);
+            const chosenSampleId = sampleIds[sampleIdx];
+            const singleTrackJson: TracksJson = {
+              region: trkJson.region,
+              tracks: { [chosenName]: trkJson.tracks[chosenName] },
+            };
+            const filtered = allSamples
+              .filter((s) => s.sampleId === chosenSampleId)
+              .sort((a, b) => a.start_value - b.start_value);
+            const beadsData = matchBeadsToTracks(
+              filtered,
+              singleTrackJson,
+              [chosenName],
+              true,
+            );
+            const highlightIdx = Math.floor(Math.random() * peaks.length);
+            const highlightedPeak = peaks[highlightIdx];
+            const beadIndex = Math.min(highlightedPeak.index, beadsData.length - 1);
+            builtPhase3.push({
+              trackName: chosenName,
+              trackValues: trackVals,
+              beads: beadsData,
+              sampleId: chosenSampleId,
+              peaks,
+              highlightedPeakIndex: highlightIdx,
+              highlightedBeadIndex: beadIndex,
+              correctAnswer: highlightedPeak.label,
+            });
+            break;
+          }
+          if (builtPhase3.length <= i) {
+            const fallbackBeads = matchBeadsToTracks(
+              allSamples
+                .filter((s) => s.sampleId === sampleIds[0])
+                .sort((a, b) => a.start_value - b.start_value),
+              {
+                region: trkJson.region,
+                tracks: { [allTrackNames[0]]: trkJson.tracks[allTrackNames[0]] },
+              },
+              [allTrackNames[0]],
+              true,
+            );
+            const fallbackPeaks = [{ index: 10, value: 0.5, label: "A" }, { index: Math.min(50, fallbackBeads.length - 1), value: 0.5, label: "B" }];
+            builtPhase3.push({
+              trackName: allTrackNames[0],
+              trackValues: trkJson.tracks[allTrackNames[0]].normalized,
+              beads: fallbackBeads,
+              sampleId: sampleIds[0],
+              peaks: fallbackPeaks,
+              highlightedPeakIndex: 0,
+              highlightedBeadIndex: Math.min(10, fallbackBeads.length - 1),
+              correctAnswer: "A",
+            });
+          }
+        }
+
         if (!cancelled) {
           setBlocks(built);
           setPhase2Blocks(builtPhase2);
+          setPhase3Blocks(builtPhase3);
         }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
@@ -507,6 +673,7 @@ export default function QuestionOnePage() {
 
   const block = blocks[currentBlock];
   const phase2Block = phase2Blocks[currentBlock];
+  const phase3Block = phase3Blocks[currentBlock];
   const enabledTrackIndices = useMemo(() => [0], []);
 
   const handleSimilarity = (v: number) => {
@@ -532,33 +699,78 @@ export default function QuestionOnePage() {
     } else if (phase === 2 && currentBlock === 0) {
       setPhase(1);
       setCurrentBlock(NUM_QUESTIONS - 1);
+    } else if (phase === 3 && currentBlock > 0) {
+      setCurrentBlock((c) => c - 1);
+      setPhase3HoveredBead(null);
+    } else if (phase === 3 && currentBlock === 0) {
+      setPhase(2);
+      setCurrentBlock(NUM_PHASE2_QUESTIONS - 1);
+      setPhase3HoveredBead(null);
     }
   };
 
   const handleNext = () => {
+    const timeSpentMs = Date.now() - questionStartTimeRef.current;
+    questionStartTimeRef.current = Date.now();
+
     if (phase === 1) {
+      setPhase1Times((prev) => [...prev, timeSpentMs]);
+      console.log(`[Phase 1] Question ${currentBlock + 1} completed in ${(timeSpentMs / 1000).toFixed(2)} seconds`);
       if (currentBlock < NUM_QUESTIONS - 1) {
         setCurrentBlock((c) => c + 1);
       } else {
         setPhase(2);
         setCurrentBlock(0);
       }
-    } else {
+    } else if (phase === 2) {
       if (phase2Block && phase2Results.length <= currentBlock) {
+        const correct = phase2Answers[currentBlock] === phase2Block.correctAnswer;
+        console.log(`[Phase 2] Question ${currentBlock + 1} completed in ${(timeSpentMs / 1000).toFixed(2)} seconds | Your answer "${phase2Answers[currentBlock]}", correct answer "${phase2Block.correctAnswer}" → ${correct ? "✓ Correct" : "✗ Incorrect"}`);
         setPhase2Results((prev) => [
           ...prev,
           {
             correctAnswer: phase2Block.correctAnswer,
             userAnswer: phase2Answers[currentBlock],
-            correct: phase2Answers[currentBlock] === phase2Block.correctAnswer,
+            correct,
+            timeSpentMs,
           },
         ]);
       }
       if (currentBlock < NUM_PHASE2_QUESTIONS - 1) {
         setCurrentBlock((c) => c + 1);
+      } else {
+        setPhase(3);
+        setCurrentBlock(0);
+        setPhase3HoveredBead(null);
+      }
+    } else {
+      if (phase3Block && phase3Results.length <= currentBlock) {
+        const userIdx = phase3Answers[currentBlock];
+        const targetIdx = phase3Block.highlightedBeadIndex;
+        const correct = userIdx != null && Math.abs(userIdx - targetIdx) <= 1;
+        console.log(`[Phase 3] Question ${currentBlock + 1} completed in ${(timeSpentMs / 1000).toFixed(2)} seconds | Your selected bead index ${userIdx}, correct bead index ${targetIdx} (tolerance ±1) → ${correct ? "✓ Correct" : "✗ Incorrect"}`);
+        setPhase3Results((prev) => [
+          ...prev,
+          {
+            correctBeadIndex: phase3Block.highlightedBeadIndex,
+            userBeadIndex: phase3Answers[currentBlock],
+            correct,
+            timeSpentMs,
+          },
+        ]);
+      }
+      if (currentBlock < NUM_PHASE3_QUESTIONS - 1) {
+        setCurrentBlock((c) => c + 1);
+        setPhase3HoveredBead(null);
       }
     }
   };
+
+  useEffect(() => {
+    if (phase1Times.length > 0) {
+      (window as unknown as { __phase1Times?: number[] }).__phase1Times = phase1Times;
+    }
+  }, [phase1Times]);
 
   useEffect(() => {
     if (phase2Results.length > 0) {
@@ -566,10 +778,42 @@ export default function QuestionOnePage() {
     }
   }, [phase2Results]);
 
+  useEffect(() => {
+    if (phase3Results.length > 0) {
+      (window as unknown as { __phase3Results?: unknown }).__phase3Results = phase3Results;
+    }
+  }, [phase3Results]);
+
+  useEffect(() => {
+    questionStartTimeRef.current = Date.now();
+  }, [phase, currentBlock]);
+
+  useEffect(() => {
+    if (phase === 3 && phase3HoveredBead != null) {
+      document.body.style.cursor = "pointer";
+    } else {
+      document.body.style.cursor = "auto";
+    }
+    return () => {
+      document.body.style.cursor = "auto";
+    };
+  }, [phase, phase3HoveredBead]);
+
   const handlePhase2Answer = (label: string) => {
     setPhase2Answers((prev) => {
       const next = [...prev];
       next[currentBlock] = label;
+      return next;
+    });
+  };
+
+  const handlePhase3BeadClick = (beadIndex: number) => {
+    if (phase3Answers[currentBlock] != null) return;
+    const targetIdx = phase3Block?.highlightedBeadIndex ?? -1;
+    const correct = phase3Block != null && Math.abs(beadIndex - targetIdx) <= 1;
+    setPhase3Answers((prev) => {
+      const next = [...prev];
+      next[currentBlock] = beadIndex;
       return next;
     });
   };
@@ -580,15 +824,16 @@ export default function QuestionOnePage() {
       <div style={headerStyle}>
         <div style={progressStyle}>
           <span style={progressLabelStyle}>
-            {phase === 1 ? "Phase 1" : "Phase 2"} — Question {currentBlock + 1} /{" "}
-            {phase === 1 ? NUM_QUESTIONS : NUM_PHASE2_QUESTIONS}
+            {phase === 1 ? "Phase 1" : phase === 2 ? "Phase 2" : "Phase 3"} — Question {currentBlock + 1} /{" "}
+            {phase === 1 ? NUM_QUESTIONS : phase === 2 ? NUM_PHASE2_QUESTIONS : NUM_PHASE3_QUESTIONS}
           </span>
           <div style={progressBarTrackStyle}>
             <div
               style={{
                 ...progressBarFillStyle,
                 width: `${
-                  ((currentBlock + 1) / (phase === 1 ? NUM_QUESTIONS : NUM_PHASE2_QUESTIONS)) *
+                  ((currentBlock + 1) /
+                    (phase === 1 ? NUM_QUESTIONS : phase === 2 ? NUM_PHASE2_QUESTIONS : NUM_PHASE3_QUESTIONS)) *
                   100
                 }%`,
               }}
@@ -598,7 +843,9 @@ export default function QuestionOnePage() {
         <h2 style={questionTitleStyle}>
           {phase === 1
             ? "How similar is the 1D track to its 3D mapping?"
-            : "Which peak has been highlighted?"}
+            : phase === 2
+              ? "Which peak has been highlighted?"
+              : "Click on the bead that corresponds to the highlighted peak"}
         </h2>
       </div>
 
@@ -647,11 +894,24 @@ export default function QuestionOnePage() {
                       enabledTrackIndices={enabledTrackIndices}
                       trackNames={[block.trackName]}
                       highlightStartEnd
+                      gamma={gamma}
                     />
                   )}
                   <OrbitControls enableZoom enablePan enableRotate />
                 </Canvas>
                 <div style={legendStyle}>
+                  <div style={gammaControlStyle}>
+                    <span style={{ whiteSpace: "nowrap", fontSize: 12 }}>Gamma {gamma}</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={20}
+                      step={0.1}
+                      value={gamma}
+                      onChange={(e) => setGamma(Number(e.target.value))}
+                      style={gammaSliderStyle}
+                    />
+                  </div>
                   <div style={legendItemStyle}>
                     <span style={{ ...legendDotStyle, background: "#22c55e" }} />
                     Start
@@ -700,11 +960,98 @@ export default function QuestionOnePage() {
                       trackNames={[phase2Block.trackName]}
                       highlightStartEnd
                       highlightedBeadIndex={phase2Block.highlightedBeadIndex}
+                      gamma={gamma}
                     />
                   )}
                   <OrbitControls enableZoom enablePan enableRotate />
                 </Canvas>
                 <div style={legendStyle}>
+                  <div style={gammaControlStyle}>
+                    <span style={{ whiteSpace: "nowrap", fontSize: 12 }}>Gamma {gamma}</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={20}
+                      step={0.1}
+                      value={gamma}
+                      onChange={(e) => setGamma(Number(e.target.value))}
+                      style={gammaSliderStyle}
+                    />
+                  </div>
+                  <div style={legendItemStyle}>
+                    <span style={{ ...legendDotStyle, background: "#22c55e" }} />
+                    Start
+                  </div>
+                  <div style={legendItemStyle}>
+                    <span style={{ ...legendDotStyle, background: "#ef4444" }} />
+                    End
+                  </div>
+                  <div style={legendItemStyle}>
+                    <span style={{ ...legendDotStyle, background: "#00d4ff" }} />
+                    Highlighted
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {!loading && !error && phase === 3 && phase3Block && (
+          <>
+            {/* Left: D3 line chart with single peak highlight */}
+            <div style={panelStyle}>
+              <div style={panelLabelStyle}>1D Signal Track</div>
+              <div style={chartContainerStyle}>
+                <LineChartWithSinglePeakHighlight
+                  values={phase3Block.trackValues}
+                  trackName={phase3Block.trackName}
+                  peak={phase3Block.peaks[phase3Block.highlightedPeakIndex]}
+                />
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div style={dividerStyle} />
+
+            {/* Right: 3D view with interactive beads */}
+            <div style={panelStyle}>
+              <div style={panelLabelStyle}>3D Chromatin Structure</div>
+              <div style={canvasWrapperStyle}>
+                <Canvas
+                  camera={{ position: [0, 0, 500], fov: 60, near: 0.1, far: 10000 }}
+                  style={{ width: "100%", height: "100%", background: "#060f1a" }}
+                >
+                  <ambientLight intensity={0.6} />
+                  <directionalLight position={[100, 100, 100]} intensity={0.8} />
+                  {phase3Block.beads.length > 1 && (
+                    <ChromosomePipeline
+                      beads={phase3Block.beads}
+                      enabledTrackIndices={enabledTrackIndices}
+                      trackNames={[phase3Block.trackName]}
+                      highlightStartEnd
+                      interactiveMode
+                      hoveredBeadIndex={phase3HoveredBead}
+                      selectedBeadIndex={phase3Answers[currentBlock]}
+                      onBeadHover={setPhase3HoveredBead}
+                      onBeadClick={handlePhase3BeadClick}
+                      gamma={gamma}
+                    />
+                  )}
+                  <OrbitControls enableZoom enablePan enableRotate />
+                </Canvas>
+                <div style={legendStyle}>
+                  <div style={gammaControlStyle}>
+                    <span style={{ whiteSpace: "nowrap", fontSize: 12 }}>Gamma {gamma}</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={20}
+                      step={0.1}
+                      value={gamma}
+                      onChange={(e) => setGamma(Number(e.target.value))}
+                      style={gammaSliderStyle}
+                    />
+                  </div>
                   <div style={legendItemStyle}>
                     <span style={{ ...legendDotStyle, background: "#22c55e" }} />
                     Start
@@ -715,7 +1062,7 @@ export default function QuestionOnePage() {
                   </div>
                   <div style={legendItemStyle}>
                     <span style={{ ...legendDotStyle, background: "#f59e0b" }} />
-                    Highlighted peak
+                    Selected bead
                   </div>
                 </div>
               </div>
@@ -780,6 +1127,20 @@ export default function QuestionOnePage() {
         </div>
       )}
 
+      {/* ── Phase 3: Click bead (no options) ── */}
+      {!loading && !error && phase === 3 && phase3Block && (
+        <div key={`p3-b${currentBlock}`} style={questionsPanelStyle}>
+          <div style={{ ...questionBlockStyle, flex: 1 }}>
+            <div style={questionLabelStyle}>
+              Select the bead in 3D that corresponds to the highlighted peak. Hover to preview, click to confirm.
+              {phase3Answers[currentBlock] != null && (
+                <span style={{ marginLeft: 8, color: "#22c55e" }}>✓</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Footer ── */}
       <div style={footerStyle}>
         <button
@@ -800,16 +1161,21 @@ export default function QuestionOnePage() {
           style={btnStyle}
           onClick={handleNext}
           disabled={
-            phase === 2 &&
-            currentBlock >= NUM_PHASE2_QUESTIONS - 1 &&
-            phase2Results.length >= NUM_PHASE2_QUESTIONS
+            (phase === 2 &&
+              currentBlock >= NUM_PHASE2_QUESTIONS - 1 &&
+              phase2Results.length >= NUM_PHASE2_QUESTIONS) ||
+            (phase === 3 &&
+              currentBlock >= NUM_PHASE3_QUESTIONS - 1 &&
+              phase3Results.length >= NUM_PHASE3_QUESTIONS)
           }
         >
           {phase === 1 && currentBlock >= NUM_QUESTIONS - 1
             ? "Next phase →"
             : phase === 2 && currentBlock >= NUM_PHASE2_QUESTIONS - 1
-              ? "Complete"
-              : "Next →"}
+              ? "Next phase →"
+              : phase === 3 && currentBlock >= NUM_PHASE3_QUESTIONS - 1
+                ? "Complete"
+                : "Next →"}
         </button>
       </div>
     </div>
@@ -942,6 +1308,17 @@ const legendDotStyle: React.CSSProperties = {
   height: 10,
   borderRadius: "50%",
   flexShrink: 0,
+};
+
+const gammaControlStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 4,
+};
+
+const gammaSliderStyle: React.CSSProperties = {
+  width: 80,
+  accentColor: "#45b7d1",
 };
 
 const questionsPanelStyle: React.CSSProperties = {

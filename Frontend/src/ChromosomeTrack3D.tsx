@@ -103,8 +103,10 @@ export function matchBeadsToTracks(
 
 const START_BEAD_COLOR = "#22c55e";
 const END_BEAD_COLOR = "#ef4444";
-const HIGHLIGHT_PEAK_COLOR = "#f59e0b"; // amber
-const ENDPOINT_SCALE = 2.5;
+const HIGHLIGHT_PEAK_COLOR = "#00d4ff"; // bright cyan, high contrast
+const ENDPOINT_SCALE = 3.5;
+
+const HOVER_SCALE = 3.5;
 
 export function ChromosomePipeline({
   beads,
@@ -113,6 +115,12 @@ export function ChromosomePipeline({
   opacity = 1,
   highlightStartEnd = false,
   highlightedBeadIndex,
+  interactiveMode = false,
+  hoveredBeadIndex = null,
+  selectedBeadIndex = null,
+  onBeadHover,
+  onBeadClick,
+  gamma = 1,
 }: {
   beads: BeadData[];
   enabledTrackIndices?: number[];
@@ -120,6 +128,12 @@ export function ChromosomePipeline({
   opacity?: number;
   highlightStartEnd?: boolean;
   highlightedBeadIndex?: number;
+  interactiveMode?: boolean;
+  hoveredBeadIndex?: number | null;
+  selectedBeadIndex?: number | null;
+  onBeadHover?: (index: number | null) => void;
+  onBeadClick?: (index: number) => void;
+  gamma?: number;
 }) {
   const totalTracks = beads[0]?.trackValues.length || 1;
   const activeTrackIndices =
@@ -135,20 +149,21 @@ export function ChromosomePipeline({
       exclude.add(0);
       exclude.add(beads.length - 1);
     }
-    if (highlightedBeadIndex != null && highlightedBeadIndex >= 0 && highlightedBeadIndex < beads.length) {
+    // In interactive mode, don't exclude highlighted; we're not showing the answer
+    if (!interactiveMode && highlightedBeadIndex != null && highlightedBeadIndex >= 0 && highlightedBeadIndex < beads.length) {
       exclude.add(highlightedBeadIndex);
     }
     return beads
       .map((_, i) => i)
       .filter((i) => !exclude.has(i));
-  }, [beads, highlightStartEnd, highlightedBeadIndex]);
+  }, [beads, highlightStartEnd, highlightedBeadIndex, interactiveMode]);
 
   const middleBeads = beadIndicesToRender.map((i) => beads[i]);
 
-  // Instanced mesh ref for bead spheres (excludes start, end, and highlighted)
+  // Instanced mesh ref for bead spheres (excludes start, end, and highlighted) — only when NOT interactive
   const beadMeshRef = useRef<THREE.InstancedMesh>(null);
   useEffect(() => {
-    if (!beadMeshRef.current) return;
+    if (!beadMeshRef.current || interactiveMode) return;
     const dummy = new THREE.Object3D();
     middleBeads.forEach((bead, i) => {
       dummy.position.set(
@@ -160,7 +175,7 @@ export function ChromosomePipeline({
       beadMeshRef.current!.setMatrixAt(i, dummy.matrix);
     });
     beadMeshRef.current.instanceMatrix.needsUpdate = true;
-  }, [middleBeads]);
+  }, [middleBeads, interactiveMode]);
 
   if (beads.length < 2 || numTracks === 0) return null;
 
@@ -217,7 +232,8 @@ export function ChromosomePipeline({
       const angle = (i / numTracks) * Math.PI * 2;
       const tIdx = activeTrackIndices[i];
       const rawVal = bead.trackValues?.[tIdx];
-      const tv = Number.isFinite(rawVal) ? rawVal : 0;
+      const raw = Number.isFinite(rawVal) ? Math.max(0, Math.min(1, rawVal)) : 0;
+      const tv = gamma > 0 ? Math.pow(raw, gamma) : raw;
 
       const bx = Math.cos(angle) * bRadius;
       const by = Math.sin(angle) * bRadius;
@@ -369,13 +385,41 @@ export function ChromosomePipeline({
       <lineSegments geometry={rpGeo}>
         <lineBasicMaterial vertexColors linewidth={3} transparent opacity={0.9 * opacity} />
       </lineSegments>
-      {/* Bead spheres: instanced mesh for middle beads */}
-      {middleBeads.length > 0 && (
+      {/* Bead spheres: instanced mesh for middle beads (non-interactive) */}
+      {middleBeads.length > 0 && !interactiveMode && (
         <instancedMesh ref={beadMeshRef} args={[undefined, undefined, middleBeads.length]}>
           <sphereGeometry args={[beadRadius * 5, 10, 8]} />
           <meshStandardMaterial color="#ffffff" metalness={0.5} roughness={0.3} transparent opacity={opacity} />
         </instancedMesh>
       )}
+      {/* Interactive mode: individual meshes per bead with hover/click */}
+      {interactiveMode && beadIndicesToRender.map((beadIdx) => {
+        const pos = beads[beadIdx].position;
+        const isHovered = hoveredBeadIndex === beadIdx;
+        const isSelected = selectedBeadIndex === beadIdx;
+        const isHighlighted = isHovered || isSelected;
+        const beadScale = isHighlighted ? HOVER_SCALE : 1;
+        const beadColor = isHighlighted ? HIGHLIGHT_PEAK_COLOR : "#ffffff";
+        return (
+          <mesh
+            key={beadIdx}
+            position={[pos[0] * scale, pos[1] * scale, pos[2] * scale]}
+            scale={beadScale}
+            onPointerOver={(e) => {
+              e.stopPropagation();
+              onBeadHover?.(beadIdx);
+            }}
+            onPointerOut={() => onBeadHover?.(null)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onBeadClick?.(beadIdx);
+            }}
+          >
+            <sphereGeometry args={[beadRadius * 5, 16, 12]} />
+            <meshStandardMaterial color={beadColor} metalness={0.4} roughness={0.35} transparent opacity={opacity} />
+          </mesh>
+        );
+      })}
       {/* Enlarged start/end beads when highlightStartEnd */}
       {highlightStartEnd && beads.length >= 2 && (
         <>
@@ -389,8 +433,8 @@ export function ChromosomePipeline({
           </mesh>
         </>
       )}
-      {/* Enlarged highlighted bead (e.g. for "which peak" question) */}
-      {highlightedBeadIndex != null && highlightedBeadIndex >= 0 && highlightedBeadIndex < beads.length && (
+      {/* Enlarged highlighted bead (e.g. for "which peak" question) — only when NOT interactive */}
+      {!interactiveMode && highlightedBeadIndex != null && highlightedBeadIndex >= 0 && highlightedBeadIndex < beads.length && (
         <mesh
           position={[
             beads[highlightedBeadIndex].position[0] * scale,
@@ -411,6 +455,7 @@ export function ChromosomePipeline({
 export default function ChromosomeTrack3D() {
   const [datasetIdx, setDatasetIdx] = useState(0);
   const [sampleId, setSampleId] = useState(0);
+  const [gamma, setGamma] = useState(1);
   const [beads, setBeads] = useState<BeadData[]>([]);
   const [trackNames, setTrackNames] = useState<string[]>([]);
   const [enabledTracks, setEnabledTracks] = useState<Set<number>>(new Set());
@@ -533,6 +578,20 @@ export default function ChromosomeTrack3D() {
           </select>
         </label>
 
+        {/* Gamma (signal display) */}
+        <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          Gamma {gamma}
+          <input
+            type="range"
+            min={1}
+            max={20}
+            step={0.1}
+            value={gamma}
+            onChange={(e) => setGamma(Number(e.target.value))}
+            style={{ width: 80, accentColor: "#45b7d1" }}
+          />
+        </label>
+
         <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
 
         {/* Track toggles */}
@@ -581,6 +640,7 @@ export default function ChromosomeTrack3D() {
               beads={beads}
               enabledTrackIndices={enabledTrackIndices}
               trackNames={trackNames}
+              gamma={gamma}
             />
           )}
           <OrbitControls enableZoom enablePan enableRotate />
