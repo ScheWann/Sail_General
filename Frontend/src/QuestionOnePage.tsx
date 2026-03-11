@@ -6,6 +6,7 @@ import {
   ChromosomePipeline,
   parsePositionCsv,
   matchBeadsToTracks,
+  getTrackColor,
 } from "./ChromosomeTrack3D";
 import type { BeadData, TracksJson } from "./ChromosomeTrack3D";
 
@@ -15,13 +16,14 @@ const DUMMY_TRACKS_PATH = "/Data/Tracks/dummy_30tracks_chr8_127200000_127750000.
 const POSITION_PATH = "/Data/Example/Calu3_chr8_127200000_127750000_original_position.csv";
 const REGION_START = 127_200_000;
 const BIN_SIZE = 5_000;
-const NUM_QUESTIONS = 5;
-const NUM_PHASE2_QUESTIONS = 5;
-const NUM_PHASE3_QUESTIONS = 5;
-const NUM_PHASE4_QUESTIONS = 7;
-const NUM_PHASE5_QUESTIONS = 5;
+const NUM_QUESTIONS = 3;
+const NUM_PHASE2_QUESTIONS = 3;
+const NUM_PHASE3_QUESTIONS = 3;
+const PHASE4_TRACK_COUNTS = [2, 3, 5, 7, 8]; // fixed track count per question
+const NUM_PHASE4_QUESTIONS = PHASE4_TRACK_COUNTS.length;
+const PHASE5_TRACK_COUNTS = [2, 4, 6]; // fixed track count per question
+const NUM_PHASE5_QUESTIONS = PHASE5_TRACK_COUNTS.length;
 const COMMON_PEAK_TOLERANCE = 2; // bins: peaks within ±N count as same location
-
 const PHASE4_TRACK_COLORS = [
   "#ff6b6b", "#bf812d", "#45b7d1",
   "#f9ca24", "#6c5ce7", "#00d2d3",
@@ -382,10 +384,12 @@ function LineChartWithPeaks({
   values,
   trackName,
   peaks,
+  color = "#45b7d1",
 }: {
   values: number[];
   trackName: string;
   peaks: Peak[];
+  color?: string;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -411,20 +415,21 @@ function LineChartWithPeaks({
       .range([0, width]);
     const yScale = d3.scaleLinear().domain([0, 1]).range([height, 0]);
 
+    const fillRgba = colorToRgba(color, 0.15);
     const area = d3
       .area<number>()
       .x((_, i) => xScale(genomicPositions[i]))
       .y0(height)
       .y1((d) => yScale(d))
       .curve(d3.curveCatmullRom.alpha(0.5));
-    g.append("path").datum(values).attr("fill", "rgba(69,183,209,0.15)").attr("d", area);
+    g.append("path").datum(values).attr("fill", fillRgba).attr("d", area);
 
     const line = d3
       .line<number>()
       .x((_, i) => xScale(genomicPositions[i]))
       .y((d) => yScale(d))
       .curve(d3.curveCatmullRom.alpha(0.5));
-    g.append("path").datum(values).attr("fill", "none").attr("stroke", "#45b7d1").attr("stroke-width", 2).attr("d", line);
+    g.append("path").datum(values).attr("fill", "none").attr("stroke", color).attr("stroke-width", 2).attr("d", line);
 
     const xAxis = d3.axisBottom(xScale).ticks(5).tickFormat((d) => `${(+d / 1_000_000).toFixed(2)} Mb`);
     g.append("g").attr("transform", `translate(0,${height})`).call(xAxis).call((ax) => {
@@ -460,7 +465,7 @@ function LineChartWithPeaks({
         .attr("font-weight", "700")
         .text(peak.label);
     });
-  }, [values, trackName, peaks]);
+  }, [values, trackName, peaks, color]);
 
   return <svg ref={svgRef} style={{ width: "100%", height: "100%", display: "block" }} />;
 }
@@ -471,10 +476,12 @@ function LineChartWithSinglePeakHighlight({
   values,
   trackName,
   peak,
+  color = "#45b7d1",
 }: {
   values: number[];
   trackName: string;
   peak: Peak;
+  color?: string;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -500,20 +507,21 @@ function LineChartWithSinglePeakHighlight({
       .range([0, width]);
     const yScale = d3.scaleLinear().domain([0, 1]).range([height, 0]);
 
+    const fillRgba = colorToRgba(color, 0.15);
     const area = d3
       .area<number>()
       .x((_, i) => xScale(genomicPositions[i]))
       .y0(height)
       .y1((d) => yScale(d))
       .curve(d3.curveCatmullRom.alpha(0.5));
-    g.append("path").datum(values).attr("fill", "rgba(69,183,209,0.15)").attr("d", area);
+    g.append("path").datum(values).attr("fill", fillRgba).attr("d", area);
 
     const line = d3
       .line<number>()
       .x((_, i) => xScale(genomicPositions[i]))
       .y((d) => yScale(d))
       .curve(d3.curveCatmullRom.alpha(0.5));
-    g.append("path").datum(values).attr("fill", "none").attr("stroke", "#45b7d1").attr("stroke-width", 2).attr("d", line);
+    g.append("path").datum(values).attr("fill", "none").attr("stroke", color).attr("stroke-width", 2).attr("d", line);
 
     const xAxis = d3.axisBottom(xScale).ticks(5).tickFormat((d) => `${(+d / 1_000_000).toFixed(2)} Mb`);
     g.append("g").attr("transform", `translate(0,${height})`).call(xAxis).call((ax) => {
@@ -555,7 +563,7 @@ function LineChartWithSinglePeakHighlight({
       .attr("font-size", 16)
       .attr("font-weight", "700")
       .text(peak.label);
-  }, [values, trackName, peak]);
+  }, [values, trackName, peak, color]);
 
   return <svg ref={svgRef} style={{ width: "100%", height: "100%", display: "block" }} />;
 }
@@ -850,7 +858,7 @@ export default function QuestionOnePage() {
 
         const builtPhase4: Phase4BlockData[] = [];
         for (let i = 0; i < NUM_PHASE4_QUESTIONS; i++) {
-          const numTracks = i + 2;
+          const numTracks = PHASE4_TRACK_COUNTS[i];
           const shuffled = [...allTrackNames].sort(() => Math.random() - 0.5);
           const chosenNames = shuffled.slice(0, numTracks);
           const sampleIdx = Math.floor(Math.random() * sampleIds.length);
@@ -889,7 +897,7 @@ export default function QuestionOnePage() {
 
         const builtPhase5: Phase5BlockData[] = [];
         for (let i = 0; i < NUM_PHASE5_QUESTIONS; i++) {
-          const numTracks = Math.min(i + 2, 5);
+          const numTracks = PHASE5_TRACK_COUNTS[i];
           let attempts = 0;
           const maxAttempts = 50;
           while (attempts < maxAttempts) {
@@ -1227,7 +1235,6 @@ export default function QuestionOnePage() {
   };
 
   const handlePhase3BeadClick = (beadIndex: number) => {
-    if (phase3Answers[currentBlock] != null) return;
     setPhase3Answers((prev) => {
       const next = [...prev];
       next[currentBlock] = beadIndex;
@@ -1281,7 +1288,11 @@ export default function QuestionOnePage() {
             <div style={panelStyle}>
               <div style={panelLabelStyle}>1D Signal Track</div>
               <div style={chartContainerStyle}>
-                <LineChart values={block.trackValues} trackName={block.trackName} />
+                <LineChart
+                  values={block.trackValues}
+                  trackName={block.trackName}
+                  color={getTrackColor(0)}
+                />
               </div>
             </div>
 
@@ -1346,6 +1357,7 @@ export default function QuestionOnePage() {
                   values={phase2Block.trackValues}
                   trackName={phase2Block.trackName}
                   peaks={phase2Block.peaks}
+                  color={getTrackColor(0)}
                 />
               </div>
             </div>
@@ -1416,6 +1428,7 @@ export default function QuestionOnePage() {
                   values={phase3Block.trackValues}
                   trackName={phase3Block.trackName}
                   peak={phase3Block.peaks[phase3Block.highlightedPeakIndex]}
+                  color={getTrackColor(0)}
                 />
               </div>
             </div>
@@ -1482,11 +1495,11 @@ export default function QuestionOnePage() {
 
         {!loading && !error && phase === 4 && phase4Block && (
           <>
-            {/* Left: Multi-track line charts (one per track, column) */}
+            {/* Left: Multi-track line charts (one per track, column) — compact so all fit without scroll */}
             <div style={panelStyle}>
               <div style={panelLabelStyle}>1D Signal Tracks</div>
               <div style={chartContainerStyle}>
-                <MultiTrackLineChartColumn tracks={phase4Block.tracks} />
+                <MultiTrackLineChartColumn tracks={phase4Block.tracks} compact />
               </div>
             </div>
 
@@ -1495,7 +1508,12 @@ export default function QuestionOnePage() {
 
             {/* Right: 3D view with multiple tracks */}
             <div style={panelStyle}>
-              <div style={panelLabelStyle}>3D Chromatin Structure</div>
+              <div style={{ ...panelLabelStyle, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>3D Chromatin Structure</span>
+                <span style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>
+                  {phase4Block.trackNames.length} track{phase4Block.trackNames.length !== 1 ? "s" : ""}
+                </span>
+              </div>
               <div style={canvasWrapperStyle}>
                 <Canvas
                   camera={{ position: [0, 0, 500], fov: 60, near: 0.1, far: 10000 }}
@@ -1552,7 +1570,12 @@ export default function QuestionOnePage() {
             </div>
             <div style={dividerStyle} /> */}
             <div style={panelStyle}>
-              <div style={panelLabelStyle}>3D Chromatin Structure</div>
+              <div style={{ ...panelLabelStyle, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span>3D Chromatin Structure</span>
+                <span style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.5)" }}>
+                  {phase5Block.trackNames.length} track{phase5Block.trackNames.length !== 1 ? "s" : ""}
+                </span>
+              </div>
               <div style={canvasWrapperStyle}>
                 <Canvas
                   camera={{ position: [0, 0, 500], fov: 60, near: 0.1, far: 10000 }}
@@ -1604,7 +1627,7 @@ export default function QuestionOnePage() {
         <div key={`p1-b${currentBlock}`} style={questionsPanelStyle}>
           <div style={questionBlockStyle}>
             <div style={questionLabelStyle}>
-              Q1. How similar is the 1D track to its 3D mapping?
+              Q1. How similar are the peak distribution and pattern of the 1D track when mapped onto the 3D structure?
             </div>
             <RatingScale
               value={answers[currentBlock]?.similarity ?? null}
@@ -1691,7 +1714,7 @@ export default function QuestionOnePage() {
         <div key={`p5-b${currentBlock}`} style={questionsPanelStyle}>
           <div style={{ ...questionBlockStyle, flex: 1 }}>
             <div style={questionLabelStyle}>
-              Q1. How many locations can you find where a common peak exists?
+              Q1. How many locations exhibit co-occurring peaks across <strong>ALL</strong> tracks?
             </div>
             <div style={peakOptionsStyle}>
               {phase5Block.options.map((opt) => (

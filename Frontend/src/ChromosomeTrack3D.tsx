@@ -50,7 +50,7 @@ const TRACK_COLORS = [
   "#ff9ff3", "#54a0ff", "#a29bfe",
 ];
 
-function getTrackColor(index: number): string {
+export function getTrackColor(index: number): string {
   return TRACK_COLORS[index % TRACK_COLORS.length];
 }
 
