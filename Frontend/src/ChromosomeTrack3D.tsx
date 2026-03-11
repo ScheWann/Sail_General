@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -120,6 +120,23 @@ function ChromosomePipeline({
   const maxRadarRadius = 20;
   const scale = 1;
 
+  // Instanced mesh ref for bead spheres
+  const beadMeshRef = useRef<THREE.InstancedMesh>(null);
+  useEffect(() => {
+    if (!beadMeshRef.current) return;
+    const dummy = new THREE.Object3D();
+    beads.forEach((bead, i) => {
+      dummy.position.set(
+        bead.position[0] * scale,
+        bead.position[1] * scale,
+        bead.position[2] * scale,
+      );
+      dummy.updateMatrix();
+      beadMeshRef.current!.setMatrixAt(i, dummy.matrix);
+    });
+    beadMeshRef.current.instanceMatrix.needsUpdate = true;
+  }, [beads]);
+
   if (beads.length < 2 || numTracks === 0) return null;
 
   const hasValid = beads.every(
@@ -130,8 +147,8 @@ function ChromosomePipeline({
   );
   if (!hasValid) return null;
 
-  // Per-bead baseline + actual radar vertices
-  const beadBaselineVertices = beads.map((bead, beadIndex) => {
+  // Per-bead local frame + baseline/actual vertices for each track channel
+  const beadFrames = beads.map((bead, beadIndex) => {
     const pos = [
       bead.position[0] * scale,
       bead.position[1] * scale,
@@ -199,7 +216,7 @@ function ChromosomePipeline({
       );
     }
 
-    return { baseline: baselineVertices, actual: actualVertices };
+    return { baseline: baselineVertices, actual: actualVertices, tangent };
   });
 
   // Backbone tube
@@ -209,11 +226,11 @@ function ChromosomePipeline({
   const backboneCurve = new THREE.CatmullRomCurve3(centerPts, false, "catmullrom", 0.3);
   const tubeGeo = new THREE.TubeGeometry(backboneCurve, beads.length * 20, 0.5, 8, false);
 
-  // Radar polygon outline (white baseline)
+  // Radar polygon outline (white baseline ring at each bead)
   const rpVerts: number[] = [];
   const rpColors: number[] = [];
   for (let bi = 0; bi < beads.length; bi++) {
-    const bl = beadBaselineVertices[bi].baseline;
+    const bl = beadFrames[bi].baseline;
     for (let ti = 0; ti < numTracks; ti++) {
       const nti = (ti + 1) % numTracks;
       rpVerts.push(bl[ti].x, bl[ti].y, bl[ti].z, bl[nti].x, bl[nti].y, bl[nti].z);
@@ -224,58 +241,37 @@ function ChromosomePipeline({
   rpGeo.setAttribute("position", new THREE.Float32BufferAttribute(rpVerts, 3));
   rpGeo.setAttribute("color", new THREE.Float32BufferAttribute(rpColors, 3));
 
-  // Triangular track fill between beads
+  // Continuous track ribbons: one global CatmullRom per track channel across all beads
   const triVerts: number[] = [];
   const triColors: number[] = [];
   const triIdx: number[] = [];
   let vi = 0;
-  const subDiv = 8;
+  const samplesPerSegment = 12;
+  const totalSamples = (beads.length - 1) * samplesPerSegment;
 
-  for (let bi = 0; bi < beads.length - 1; bi++) {
-    for (let ti = 0; ti < numTracks; ti++) {
-      const cb = beadBaselineVertices[bi].baseline[ti];
-      const nb = beadBaselineVertices[bi + 1].baseline[ti];
-      const ca = beadBaselineVertices[bi].actual[ti];
-      const na = beadBaselineVertices[bi + 1].actual[ti];
+  for (let ti = 0; ti < numTracks; ti++) {
+    const baselinePts = beadFrames.map((f) => f.baseline[ti]);
+    const actualPts = beadFrames.map((f) => f.actual[ti]);
 
-      let prevB = cb, prevA = ca;
-      if (bi > 0) {
-        prevB = beadBaselineVertices[bi - 1].baseline[ti];
-        prevA = beadBaselineVertices[bi - 1].actual[ti];
-      }
-      let nnB = nb, nnA = na;
-      if (bi < beads.length - 2) {
-        nnB = beadBaselineVertices[bi + 2].baseline[ti];
-        nnA = beadBaselineVertices[bi + 2].actual[ti];
-      }
+    const bCurve = new THREE.CatmullRomCurve3(baselinePts, false, "catmullrom", 0.3);
+    const aCurve = new THREE.CatmullRomCurve3(actualPts, false, "catmullrom", 0.3);
 
-      const bCurve = new THREE.CatmullRomCurve3([prevB, cb, nb, nnB], false, "catmullrom", 0.3);
-      const aCurve = new THREE.CatmullRomCurve3([prevA, ca, na, nnA], false, "catmullrom", 0.3);
+    const bSampled = bCurve.getPoints(totalSamples);
+    const aSampled = aCurve.getPoints(totalSamples);
 
-      const startT = bi > 0 ? 0.33 : 0;
-      const endT = bi < beads.length - 2 ? 0.67 : 1.0;
-      const totalPts = subDiv * 3;
-      const bPts = bCurve.getPoints(totalPts);
-      const aPts = aCurve.getPoints(totalPts);
-      const si = Math.floor(startT * bPts.length);
-      const ei = Math.floor(endT * bPts.length);
-      const segB = bPts.slice(si, ei);
-      const segA = aPts.slice(si, ei);
+    const origIdx = activeTrackIndices[ti];
+    const tc = new THREE.Color(getTrackColor(origIdx));
 
-      const origIdx = activeTrackIndices[ti];
-      const tc = new THREE.Color(getTrackColor(origIdx));
-
-      for (let i = 0; i < segB.length - 1; i++) {
-        triVerts.push(
-          segB[i].x, segB[i].y, segB[i].z,
-          segB[i + 1].x, segB[i + 1].y, segB[i + 1].z,
-          segA[i].x, segA[i].y, segA[i].z,
-          segA[i + 1].x, segA[i + 1].y, segA[i + 1].z,
-        );
-        for (let j = 0; j < 4; j++) triColors.push(tc.r, tc.g, tc.b);
-        triIdx.push(vi, vi + 1, vi + 2, vi + 1, vi + 3, vi + 2);
-        vi += 4;
-      }
+    for (let i = 0; i < bSampled.length - 1; i++) {
+      triVerts.push(
+        bSampled[i].x, bSampled[i].y, bSampled[i].z,
+        bSampled[i + 1].x, bSampled[i + 1].y, bSampled[i + 1].z,
+        aSampled[i].x, aSampled[i].y, aSampled[i].z,
+        aSampled[i + 1].x, aSampled[i + 1].y, aSampled[i + 1].z,
+      );
+      for (let j = 0; j < 4; j++) triColors.push(tc.r, tc.g, tc.b);
+      triIdx.push(vi, vi + 1, vi + 2, vi + 1, vi + 3, vi + 2);
+      vi += 4;
     }
   }
 
@@ -285,10 +281,54 @@ function ChromosomePipeline({
   triGeo.setIndex(triIdx);
   triGeo.computeVertexNormals();
 
+  // Vertical highlight rectangles: from bead baseline to peak, bead-diameter width along backbone
+  const halfWidth = beadRadius;
+  const rectVerts: number[] = [];
+  const rectColors: number[] = [];
+  const rectIdx: number[] = [];
+  let ri = 0;
+
+  for (let bi = 0; bi < beads.length; bi++) {
+    const tangent = beadFrames[bi].tangent.clone();
+    if (tangent.lengthSq() < 1e-10) continue;
+
+    for (let ti = 0; ti < numTracks; ti++) {
+      const B = beadFrames[bi].baseline[ti];
+      const A = beadFrames[bi].actual[ti];
+
+      const B1 = B.clone().addScaledVector(tangent, -halfWidth);
+      const B2 = B.clone().addScaledVector(tangent, halfWidth);
+      const A1 = A.clone().addScaledVector(tangent, -halfWidth);
+      const A2 = A.clone().addScaledVector(tangent, halfWidth);
+
+      rectVerts.push(
+        B1.x, B1.y, B1.z, B2.x, B2.y, B2.z,
+        A2.x, A2.y, A2.z, A1.x, A1.y, A1.z,
+      );
+      const origIdx = activeTrackIndices[ti];
+      const tc = new THREE.Color(getTrackColor(origIdx));
+      const hr = Math.min(1, tc.r * 1.4);
+      const hg = Math.min(1, tc.g * 1.4);
+      const hb = Math.min(1, tc.b * 1.4);
+      for (let j = 0; j < 4; j++) rectColors.push(hr, hg, hb);
+      rectIdx.push(ri, ri + 1, ri + 2, ri, ri + 2, ri + 3);
+      ri += 4;
+    }
+  }
+
+  const rectGeo = new THREE.BufferGeometry();
+  rectGeo.setAttribute("position", new THREE.Float32BufferAttribute(rectVerts, 3));
+  rectGeo.setAttribute("color", new THREE.Float32BufferAttribute(rectColors, 3));
+  rectGeo.setIndex(rectIdx);
+  rectGeo.computeVertexNormals();
+
   return (
     <group>
       <mesh geometry={triGeo}>
         <meshBasicMaterial vertexColors transparent opacity={0.8 * opacity} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh geometry={rectGeo}>
+        <meshBasicMaterial vertexColors transparent opacity={1 * opacity} side={THREE.DoubleSide} />
       </mesh>
       <mesh geometry={tubeGeo}>
         <meshStandardMaterial color="#ffffff" transparent opacity={0.9 * opacity} metalness={0.3} roughness={0.4} />
@@ -296,6 +336,11 @@ function ChromosomePipeline({
       <lineSegments geometry={rpGeo}>
         <lineBasicMaterial vertexColors linewidth={3} transparent opacity={0.9 * opacity} />
       </lineSegments>
+      {/* Bead spheres rendered via instanced mesh */}
+      <instancedMesh ref={beadMeshRef} args={[undefined, undefined, beads.length]}>
+        <sphereGeometry args={[beadRadius * 5, 10, 8]} />
+        <meshStandardMaterial color="#ffffff" metalness={0.5} roughness={0.3} transparent opacity={opacity} />
+      </instancedMesh>
     </group>
   );
 }
@@ -479,27 +524,6 @@ export default function ChromosomeTrack3D() {
           )}
           <OrbitControls enableZoom enablePan enableRotate />
         </Canvas>
-      </div>
-
-      {/* ── Legend ── */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 16,
-          left: 16,
-          background: "rgba(0,0,0,0.55)",
-          backdropFilter: "blur(8px)",
-          borderRadius: 8,
-          padding: "10px 14px",
-          color: "#e0e0e0",
-          fontSize: 12,
-          fontFamily: "system-ui, sans-serif",
-          lineHeight: 1.8,
-        }}
-      >
-        <div style={{ fontWeight: 600, marginBottom: 2 }}>
-          {dataset.cellLine} &middot; {dataset.chrId}:{dataset.start.toLocaleString()}-{dataset.end.toLocaleString()}
-        </div>
       </div>
     </div>
   );
