@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as d3 from "d3";
@@ -122,128 +122,57 @@ function LineChart({
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
 
-  useEffect(() => {
+  const draw = useCallback(() => {
     if (!svgRef.current || values.length === 0) return;
-
     const container = svgRef.current.parentElement;
-    const W = container?.clientWidth ?? 500;
-    const H = container?.clientHeight ?? 400;
-    const margin = { top: 40, right: 30, bottom: 60, left: 60 };
+    if (!container) return;
+    const W = Math.max(container.clientWidth || 300, 100);
+    const H = Math.max(container.clientHeight || 120, 80);
+    const margin = hideAxisLabels
+      ? { top: 20, right: 6, bottom: 8, left: 25 }
+      : { top: 40, right: 30, bottom: 60, left: 60 };
     const width = W - margin.left - margin.right;
     const height = H - margin.top - margin.bottom;
-
+    if (width <= 0 || height <= 0) return;
     d3.select(svgRef.current).selectAll("*").remove();
-
-    const svg = d3
-      .select(svgRef.current)
-      .attr("width", W)
-      .attr("height", H);
-
-    const g = svg
-      .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
-
+    const svg = d3.select(svgRef.current).attr("width", W).attr("height", H);
+    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
     const genomicPositions = values.map((_, i) => REGION_START + i * BIN_SIZE);
-
-    const xScale = d3
-      .scaleLinear()
-      .domain([genomicPositions[0], genomicPositions[genomicPositions.length - 1]])
-      .range([0, width]);
-
+    const xScale = d3.scaleLinear().domain([genomicPositions[0], genomicPositions[genomicPositions.length - 1]]).range([0, width]);
     const yScale = d3.scaleLinear().domain([0, 1]).range([height, 0]);
-
-    // Area fill under line
-    const area = d3
-      .area<number>()
-      .x((_, i) => xScale(genomicPositions[i]))
-      .y0(height)
-      .y1((d) => yScale(d))
-      .curve(d3.curveCatmullRom.alpha(0.5));
-
+    const area = d3.area<number>().x((_, i) => xScale(genomicPositions[i])).y0(height).y1((d) => yScale(d)).curve(d3.curveCatmullRom.alpha(0.5));
     const fillRgba = colorToRgba(color, 0.15);
-    g.append("path")
-      .datum(values)
-      .attr("fill", fillRgba)
-      .attr("d", area);
-
-    // Line
-    const line = d3
-      .line<number>()
-      .x((_, i) => xScale(genomicPositions[i]))
-      .y((d) => yScale(d))
-      .curve(d3.curveCatmullRom.alpha(0.5));
-
-    g.append("path")
-      .datum(values)
-      .attr("fill", "none")
-      .attr("stroke", color)
-      .attr("stroke-width", 2)
-      .attr("d", line);
-
-    // X axis
-    const xAxis = d3
-      .axisBottom(xScale)
-      .ticks(5)
-      .tickFormat((d) => `${(+d / 1_000_000).toFixed(2)} Mb`);
-
-    g.append("g")
-      .attr("transform", `translate(0,${height})`)
-      .call(xAxis)
-      .call((ax) => {
-        ax.selectAll("text")
-          .attr("fill", "#b0bec5")
-          .attr("font-size", 11);
-        ax.selectAll("line, path").attr("stroke", "rgba(255,255,255,0.2)");
-      });
-
-    // Y axis
+    g.append("path").datum(values).attr("fill", fillRgba).attr("d", area);
+    const line = d3.line<number>().x((_, i) => xScale(genomicPositions[i])).y((d) => yScale(d)).curve(d3.curveCatmullRom.alpha(0.5));
+    g.append("path").datum(values).attr("fill", "none").attr("stroke", color).attr("stroke-width", 2).attr("d", line);
+    const xAxis = d3.axisBottom(xScale).ticks(5).tickFormat((d) => `${(+d / 1_000_000).toFixed(2)} Mb`);
+    g.append("g").attr("transform", `translate(0,${height})`).call(xAxis).call((ax) => {
+      ax.selectAll("text").attr("fill", "#b0bec5").attr("font-size", 11);
+      ax.selectAll("line, path").attr("stroke", "rgba(255,255,255,0.2)");
+    });
     const yAxis = d3.axisLeft(yScale).ticks(5);
-
-    g.append("g")
-      .call(yAxis)
-      .call((ax) => {
-        ax.selectAll("text")
-          .attr("fill", "#b0bec5")
-          .attr("font-size", 11);
-        ax.selectAll("line, path").attr("stroke", "rgba(255,255,255,0.2)");
-      });
-
-    // Horizontal grid lines
-    g.append("g")
-      .attr("class", "grid")
-      .call(
-        d3.axisLeft(yScale)
-          .ticks(5)
-          .tickSize(-width)
-          .tickFormat(() => ""),
-      )
-      .call((ax) => {
-        ax.selectAll("line").attr("stroke", "rgba(255,255,255,0.06)");
-        ax.select(".domain").remove();
-      });
-
-    // Axis labels
+    g.append("g").call(yAxis).call((ax) => {
+      ax.selectAll("text").attr("fill", "#b0bec5").attr("font-size", 11);
+      ax.selectAll("line, path").attr("stroke", "rgba(255,255,255,0.2)");
+    });
+    g.append("g").call(d3.axisLeft(yScale).ticks(5).tickSize(-width).tickFormat(() => "")).call((ax) => {
+      ax.selectAll("line").attr("stroke", "rgba(255,255,255,0.06)");
+      ax.select(".domain").remove();
+    });
     if (!hideAxisLabels) {
-      svg
-        .append("text")
-        .attr("x", W / 2)
-        .attr("y", H - 8)
-        .attr("text-anchor", "middle")
-        .attr("fill", "#b0bec5")
-        .attr("font-size", 12)
-        .text("Genomic Position (chr8)");
-
-      svg
-        .append("text")
-        .attr("transform", `rotate(-90)`)
-        .attr("x", -(H / 2))
-        .attr("y", 14)
-        .attr("text-anchor", "middle")
-        .attr("fill", "#b0bec5")
-        .attr("font-size", 12)
-        .text("Normalized Signal");
+      svg.append("text").attr("x", W / 2).attr("y", H - 8).attr("text-anchor", "middle").attr("fill", "#b0bec5").attr("font-size", 12).text("Genomic Position (chr8)");
+      svg.append("text").attr("transform", "rotate(-90)").attr("x", -(H / 2)).attr("y", 14).attr("text-anchor", "middle").attr("fill", "#b0bec5").attr("font-size", 12).text("Normalized Signal");
     }
   }, [values, trackName, color, hideAxisLabels]);
+
+  useEffect(() => {
+    draw();
+    const container = svgRef.current?.parentElement;
+    if (!container) return;
+    const ro = new ResizeObserver(() => draw());
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [draw]);
 
   return (
     <svg
@@ -255,7 +184,7 @@ function LineChart({
 
 // ── Multi-track line charts (one per track, column layout, for Phase 4) ─────
 
-const PHASE4_CHART_MIN_HEIGHT = 140;
+const PHASE4_CHART_MIN_HEIGHT = 150;
 
 function MultiTrackLineChartColumn({
   tracks,
@@ -267,11 +196,11 @@ function MultiTrackLineChartColumn({
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 8,
+        gap: 2,
         height: "100%",
         minHeight: 0,
         overflow: "auto",
-        padding: "8px 4px",
+        padding: "4px",
       }}
     >
       {tracks.map((t, i) => (
@@ -279,13 +208,12 @@ function MultiTrackLineChartColumn({
           key={t.trackName}
           style={{
             flex: `0 0 ${PHASE4_CHART_MIN_HEIGHT}px`,
+            height: PHASE4_CHART_MIN_HEIGHT,
             minHeight: PHASE4_CHART_MIN_HEIGHT,
-            display: "flex",
-            flexDirection: "column",
             minWidth: 0,
           }}
         >
-          <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+          <div style={{ width: "100%", height: "100%" }}>
             <LineChart
               values={t.trackValues}
               trackName={t.trackName}
