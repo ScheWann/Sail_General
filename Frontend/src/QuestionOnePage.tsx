@@ -23,6 +23,9 @@ const PHASE4_TRACK_COUNTS = [2, 3, 5, 7, 8]; // fixed track count per question
 const NUM_PHASE4_QUESTIONS = PHASE4_TRACK_COUNTS.length;
 const PHASE5_TRACK_COUNTS = [2, 4, 6]; // fixed track count per question
 const NUM_PHASE5_QUESTIONS = PHASE5_TRACK_COUNTS.length;
+const NUM_TUTORIAL_QUESTIONS = 5; // Fixed tutorial: Q1(phase1), Q2(phase2), Q3(phase3), Q4(phase4), Q5(phase5)
+const TUTORIAL_Q4_TRACK_COUNT = 5;
+const TUTORIAL_Q5_TRACK_COUNT = 4;
 const COMMON_PEAK_TOLERANCE = 2; // bins: peaks within ±N count as same location
 const PHASE4_TRACK_COLORS = [
   "#ff6b6b", "#bf812d", "#45b7d1",
@@ -609,8 +612,17 @@ interface Phase5BlockData {
   options: number[];
 }
 
+/** Fixed tutorial blocks: [phase1, phase2, phase3, phase4, phase5] */
+interface TutorialBlocks {
+  block1: BlockData;
+  block2: Phase2BlockData;
+  block3: Phase2BlockData;
+  block4: Phase4BlockData;
+  block5: Phase5BlockData;
+}
+
 export default function QuestionOnePage() {
-  const [phase, setPhase] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [phase, setPhase] = useState<0 | 1 | 2 | 3 | 4 | 5>(0);
   const [blocks, setBlocks] = useState<BlockData[]>([]);
   const [phase2Blocks, setPhase2Blocks] = useState<Phase2BlockData[]>([]);
   const [phase3Blocks, setPhase3Blocks] = useState<Phase2BlockData[]>([]);
@@ -650,6 +662,14 @@ export default function QuestionOnePage() {
   >([]);
   const [phase1Times, setPhase1Times] = useState<number[]>([]);
   const [phase1Q1TimerStarted, setPhase1Q1TimerStarted] = useState(false);
+  const [tutorialBlocks, setTutorialBlocks] = useState<TutorialBlocks | null>(null);
+  const [tutorialPhase1Answer, setTutorialPhase1Answer] = useState<{ similarity: number | null; confidence: number | null }>({ similarity: null, confidence: null });
+  const [tutorialPhase2Answer, setTutorialPhase2Answer] = useState<string | null>(null);
+  const [tutorialPhase3Answer, setTutorialPhase3Answer] = useState<number | null>(null);
+  const [tutorialPhase3HoveredBead, setTutorialPhase3HoveredBead] = useState<number | null>(null);
+  const [tutorialPhase4Answer, setTutorialPhase4Answer] = useState<number | null>(null);
+  const [tutorialPhase5Answer, setTutorialPhase5Answer] = useState<number | null>(null);
+  const [tutorialPhase5Confidence, setTutorialPhase5Confidence] = useState<number | null>(null);
   const [gamma, setGamma] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -971,7 +991,115 @@ export default function QuestionOnePage() {
           }
         }
 
+        // Build fixed tutorial blocks (deterministic, no random)
+        const sortedTrackNames = [...allTrackNames].sort();
+        let tutorialTrackName: string = sortedTrackNames[0];
+        let maxPeakCount = 0;
+        for (const name of sortedTrackNames) {
+          const peaks = detectPeaks(trkJson.tracks[name].normalized);
+          if (peaks.length > 3 && peaks.length > maxPeakCount) {
+            tutorialTrackName = name;
+            maxPeakCount = peaks.length;
+            if (peaks.length >= 5) break;
+          }
+        }
+        if (maxPeakCount <= 3) {
+          for (const name of sortedTrackNames) {
+            const peaks = detectPeaks(trkJson.tracks[name].normalized);
+            if (peaks.length > maxPeakCount) {
+              tutorialTrackName = name;
+              maxPeakCount = peaks.length;
+            }
+          }
+        }
+        const tutorialSampleId = sampleIds[0];
+        const tutorialTrackVals = trkJson.tracks[tutorialTrackName].normalized;
+        const tutorialPeaks = detectPeaks(tutorialTrackVals);
+        const tutorialSingleJson: TracksJson = {
+          region: trkJson.region,
+          tracks: { [tutorialTrackName]: trkJson.tracks[tutorialTrackName] },
+        };
+        const tutorialFiltered = allSamples
+          .filter((s) => s.sampleId === tutorialSampleId)
+          .sort((a, b) => a.start_value - b.start_value);
+        const tutorialBeads = matchBeadsToTracks(tutorialFiltered, tutorialSingleJson, [tutorialTrackName], true);
+        const highlightIdx2 = Math.min(0, tutorialPeaks.length - 1);
+        const highlightIdx3 = tutorialPeaks.length > 1 ? Math.min(1, tutorialPeaks.length - 1) : highlightIdx2;
+        const builtTutorial: TutorialBlocks = {
+          block1: {
+            trackName: tutorialTrackName,
+            trackValues: tutorialTrackVals,
+            beads: tutorialBeads,
+            sampleId: tutorialSampleId,
+          },
+          block2: {
+            trackName: tutorialTrackName,
+            trackValues: tutorialTrackVals,
+            beads: tutorialBeads,
+            sampleId: tutorialSampleId,
+            peaks: tutorialPeaks,
+            highlightedPeakIndex: highlightIdx2,
+            highlightedBeadIndex: Math.min(tutorialPeaks[highlightIdx2].index, tutorialBeads.length - 1),
+            correctAnswer: tutorialPeaks[highlightIdx2].label,
+          },
+          block3: {
+            trackName: tutorialTrackName,
+            trackValues: tutorialTrackVals,
+            beads: tutorialBeads,
+            sampleId: tutorialSampleId,
+            peaks: tutorialPeaks,
+            highlightedPeakIndex: highlightIdx3,
+            highlightedBeadIndex: Math.min(tutorialPeaks[highlightIdx3].index, tutorialBeads.length - 1),
+            correctAnswer: tutorialPeaks[highlightIdx3].label,
+          },
+          block4: (() => {
+            const q4Names = sortedTrackNames.slice(0, TUTORIAL_Q4_TRACK_COUNT);
+            const q4Tracks: Record<string, { raw: number[]; normalized: number[] }> = {};
+            for (const n of q4Names) q4Tracks[n] = trkJson.tracks[n];
+            const q4Json: TracksJson = { region: trkJson.region, tracks: q4Tracks };
+            const q4Filtered = allSamples.filter((s) => s.sampleId === tutorialSampleId).sort((a, b) => a.start_value - b.start_value);
+            return {
+              tracks: q4Names.map((n) => ({ trackName: n, trackValues: trkJson.tracks[n].normalized })),
+              beads: matchBeadsToTracks(q4Filtered, q4Json, q4Names, true),
+              trackNames: q4Names,
+              sampleId: tutorialSampleId,
+            };
+          })(),
+          block5: (() => {
+            let q5Names: string[] = [];
+            let correctAnswer = 0;
+            for (let offset = 0; offset <= sortedTrackNames.length - TUTORIAL_Q5_TRACK_COUNT; offset++) {
+              const names = sortedTrackNames.slice(offset, offset + TUTORIAL_Q5_TRACK_COUNT);
+              const vals = names.map((n) => trkJson.tracks[n].normalized);
+              const count = countCommonPeakLocations(vals, TUTORIAL_Q5_TRACK_COUNT);
+              if (count >= 1) {
+                q5Names = names;
+                correctAnswer = count;
+                break;
+              }
+            }
+            if (q5Names.length === 0) {
+              q5Names = sortedTrackNames.slice(0, TUTORIAL_Q5_TRACK_COUNT);
+              correctAnswer = Math.max(1, countCommonPeakLocations(q5Names.map((n) => trkJson.tracks[n].normalized), TUTORIAL_Q5_TRACK_COUNT));
+            }
+            const q5Tracks: Record<string, { raw: number[]; normalized: number[] }> = {};
+            for (const n of q5Names) q5Tracks[n] = trkJson.tracks[n];
+            const q5Json: TracksJson = { region: trkJson.region, tracks: q5Tracks };
+            const q5Filtered = allSamples.filter((s) => s.sampleId === tutorialSampleId).sort((a, b) => a.start_value - b.start_value);
+            const options = generatePhase5Options(correctAnswer, 0);
+            return {
+              tracks: q5Names.map((n) => ({ trackName: n, trackValues: trkJson.tracks[n].normalized })),
+              beads: matchBeadsToTracks(q5Filtered, q5Json, q5Names, true),
+              trackNames: q5Names,
+              sampleId: tutorialSampleId,
+              correctAnswer,
+              options: options.includes(correctAnswer) ? options : [correctAnswer, ...options.filter((x) => x !== correctAnswer)].slice(0, 5),
+            };
+          })(),
+        };
+
         if (!cancelled) {
+          setTutorialBlocks(builtTutorial);
           setBlocks(built);
           setPhase2Blocks(builtPhase2);
           setPhase3Blocks(builtPhase3);
@@ -988,11 +1116,21 @@ export default function QuestionOnePage() {
     return () => { cancelled = true; };
   }, []);
 
-  const block = blocks[currentBlock];
-  const phase2Block = phase2Blocks[currentBlock];
-  const phase3Block = phase3Blocks[currentBlock];
-  const phase4Block = phase4Blocks[currentBlock];
-  const phase5Block = phase5Blocks[currentBlock];
+  const block = phase === 0 && tutorialBlocks
+    ? (currentBlock === 0 ? tutorialBlocks.block1 : null)
+    : blocks[currentBlock];
+  const phase2Block = phase === 0 && tutorialBlocks
+    ? (currentBlock === 1 ? tutorialBlocks.block2 : null)
+    : phase2Blocks[currentBlock];
+  const phase3Block = phase === 0 && tutorialBlocks
+    ? (currentBlock === 2 ? tutorialBlocks.block3 : null)
+    : phase3Blocks[currentBlock];
+  const phase4Block = phase === 0 && tutorialBlocks
+    ? (currentBlock === 3 ? tutorialBlocks.block4 : null)
+    : phase4Blocks[currentBlock];
+  const phase5Block = phase === 0 && tutorialBlocks
+    ? (currentBlock === 4 ? tutorialBlocks.block5 : null)
+    : phase5Blocks[currentBlock];
   const enabledTrackIndices = useMemo(() => [0], []);
   const phase4EnabledTrackIndices = useMemo(
     () => phase4Block?.trackNames.map((_, i) => i) ?? [],
@@ -1000,6 +1138,10 @@ export default function QuestionOnePage() {
   );
 
   const handleSimilarity = (v: number) => {
+    if (phase === 0) {
+      setTutorialPhase1Answer((prev) => ({ ...prev, similarity: v }));
+      return;
+    }
     setAnswers((prev) => {
       const next = [...prev];
       next[currentBlock] = { ...next[currentBlock], similarity: v };
@@ -1007,6 +1149,10 @@ export default function QuestionOnePage() {
     });
   };
   const handleConfidence = (v: number) => {
+    if (phase === 0) {
+      setTutorialPhase1Answer((prev) => ({ ...prev, confidence: v }));
+      return;
+    }
     setAnswers((prev) => {
       const next = [...prev];
       next[currentBlock] = { ...next[currentBlock], confidence: v };
@@ -1014,7 +1160,24 @@ export default function QuestionOnePage() {
     });
   };
 
+  const handlePrevious = () => {
+    if (phase === 0 && currentBlock > 0) {
+      setCurrentBlock((c) => c - 1);
+      setTutorialPhase3HoveredBead(null);
+    }
+  };
+
   const handleNext = () => {
+    if (phase === 0) {
+      if (currentBlock < NUM_TUTORIAL_QUESTIONS - 1) {
+        setCurrentBlock((c) => c + 1);
+        setTutorialPhase3HoveredBead(null);
+      } else {
+        setPhase(1);
+        setCurrentBlock(0);
+      }
+      return;
+    }
     // Validate: current question must be answered before proceeding
     if (phase === 1) {
       if (currentBlock === 0 && !phase1Q1TimerStarted) {
@@ -1194,7 +1357,9 @@ export default function QuestionOnePage() {
   }, [phase, currentBlock, phase1Q1TimerStarted]);
 
   useEffect(() => {
-    if (phase === 3 && phase3HoveredBead != null) {
+    const hovered = phase === 0 ? tutorialPhase3HoveredBead : phase3HoveredBead;
+    const inPhase3 = phase === 3 || (phase === 0 && currentBlock === 2);
+    if (inPhase3 && hovered != null) {
       document.body.style.cursor = "pointer";
     } else {
       document.body.style.cursor = "auto";
@@ -1202,9 +1367,13 @@ export default function QuestionOnePage() {
     return () => {
       document.body.style.cursor = "auto";
     };
-  }, [phase, phase3HoveredBead]);
+  }, [phase, currentBlock, phase3HoveredBead, tutorialPhase3HoveredBead]);
 
   const handlePhase2Answer = (label: string) => {
+    if (phase === 0) {
+      setTutorialPhase2Answer(label);
+      return;
+    }
     setPhase2Answers((prev) => {
       const next = [...prev];
       next[currentBlock] = label;
@@ -1213,6 +1382,10 @@ export default function QuestionOnePage() {
   };
 
   const handlePhase4Confidence = (v: number) => {
+    if (phase === 0) {
+      setTutorialPhase4Answer(v);
+      return;
+    }
     setPhase4Answers((prev) => {
       const next = [...prev];
       next[currentBlock] = v;
@@ -1221,6 +1394,10 @@ export default function QuestionOnePage() {
   };
 
   const handlePhase5Answer = (v: number) => {
+    if (phase === 0) {
+      setTutorialPhase5Answer(v);
+      return;
+    }
     const next = [...phase5Answers];
     next[currentBlock] = v;
     phase5AnswersRef.current = next;
@@ -1228,6 +1405,10 @@ export default function QuestionOnePage() {
   };
 
   const handlePhase5Confidence = (v: number) => {
+    if (phase === 0) {
+      setTutorialPhase5Confidence(v);
+      return;
+    }
     const next = [...phase5Confidence];
     next[currentBlock] = v;
     phase5ConfidenceRef.current = next;
@@ -1235,6 +1416,10 @@ export default function QuestionOnePage() {
   };
 
   const handlePhase3BeadClick = (beadIndex: number) => {
+    if (phase === 0) {
+      setTutorialPhase3Answer(beadIndex);
+      return;
+    }
     setPhase3Answers((prev) => {
       const next = [...prev];
       next[currentBlock] = beadIndex;
@@ -1248,17 +1433,20 @@ export default function QuestionOnePage() {
       <div style={headerStyle}>
         <div style={progressStyle}>
           <span style={progressLabelStyle}>
-            {phase === 1 ? "Phase 1" : phase === 2 ? "Phase 2" : phase === 3 ? "Phase 3" : phase === 4 ? "Phase 4" : "Phase 5"} — Question {currentBlock + 1} /{" "}
-            {phase === 1 ? NUM_QUESTIONS : phase === 2 ? NUM_PHASE2_QUESTIONS : phase === 3 ? NUM_PHASE3_QUESTIONS : phase === 4 ? NUM_PHASE4_QUESTIONS : NUM_PHASE5_QUESTIONS}
+            {phase === 0
+              ? `Tutorial — Question ${currentBlock + 1} / ${NUM_TUTORIAL_QUESTIONS}`
+              : `${phase === 1 ? "Phase 1" : phase === 2 ? "Phase 2" : phase === 3 ? "Phase 3" : phase === 4 ? "Phase 4" : "Phase 5"} — Question ${currentBlock + 1} / ${phase === 1 ? NUM_QUESTIONS : phase === 2 ? NUM_PHASE2_QUESTIONS : phase === 3 ? NUM_PHASE3_QUESTIONS : phase === 4 ? NUM_PHASE4_QUESTIONS : NUM_PHASE5_QUESTIONS}`}
           </span>
           <div style={progressBarTrackStyle}>
             <div
               style={{
                 ...progressBarFillStyle,
                 width: `${
-                  ((currentBlock + 1) /
-                    (phase === 1 ? NUM_QUESTIONS : phase === 2 ? NUM_PHASE2_QUESTIONS : phase === 3 ? NUM_PHASE3_QUESTIONS : phase === 4 ? NUM_PHASE4_QUESTIONS : NUM_PHASE5_QUESTIONS)) *
-                  100
+                  (phase === 0
+                    ? ((currentBlock + 1) / NUM_TUTORIAL_QUESTIONS) * 100
+                    : ((currentBlock + 1) /
+                        (phase === 1 ? NUM_QUESTIONS : phase === 2 ? NUM_PHASE2_QUESTIONS : phase === 3 ? NUM_PHASE3_QUESTIONS : phase === 4 ? NUM_PHASE4_QUESTIONS : NUM_PHASE5_QUESTIONS)) *
+                      100)
                 }%`,
               }}
             />
@@ -1282,7 +1470,7 @@ export default function QuestionOnePage() {
           </div>
         )}
 
-        {!loading && !error && phase === 1 && block && (
+        {!loading && !error && (phase === 1 || phase === 0) && block && (
           <>
             {/* Left: D3 line chart */}
             <div style={panelStyle}>
@@ -1347,7 +1535,7 @@ export default function QuestionOnePage() {
           </>
         )}
 
-        {!loading && !error && phase === 2 && phase2Block && (
+        {!loading && !error && (phase === 2 || phase === 0) && phase2Block && (
           <>
             {/* Left: D3 line chart with peak labels */}
             <div style={panelStyle}>
@@ -1418,7 +1606,7 @@ export default function QuestionOnePage() {
           </>
         )}
 
-        {!loading && !error && phase === 3 && phase3Block && (
+        {!loading && !error && (phase === 3 || phase === 0) && phase3Block && (
           <>
             {/* Left: D3 line chart with single peak highlight */}
             <div style={panelStyle}>
@@ -1446,16 +1634,16 @@ export default function QuestionOnePage() {
                 >
                   <ambientLight intensity={0.6} />
                   <directionalLight position={[100, 100, 100]} intensity={0.8} />
-                  {phase3Block.beads.length > 1 && (
+                    {phase3Block.beads.length > 1 && (
                     <ChromosomePipeline
                       beads={phase3Block.beads}
                       enabledTrackIndices={enabledTrackIndices}
                       trackNames={[phase3Block.trackName]}
                       highlightStartEnd
                       interactiveMode
-                      hoveredBeadIndex={phase3HoveredBead}
-                      selectedBeadIndex={phase3Answers[currentBlock]}
-                      onBeadHover={setPhase3HoveredBead}
+                      hoveredBeadIndex={phase === 0 ? tutorialPhase3HoveredBead : phase3HoveredBead}
+                      selectedBeadIndex={phase === 0 ? tutorialPhase3Answer : phase3Answers[currentBlock]}
+                      onBeadHover={phase === 0 ? setTutorialPhase3HoveredBead : setPhase3HoveredBead}
                       onBeadClick={handlePhase3BeadClick}
                       gamma={gamma}
                     />
@@ -1493,7 +1681,7 @@ export default function QuestionOnePage() {
           </>
         )}
 
-        {!loading && !error && phase === 4 && phase4Block && (
+        {!loading && !error && (phase === 4 || phase === 0) && phase4Block && (
           <>
             {/* Left: Multi-track line charts (one per track, column) — compact so all fit without scroll */}
             <div style={panelStyle}>
@@ -1559,7 +1747,7 @@ export default function QuestionOnePage() {
           </>
         )}
 
-        {!loading && !error && phase === 5 && phase5Block && (
+        {!loading && !error && (phase === 5 || phase === 0) && phase5Block && (
           <>
             {/* Left panel (1D line charts) hidden for Phase 5
             <div style={panelStyle}>
@@ -1623,14 +1811,14 @@ export default function QuestionOnePage() {
       </div>
 
       {/* ── Questions panel ── */}
-      {!loading && !error && phase === 1 && block && (
+      {!loading && !error && (phase === 1 || phase === 0) && block && (
         <div key={`p1-b${currentBlock}`} style={questionsPanelStyle}>
           <div style={questionBlockStyle}>
             <div style={questionLabelStyle}>
               Q1. How similar are the peak distribution and pattern of the 1D track when mapped onto the 3D structure?
             </div>
             <RatingScale
-              value={answers[currentBlock]?.similarity ?? null}
+              value={(phase === 0 ? tutorialPhase1Answer.similarity : answers[currentBlock]?.similarity) ?? null}
               onChange={handleSimilarity}
               labelLow="1 = most dissimilar"
               labelHigh="5 = very similar"
@@ -1641,7 +1829,7 @@ export default function QuestionOnePage() {
               Q2. How confident are you about your result?
             </div>
             <RatingScale
-              value={answers[currentBlock]?.confidence ?? null}
+              value={(phase === 0 ? tutorialPhase1Answer.confidence : answers[currentBlock]?.confidence) ?? null}
               onChange={handleConfidence}
               labelLow="1 = least confident"
               labelHigh="5 = very confident"
@@ -1651,7 +1839,7 @@ export default function QuestionOnePage() {
       )}
 
       {/* ── Phase 2: Multiple choice ── */}
-      {!loading && !error && phase === 2 && phase2Block && (
+      {!loading && !error && (phase === 2 || phase === 0) && phase2Block && (
         <div key={`p2-b${currentBlock}`} style={questionsPanelStyle}>
           <div style={{ ...questionBlockStyle, flex: 1 }}>
             <div style={questionLabelStyle}>
@@ -1665,7 +1853,7 @@ export default function QuestionOnePage() {
                   onClick={() => handlePhase2Answer(p.label)}
                   style={{
                     ...peakOptionBtnStyle,
-                    ...(phase2Answers[currentBlock] === p.label
+                    ...((phase === 0 ? tutorialPhase2Answer : phase2Answers[currentBlock]) === p.label
                       ? peakOptionBtnActiveStyle
                       : {}),
                   }}
@@ -1679,12 +1867,12 @@ export default function QuestionOnePage() {
       )}
 
       {/* ── Phase 3: Click bead (no options) ── */}
-      {!loading && !error && phase === 3 && phase3Block && (
+      {!loading && !error && (phase === 3 || phase === 0) && phase3Block && (
         <div key={`p3-b${currentBlock}`} style={questionsPanelStyle}>
           <div style={{ ...questionBlockStyle, flex: 1 }}>
             <div style={questionLabelStyle}>
               Select the bead in 3D that corresponds to the highlighted peak. Hover to preview, click to confirm.
-              {phase3Answers[currentBlock] != null && (
+              {(phase === 0 ? tutorialPhase3Answer : phase3Answers[currentBlock]) != null && (
                 <span style={{ marginLeft: 8, color: "#22c55e" }}>✓</span>
               )}
             </div>
@@ -1693,14 +1881,14 @@ export default function QuestionOnePage() {
       )}
 
       {/* ── Phase 4: Confidence rating ── */}
-      {!loading && !error && phase === 4 && phase4Block && (
+      {!loading && !error && (phase === 4 || phase === 0) && phase4Block && (
         <div key={`p4-b${currentBlock}`} style={questionsPanelStyle}>
           <div style={{ ...questionBlockStyle, flex: 1 }}>
             <div style={questionLabelStyle}>
               How confident are you in recognizing the changing patterns of all the tracks here?
             </div>
             <RatingScale
-              value={phase4Answers[currentBlock] ?? null}
+              value={(phase === 0 ? tutorialPhase4Answer : phase4Answers[currentBlock]) ?? null}
               onChange={handlePhase4Confidence}
               labelLow="1 = least confident"
               labelHigh="5 = very confident"
@@ -1710,7 +1898,7 @@ export default function QuestionOnePage() {
       )}
 
       {/* ── Phase 5: Common peak count + confidence ── */}
-      {!loading && !error && phase === 5 && phase5Block && (
+      {!loading && !error && (phase === 5 || phase === 0) && phase5Block && (
         <div key={`p5-b${currentBlock}`} style={questionsPanelStyle}>
           <div style={{ ...questionBlockStyle, flex: 1 }}>
             <div style={questionLabelStyle}>
@@ -1724,7 +1912,7 @@ export default function QuestionOnePage() {
                   onClick={() => handlePhase5Answer(opt)}
                   style={{
                     ...peakOptionBtnStyle,
-                    ...(phase5Answers[currentBlock] === opt ? peakOptionBtnActiveStyle : {}),
+                    ...((phase === 0 ? tutorialPhase5Answer : phase5Answers[currentBlock]) === opt ? peakOptionBtnActiveStyle : {}),
                   }}
                 >
                   {opt}
@@ -1737,7 +1925,7 @@ export default function QuestionOnePage() {
               Q2. How confident are you about your result?
             </div>
             <RatingScale
-              value={phase5Confidence[currentBlock] ?? null}
+              value={(phase === 0 ? tutorialPhase5Confidence : phase5Confidence[currentBlock]) ?? null}
               onChange={handlePhase5Confidence}
               labelLow="1 = least confident"
               labelHigh="5 = very confident"
@@ -1747,17 +1935,26 @@ export default function QuestionOnePage() {
       )}
 
       {/* ── Footer ── */}
-      <div style={{ ...footerStyle, ...(phase === 1 && currentBlock === 0 && !phase1Q1TimerStarted ? { justifyContent: "space-between" } : {}) }}>
+      <div style={{
+        ...footerStyle,
+        ...((phase === 1 && currentBlock === 0 && !phase1Q1TimerStarted) || (phase === 0 && currentBlock > 0) ? { justifyContent: "space-between" } : {}),
+      }}>
         {phase === 1 && currentBlock === 0 && !phase1Q1TimerStarted && (
           <button style={btnStyle} onClick={() => { setPhase1Q1TimerStarted(true); questionStartTimeRef.current = Date.now(); }}>
             Start
+          </button>
+        )}
+        {phase === 0 && currentBlock > 0 && (
+          <button style={btnStyle} onClick={handlePrevious}>
+            ← Previous
           </button>
         )}
         <button
           style={btnStyle}
           onClick={handleNext}
           disabled={
-            (phase === 2 &&
+            phase !== 0 &&
+            ((phase === 2 &&
               currentBlock >= NUM_PHASE2_QUESTIONS - 1 &&
               phase2Results.length >= NUM_PHASE2_QUESTIONS) ||
             (phase === 3 &&
@@ -1768,20 +1965,22 @@ export default function QuestionOnePage() {
               phase4Results.length >= NUM_PHASE4_QUESTIONS) ||
             (phase === 5 &&
               currentBlock >= NUM_PHASE5_QUESTIONS - 1 &&
-              phase5Results.length >= NUM_PHASE5_QUESTIONS)
+              phase5Results.length >= NUM_PHASE5_QUESTIONS))
           }
         >
-          {phase === 1 && currentBlock >= NUM_QUESTIONS - 1
-            ? "Next phase →"
-            : phase === 2 && currentBlock >= NUM_PHASE2_QUESTIONS - 1
+          {phase === 0 && currentBlock >= NUM_TUTORIAL_QUESTIONS - 1
+            ? "Start Phase 1 →"
+            : phase === 1 && currentBlock >= NUM_QUESTIONS - 1
               ? "Next phase →"
-              : phase === 3 && currentBlock >= NUM_PHASE3_QUESTIONS - 1
+              : phase === 2 && currentBlock >= NUM_PHASE2_QUESTIONS - 1
                 ? "Next phase →"
-                : phase === 4 && currentBlock >= NUM_PHASE4_QUESTIONS - 1
+                : phase === 3 && currentBlock >= NUM_PHASE3_QUESTIONS - 1
                   ? "Next phase →"
-                  : phase === 5 && currentBlock >= NUM_PHASE5_QUESTIONS - 1
-                    ? "Complete"
-                    : "Next →"}
+                  : phase === 4 && currentBlock >= NUM_PHASE4_QUESTIONS - 1
+                    ? "Next phase →"
+                    : phase === 5 && currentBlock >= NUM_PHASE5_QUESTIONS - 1
+                      ? "Complete"
+                      : "Next →"}
         </button>
       </div>
     </div>
