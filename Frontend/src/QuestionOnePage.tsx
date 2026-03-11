@@ -18,9 +18,23 @@ const BIN_SIZE = 5_000;
 const NUM_QUESTIONS = 5;
 const NUM_PHASE2_QUESTIONS = 5;
 const NUM_PHASE3_QUESTIONS = 5;
+const NUM_PHASE4_QUESTIONS = 7;
+
+const PHASE4_TRACK_COLORS = [
+  "#ff6b6b", "#bf812d", "#45b7d1",
+  "#f9ca24", "#6c5ce7", "#00d2d3",
+  "#ff9ff3", "#54a0ff", "#a29bfe",
+];
 const PEAK_MIN_HEIGHT = 0.25;
 const PEAK_MIN_DISTANCE = 3;
 const PEAK_LABELS = "ABCDEF".split("");
+
+function colorToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 // ── Peak detection ───────────────────────────────────────────────────────
 
@@ -98,9 +112,13 @@ function RatingScale({
 function LineChart({
   values,
   trackName,
+  color = "#45b7d1",
+  hideAxisLabels = false,
 }: {
   values: number[];
   trackName: string;
+  color?: string;
+  hideAxisLabels?: boolean;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -142,9 +160,10 @@ function LineChart({
       .y1((d) => yScale(d))
       .curve(d3.curveCatmullRom.alpha(0.5));
 
+    const fillRgba = colorToRgba(color, 0.15);
     g.append("path")
       .datum(values)
-      .attr("fill", "rgba(69,183,209,0.15)")
+      .attr("fill", fillRgba)
       .attr("d", area);
 
     // Line
@@ -157,7 +176,7 @@ function LineChart({
     g.append("path")
       .datum(values)
       .attr("fill", "none")
-      .attr("stroke", "#45b7d1")
+      .attr("stroke", color)
       .attr("stroke-width", 2)
       .attr("d", line);
 
@@ -204,31 +223,79 @@ function LineChart({
       });
 
     // Axis labels
-    svg
-      .append("text")
-      .attr("x", W / 2)
-      .attr("y", H - 8)
-      .attr("text-anchor", "middle")
-      .attr("fill", "#b0bec5")
-      .attr("font-size", 12)
-      .text("Genomic Position (chr8)");
+    if (!hideAxisLabels) {
+      svg
+        .append("text")
+        .attr("x", W / 2)
+        .attr("y", H - 8)
+        .attr("text-anchor", "middle")
+        .attr("fill", "#b0bec5")
+        .attr("font-size", 12)
+        .text("Genomic Position (chr8)");
 
-    svg
-      .append("text")
-      .attr("transform", `rotate(-90)`)
-      .attr("x", -(H / 2))
-      .attr("y", 14)
-      .attr("text-anchor", "middle")
-      .attr("fill", "#b0bec5")
-      .attr("font-size", 12)
-      .text("Normalized Signal");
-  }, [values, trackName]);
+      svg
+        .append("text")
+        .attr("transform", `rotate(-90)`)
+        .attr("x", -(H / 2))
+        .attr("y", 14)
+        .attr("text-anchor", "middle")
+        .attr("fill", "#b0bec5")
+        .attr("font-size", 12)
+        .text("Normalized Signal");
+    }
+  }, [values, trackName, color, hideAxisLabels]);
 
   return (
     <svg
       ref={svgRef}
       style={{ width: "100%", height: "100%", display: "block" }}
     />
+  );
+}
+
+// ── Multi-track line charts (one per track, column layout, for Phase 4) ─────
+
+const PHASE4_CHART_MIN_HEIGHT = 140;
+
+function MultiTrackLineChartColumn({
+  tracks,
+}: {
+  tracks: Phase4TrackData[];
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        height: "100%",
+        minHeight: 0,
+        overflow: "auto",
+        padding: "8px 4px",
+      }}
+    >
+      {tracks.map((t, i) => (
+        <div
+          key={t.trackName}
+          style={{
+            flex: `0 0 ${PHASE4_CHART_MIN_HEIGHT}px`,
+            minHeight: PHASE4_CHART_MIN_HEIGHT,
+            display: "flex",
+            flexDirection: "column",
+            minWidth: 0,
+          }}
+        >
+          <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+            <LineChart
+              values={t.trackValues}
+              trackName={t.trackName}
+              color={PHASE4_TRACK_COLORS[i % PHASE4_TRACK_COLORS.length]}
+              hideAxisLabels
+            />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -436,11 +503,24 @@ interface Phase2BlockData {
   correctAnswer: string;
 }
 
+interface Phase4TrackData {
+  trackName: string;
+  trackValues: number[];
+}
+
+interface Phase4BlockData {
+  tracks: Phase4TrackData[];
+  beads: BeadData[];
+  trackNames: string[];
+  sampleId: number;
+}
+
 export default function QuestionOnePage() {
-  const [phase, setPhase] = useState<1 | 2 | 3>(1);
+  const [phase, setPhase] = useState<1 | 2 | 3 | 4>(1);
   const [blocks, setBlocks] = useState<BlockData[]>([]);
   const [phase2Blocks, setPhase2Blocks] = useState<Phase2BlockData[]>([]);
   const [phase3Blocks, setPhase3Blocks] = useState<Phase2BlockData[]>([]);
+  const [phase4Blocks, setPhase4Blocks] = useState<Phase4BlockData[]>([]);
   const [currentBlock, setCurrentBlock] = useState(0);
   const [answers, setAnswers] = useState<Array<{ similarity: number | null; confidence: number | null }>>(
     Array(NUM_QUESTIONS).fill(null).map(() => ({ similarity: null, confidence: null })),
@@ -458,6 +538,12 @@ export default function QuestionOnePage() {
     Array<{ correctBeadIndex: number; userBeadIndex: number | null; correct: boolean; timeSpentMs: number }>
   >([]);
   const [phase3HoveredBead, setPhase3HoveredBead] = useState<number | null>(null);
+  const [phase4Answers, setPhase4Answers] = useState<(number | null)[]>(
+    Array(NUM_PHASE4_QUESTIONS).fill(null),
+  );
+  const [phase4Results, setPhase4Results] = useState<
+    Array<{ userAnswer: number | null; timeSpentMs: number }>
+  >([]);
   const [phase1Times, setPhase1Times] = useState<number[]>([]);
   const [gamma, setGamma] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -656,10 +742,50 @@ export default function QuestionOnePage() {
           }
         }
 
+        const builtPhase4: Phase4BlockData[] = [];
+        for (let i = 0; i < NUM_PHASE4_QUESTIONS; i++) {
+          const numTracks = i + 2;
+          const shuffled = [...allTrackNames].sort(() => Math.random() - 0.5);
+          const chosenNames = shuffled.slice(0, numTracks);
+          const sampleIdx = Math.floor(Math.random() * sampleIds.length);
+          const chosenSampleId = sampleIds[sampleIdx];
+
+          const multiTrackTracks: Record<string, { raw: number[]; normalized: number[] }> = {};
+          for (const name of chosenNames) {
+            multiTrackTracks[name] = trkJson.tracks[name];
+          }
+          const multiTrackJson: TracksJson = {
+            region: trkJson.region,
+            tracks: multiTrackTracks,
+          };
+
+          const filtered = allSamples
+            .filter((s) => s.sampleId === chosenSampleId)
+            .sort((a, b) => a.start_value - b.start_value);
+
+          const beadsData = matchBeadsToTracks(
+            filtered,
+            multiTrackJson,
+            chosenNames,
+            true,
+          );
+
+          builtPhase4.push({
+            tracks: chosenNames.map((name) => ({
+              trackName: name,
+              trackValues: trkJson.tracks[name].normalized,
+            })),
+            beads: beadsData,
+            trackNames: chosenNames,
+            sampleId: chosenSampleId,
+          });
+        }
+
         if (!cancelled) {
           setBlocks(built);
           setPhase2Blocks(builtPhase2);
           setPhase3Blocks(builtPhase3);
+          setPhase4Blocks(builtPhase4);
         }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
@@ -674,7 +800,12 @@ export default function QuestionOnePage() {
   const block = blocks[currentBlock];
   const phase2Block = phase2Blocks[currentBlock];
   const phase3Block = phase3Blocks[currentBlock];
+  const phase4Block = phase4Blocks[currentBlock];
   const enabledTrackIndices = useMemo(() => [0], []);
+  const phase4EnabledTrackIndices = useMemo(
+    () => phase4Block?.trackNames.map((_, i) => i) ?? [],
+    [phase4Block],
+  );
 
   const handleSimilarity = (v: number) => {
     setAnswers((prev) => {
@@ -705,6 +836,12 @@ export default function QuestionOnePage() {
     } else if (phase === 3 && currentBlock === 0) {
       setPhase(2);
       setCurrentBlock(NUM_PHASE2_QUESTIONS - 1);
+      setPhase3HoveredBead(null);
+    } else if (phase === 4 && currentBlock > 0) {
+      setCurrentBlock((c) => c - 1);
+    } else if (phase === 4 && currentBlock === 0) {
+      setPhase(3);
+      setCurrentBlock(NUM_PHASE3_QUESTIONS - 1);
       setPhase3HoveredBead(null);
     }
   };
@@ -743,7 +880,7 @@ export default function QuestionOnePage() {
         setCurrentBlock(0);
         setPhase3HoveredBead(null);
       }
-    } else {
+    } else if (phase === 3) {
       if (phase3Block && phase3Results.length <= currentBlock) {
         const userIdx = phase3Answers[currentBlock];
         const targetIdx = phase3Block.highlightedBeadIndex;
@@ -762,6 +899,23 @@ export default function QuestionOnePage() {
       if (currentBlock < NUM_PHASE3_QUESTIONS - 1) {
         setCurrentBlock((c) => c + 1);
         setPhase3HoveredBead(null);
+      } else {
+        setPhase(4);
+        setCurrentBlock(0);
+      }
+    } else {
+      if (phase4Block && phase4Results.length <= currentBlock) {
+        console.log(`[Phase 4] Question ${currentBlock + 1} completed in ${(timeSpentMs / 1000).toFixed(2)} seconds | Confidence: ${phase4Answers[currentBlock]}`);
+        setPhase4Results((prev) => [
+          ...prev,
+          {
+            userAnswer: phase4Answers[currentBlock],
+            timeSpentMs,
+          },
+        ]);
+      }
+      if (currentBlock < NUM_PHASE4_QUESTIONS - 1) {
+        setCurrentBlock((c) => c + 1);
       }
     }
   };
@@ -783,6 +937,12 @@ export default function QuestionOnePage() {
       (window as unknown as { __phase3Results?: unknown }).__phase3Results = phase3Results;
     }
   }, [phase3Results]);
+
+  useEffect(() => {
+    if (phase4Results.length > 0) {
+      (window as unknown as { __phase4Results?: unknown }).__phase4Results = phase4Results;
+    }
+  }, [phase4Results]);
 
   useEffect(() => {
     questionStartTimeRef.current = Date.now();
@@ -807,10 +967,16 @@ export default function QuestionOnePage() {
     });
   };
 
+  const handlePhase4Confidence = (v: number) => {
+    setPhase4Answers((prev) => {
+      const next = [...prev];
+      next[currentBlock] = v;
+      return next;
+    });
+  };
+
   const handlePhase3BeadClick = (beadIndex: number) => {
     if (phase3Answers[currentBlock] != null) return;
-    const targetIdx = phase3Block?.highlightedBeadIndex ?? -1;
-    const correct = phase3Block != null && Math.abs(beadIndex - targetIdx) <= 1;
     setPhase3Answers((prev) => {
       const next = [...prev];
       next[currentBlock] = beadIndex;
@@ -824,8 +990,8 @@ export default function QuestionOnePage() {
       <div style={headerStyle}>
         <div style={progressStyle}>
           <span style={progressLabelStyle}>
-            {phase === 1 ? "Phase 1" : phase === 2 ? "Phase 2" : "Phase 3"} — Question {currentBlock + 1} /{" "}
-            {phase === 1 ? NUM_QUESTIONS : phase === 2 ? NUM_PHASE2_QUESTIONS : NUM_PHASE3_QUESTIONS}
+            {phase === 1 ? "Phase 1" : phase === 2 ? "Phase 2" : phase === 3 ? "Phase 3" : "Phase 4"} — Question {currentBlock + 1} /{" "}
+            {phase === 1 ? NUM_QUESTIONS : phase === 2 ? NUM_PHASE2_QUESTIONS : phase === 3 ? NUM_PHASE3_QUESTIONS : NUM_PHASE4_QUESTIONS}
           </span>
           <div style={progressBarTrackStyle}>
             <div
@@ -833,7 +999,7 @@ export default function QuestionOnePage() {
                 ...progressBarFillStyle,
                 width: `${
                   ((currentBlock + 1) /
-                    (phase === 1 ? NUM_QUESTIONS : phase === 2 ? NUM_PHASE2_QUESTIONS : NUM_PHASE3_QUESTIONS)) *
+                    (phase === 1 ? NUM_QUESTIONS : phase === 2 ? NUM_PHASE2_QUESTIONS : phase === 3 ? NUM_PHASE3_QUESTIONS : NUM_PHASE4_QUESTIONS)) *
                   100
                 }%`,
               }}
@@ -845,7 +1011,9 @@ export default function QuestionOnePage() {
             ? "How similar is the 1D track to its 3D mapping?"
             : phase === 2
               ? "Which peak has been highlighted?"
-              : "Click on the bead that corresponds to the highlighted peak"}
+              : phase === 3
+                ? "Click on the bead that corresponds to the highlighted peak"
+                : "How confident are you in recognizing the changing patterns of all the tracks here?"}
         </h2>
       </div>
 
@@ -1069,6 +1237,67 @@ export default function QuestionOnePage() {
             </div>
           </>
         )}
+
+        {!loading && !error && phase === 4 && phase4Block && (
+          <>
+            {/* Left: Multi-track line charts (one per track, column) */}
+            <div style={panelStyle}>
+              <div style={panelLabelStyle}>1D Signal Tracks</div>
+              <div style={chartContainerStyle}>
+                <MultiTrackLineChartColumn tracks={phase4Block.tracks} />
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div style={dividerStyle} />
+
+            {/* Right: 3D view with multiple tracks */}
+            <div style={panelStyle}>
+              <div style={panelLabelStyle}>3D Chromatin Structure</div>
+              <div style={canvasWrapperStyle}>
+                <Canvas
+                  camera={{ position: [0, 0, 500], fov: 60, near: 0.1, far: 10000 }}
+                  style={{ width: "100%", height: "100%", background: "#060f1a" }}
+                >
+                  <ambientLight intensity={0.6} />
+                  <directionalLight position={[100, 100, 100]} intensity={0.8} />
+                  {phase4Block.beads.length > 1 && phase4EnabledTrackIndices.length > 0 && (
+                    <ChromosomePipeline
+                      beads={phase4Block.beads}
+                      enabledTrackIndices={phase4EnabledTrackIndices}
+                      trackNames={phase4Block.trackNames}
+                      highlightStartEnd
+                      gamma={gamma}
+                    />
+                  )}
+                  <OrbitControls enableZoom enablePan enableRotate />
+                </Canvas>
+                <div style={legendStyle}>
+                  <div style={gammaControlStyle}>
+                    <span style={{ whiteSpace: "nowrap", fontSize: 12 }}>Gamma {gamma}</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={20}
+                      step={0.1}
+                      value={gamma}
+                      onChange={(e) => setGamma(Number(e.target.value))}
+                      style={gammaSliderStyle}
+                    />
+                  </div>
+                  <div style={legendItemStyle}>
+                    <span style={{ ...legendDotStyle, background: "#22c55e" }} />
+                    Start
+                  </div>
+                  <div style={legendItemStyle}>
+                    <span style={{ ...legendDotStyle, background: "#ef4444" }} />
+                    End
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* ── Questions panel ── */}
@@ -1141,6 +1370,23 @@ export default function QuestionOnePage() {
         </div>
       )}
 
+      {/* ── Phase 4: Confidence rating ── */}
+      {!loading && !error && phase === 4 && phase4Block && (
+        <div key={`p4-b${currentBlock}`} style={questionsPanelStyle}>
+          <div style={{ ...questionBlockStyle, flex: 1 }}>
+            <div style={questionLabelStyle}>
+              How confident are you in recognizing the changing patterns of all the tracks here?
+            </div>
+            <RatingScale
+              value={phase4Answers[currentBlock] ?? null}
+              onChange={handlePhase4Confidence}
+              labelLow="1 = least confident"
+              labelHigh="5 = very confident"
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── Footer ── */}
       <div style={footerStyle}>
         <button
@@ -1166,7 +1412,10 @@ export default function QuestionOnePage() {
               phase2Results.length >= NUM_PHASE2_QUESTIONS) ||
             (phase === 3 &&
               currentBlock >= NUM_PHASE3_QUESTIONS - 1 &&
-              phase3Results.length >= NUM_PHASE3_QUESTIONS)
+              phase3Results.length >= NUM_PHASE3_QUESTIONS) ||
+            (phase === 4 &&
+              currentBlock >= NUM_PHASE4_QUESTIONS - 1 &&
+              phase4Results.length >= NUM_PHASE4_QUESTIONS)
           }
         >
           {phase === 1 && currentBlock >= NUM_QUESTIONS - 1
@@ -1174,8 +1423,10 @@ export default function QuestionOnePage() {
             : phase === 2 && currentBlock >= NUM_PHASE2_QUESTIONS - 1
               ? "Next phase →"
               : phase === 3 && currentBlock >= NUM_PHASE3_QUESTIONS - 1
-                ? "Complete"
-                : "Next →"}
+                ? "Next phase →"
+                : phase === 4 && currentBlock >= NUM_PHASE4_QUESTIONS - 1
+                  ? "Complete"
+                  : "Next →"}
         </button>
       </div>
     </div>
