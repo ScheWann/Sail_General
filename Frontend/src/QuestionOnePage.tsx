@@ -19,6 +19,8 @@ const NUM_QUESTIONS = 5;
 const NUM_PHASE2_QUESTIONS = 5;
 const NUM_PHASE3_QUESTIONS = 5;
 const NUM_PHASE4_QUESTIONS = 7;
+const NUM_PHASE5_QUESTIONS = 5;
+const COMMON_PEAK_TOLERANCE = 2; // bins: peaks within ±N count as same location
 
 const PHASE4_TRACK_COLORS = [
   "#ff6b6b", "#bf812d", "#45b7d1",
@@ -67,6 +69,55 @@ function detectPeaks(values: number[], maxPeaks = 6): Peak[] {
     ...p,
     label: PEAK_LABELS[i] ?? String(i + 1),
   }));
+}
+
+/** Count locations where ≥minTracks tracks have a peak (within COMMON_PEAK_TOLERANCE bins) */
+function countCommonPeakLocations(trackValuesList: number[][], minTracks = 2): number {
+  const peakIndicesByTrack: number[][] = [];
+  for (let t = 0; t < trackValuesList.length; t++) {
+    const peaks = detectPeaks(trackValuesList[t]);
+    peakIndicesByTrack.push(peaks.map((p) => p.index));
+  }
+
+  const n = trackValuesList[0]?.length ?? 0;
+  const inCommon: boolean[] = [];
+  for (let i = 0; i < n; i++) {
+    let trackCount = 0;
+    for (const indices of peakIndicesByTrack) {
+      if (indices.some((idx) => Math.abs(idx - i) <= COMMON_PEAK_TOLERANCE)) trackCount++;
+    }
+    inCommon[i] = trackCount >= minTracks;
+  }
+
+  let regionCount = 0;
+  let inRegion = false;
+  for (let i = 0; i < n; i++) {
+    if (inCommon[i]) {
+      if (!inRegion) {
+        inRegion = true;
+        regionCount++;
+      }
+    } else {
+      inRegion = false;
+    }
+  }
+  return regionCount;
+}
+
+/** Generate 5 options including correctAnswer, asymmetric (not symmetrically centered) */
+function generatePhase5Options(correctAnswer: number, seed: number): number[] {
+  const below = [correctAnswer - 2, correctAnswer - 1].filter((x) => x >= 0);
+  const above = [correctAnswer + 1, correctAnswer + 2, correctAnswer + 3, correctAnswer + 4];
+  const opts: number[] = [correctAnswer];
+  if (seed % 2 === 0) {
+    while (opts.length < 5 && above.length > 0) opts.push(above.shift()!);
+    while (opts.length < 5 && below.length > 0) opts.push(below.pop()!);
+  } else {
+    while (opts.length < 5 && below.length > 0) opts.push(below.shift()!);
+    while (opts.length < 5 && above.length > 0) opts.push(above.shift()!);
+  }
+  while (opts.length < 5) opts.push(Math.max(...opts) + 1);
+  return [...new Set(opts)].sort((a, b) => a - b).slice(0, 5);
 }
 
 // ── Rating scale 1–5 ───────────────────────────────────────────────────────
@@ -182,14 +233,16 @@ function LineChart({
   );
 }
 
-// ── Multi-track line charts (one per track, column layout, for Phase 4) ─────
+// ── Multi-track line charts (one per track, column layout, for Phase 4 & 5) ─────
 
 const PHASE4_CHART_MIN_HEIGHT = 150;
 
 function MultiTrackLineChartColumn({
   tracks,
+  compact,
 }: {
   tracks: Phase4TrackData[];
+  compact?: boolean;
 }) {
   return (
     <div
@@ -199,7 +252,7 @@ function MultiTrackLineChartColumn({
         gap: 2,
         height: "100%",
         minHeight: 0,
-        overflow: "auto",
+        overflow: compact ? "hidden" : "auto",
         padding: "4px",
       }}
     >
@@ -207,9 +260,9 @@ function MultiTrackLineChartColumn({
         <div
           key={t.trackName}
           style={{
-            flex: `0 0 ${PHASE4_CHART_MIN_HEIGHT}px`,
-            height: PHASE4_CHART_MIN_HEIGHT,
-            minHeight: PHASE4_CHART_MIN_HEIGHT,
+            flex: compact ? "1 1 0" : `0 0 ${PHASE4_CHART_MIN_HEIGHT}px`,
+            height: compact ? undefined : PHASE4_CHART_MIN_HEIGHT,
+            minHeight: compact ? 0 : PHASE4_CHART_MIN_HEIGHT,
             minWidth: 0,
           }}
         >
@@ -443,12 +496,22 @@ interface Phase4BlockData {
   sampleId: number;
 }
 
+interface Phase5BlockData {
+  tracks: Phase4TrackData[];
+  beads: BeadData[];
+  trackNames: string[];
+  sampleId: number;
+  correctAnswer: number;
+  options: number[];
+}
+
 export default function QuestionOnePage() {
-  const [phase, setPhase] = useState<1 | 2 | 3 | 4>(1);
+  const [phase, setPhase] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [blocks, setBlocks] = useState<BlockData[]>([]);
   const [phase2Blocks, setPhase2Blocks] = useState<Phase2BlockData[]>([]);
   const [phase3Blocks, setPhase3Blocks] = useState<Phase2BlockData[]>([]);
   const [phase4Blocks, setPhase4Blocks] = useState<Phase4BlockData[]>([]);
+  const [phase5Blocks, setPhase5Blocks] = useState<Phase5BlockData[]>([]);
   const [currentBlock, setCurrentBlock] = useState(0);
   const [answers, setAnswers] = useState<Array<{ similarity: number | null; confidence: number | null }>>(
     Array(NUM_QUESTIONS).fill(null).map(() => ({ similarity: null, confidence: null })),
@@ -472,11 +535,29 @@ export default function QuestionOnePage() {
   const [phase4Results, setPhase4Results] = useState<
     Array<{ userAnswer: number | null; timeSpentMs: number }>
   >([]);
+  const [phase5Answers, setPhase5Answers] = useState<(number | null)[]>(
+    Array(NUM_PHASE5_QUESTIONS).fill(null),
+  );
+  const [phase5Confidence, setPhase5Confidence] = useState<(number | null)[]>(
+    Array(NUM_PHASE5_QUESTIONS).fill(null),
+  );
+  const [phase5Results, setPhase5Results] = useState<
+    Array<{ correctAnswer: number; userAnswer: number | null; correct: boolean; timeSpentMs: number; confidence: number | null }>
+  >([]);
   const [phase1Times, setPhase1Times] = useState<number[]>([]);
   const [gamma, setGamma] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const questionStartTimeRef = useRef<number>(Date.now());
+  const phase5AnswersRef = useRef<(number | null)[]>(Array(NUM_PHASE5_QUESTIONS).fill(null));
+  const phase5ConfidenceRef = useRef<(number | null)[]>(Array(NUM_PHASE5_QUESTIONS).fill(null));
+
+  useEffect(() => {
+    phase5AnswersRef.current = phase5Answers;
+  }, [phase5Answers]);
+  useEffect(() => {
+    phase5ConfidenceRef.current = phase5Confidence;
+  }, [phase5Confidence]);
 
   // Load data and prepare 5 random (track, sample) blocks
   useEffect(() => {
@@ -709,11 +790,88 @@ export default function QuestionOnePage() {
           });
         }
 
+        const builtPhase5: Phase5BlockData[] = [];
+        for (let i = 0; i < NUM_PHASE5_QUESTIONS; i++) {
+          const numTracks = Math.min(i + 2, 5);
+          let attempts = 0;
+          const maxAttempts = 50;
+          while (attempts < maxAttempts) {
+            const shuffled = [...allTrackNames].sort(() => Math.random() - 0.5);
+            const chosenNames = shuffled.slice(0, numTracks);
+            const trackValuesList = chosenNames.map((name) => trkJson.tracks[name].normalized);
+            const correctAnswer = countCommonPeakLocations(trackValuesList, numTracks);
+            if (correctAnswer < 1) {
+              attempts++;
+              continue;
+            }
+            const sampleIdx = Math.floor(Math.random() * sampleIds.length);
+            const chosenSampleId = sampleIds[sampleIdx];
+            const multiTrackTracks: Record<string, { raw: number[]; normalized: number[] }> = {};
+            for (const name of chosenNames) {
+              multiTrackTracks[name] = trkJson.tracks[name];
+            }
+            const multiTrackJson: TracksJson = {
+              region: trkJson.region,
+              tracks: multiTrackTracks,
+            };
+            const filtered = allSamples
+              .filter((s) => s.sampleId === chosenSampleId)
+              .sort((a, b) => a.start_value - b.start_value);
+            const beadsData = matchBeadsToTracks(
+              filtered,
+              multiTrackJson,
+              chosenNames,
+              true,
+            );
+            const options = generatePhase5Options(correctAnswer, i);
+            if (!options.includes(correctAnswer)) {
+              attempts++;
+              continue;
+            }
+            builtPhase5.push({
+              tracks: chosenNames.map((name) => ({
+                trackName: name,
+                trackValues: trkJson.tracks[name].normalized,
+              })),
+              beads: beadsData,
+              trackNames: chosenNames,
+              sampleId: chosenSampleId,
+              correctAnswer,
+              options,
+            });
+            break;
+          }
+          if (builtPhase5.length <= i) {
+            const fallbackNames = allTrackNames.slice(0, numTracks);
+            const fallbackVals = fallbackNames.map((n) => trkJson.tracks[n].normalized);
+            const correctAnswer = Math.max(1, countCommonPeakLocations(fallbackVals, numTracks));
+            const multiTrackJson: TracksJson = {
+              region: trkJson.region,
+              tracks: Object.fromEntries(fallbackNames.map((n) => [n, trkJson.tracks[n]])),
+            };
+            const filtered = allSamples
+              .filter((s) => s.sampleId === sampleIds[0])
+              .sort((a, b) => a.start_value - b.start_value);
+            builtPhase5.push({
+              tracks: fallbackNames.map((name) => ({
+                trackName: name,
+                trackValues: trkJson.tracks[name].normalized,
+              })),
+              beads: matchBeadsToTracks(filtered, multiTrackJson, fallbackNames, true),
+              trackNames: fallbackNames,
+              sampleId: sampleIds[0],
+              correctAnswer,
+              options: generatePhase5Options(correctAnswer, i),
+            });
+          }
+        }
+
         if (!cancelled) {
           setBlocks(built);
           setPhase2Blocks(builtPhase2);
           setPhase3Blocks(builtPhase3);
           setPhase4Blocks(builtPhase4);
+          setPhase5Blocks(builtPhase5);
         }
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
@@ -729,6 +887,7 @@ export default function QuestionOnePage() {
   const phase2Block = phase2Blocks[currentBlock];
   const phase3Block = phase3Blocks[currentBlock];
   const phase4Block = phase4Blocks[currentBlock];
+  const phase5Block = phase5Blocks[currentBlock];
   const enabledTrackIndices = useMemo(() => [0], []);
   const phase4EnabledTrackIndices = useMemo(
     () => phase4Block?.trackNames.map((_, i) => i) ?? [],
@@ -771,6 +930,11 @@ export default function QuestionOnePage() {
       setPhase(3);
       setCurrentBlock(NUM_PHASE3_QUESTIONS - 1);
       setPhase3HoveredBead(null);
+    } else if (phase === 5 && currentBlock > 0) {
+      setCurrentBlock((c) => c - 1);
+    } else if (phase === 5 && currentBlock === 0) {
+      setPhase(4);
+      setCurrentBlock(NUM_PHASE4_QUESTIONS - 1);
     }
   };
 
@@ -831,7 +995,7 @@ export default function QuestionOnePage() {
         setPhase(4);
         setCurrentBlock(0);
       }
-    } else {
+    } else if (phase === 4) {
       if (phase4Block && phase4Results.length <= currentBlock) {
         console.log(`[Phase 4] Question ${currentBlock + 1} completed in ${(timeSpentMs / 1000).toFixed(2)} seconds | Confidence: ${phase4Answers[currentBlock]}`);
         setPhase4Results((prev) => [
@@ -843,6 +1007,29 @@ export default function QuestionOnePage() {
         ]);
       }
       if (currentBlock < NUM_PHASE4_QUESTIONS - 1) {
+        setCurrentBlock((c) => c + 1);
+      } else {
+        setPhase(5);
+        setCurrentBlock(0);
+      }
+    } else {
+      if (phase5Block && phase5Results.length <= currentBlock) {
+        const userAns = phase5AnswersRef.current[currentBlock];
+        const correct = userAns === phase5Block.correctAnswer;
+        const conf = phase5ConfidenceRef.current[currentBlock];
+        console.log(`[Phase 5] Question ${currentBlock + 1} completed in ${(timeSpentMs / 1000).toFixed(2)} seconds | Your answer ${userAns}, correct ${phase5Block.correctAnswer}, confidence ${conf} → ${correct ? "✓" : "✗"}`);
+        setPhase5Results((prev) => [
+          ...prev,
+          {
+            correctAnswer: phase5Block.correctAnswer,
+            userAnswer: userAns,
+            correct,
+            timeSpentMs,
+            confidence: phase5ConfidenceRef.current[currentBlock],
+          },
+        ]);
+      }
+      if (currentBlock < NUM_PHASE5_QUESTIONS - 1) {
         setCurrentBlock((c) => c + 1);
       }
     }
@@ -871,6 +1058,12 @@ export default function QuestionOnePage() {
       (window as unknown as { __phase4Results?: unknown }).__phase4Results = phase4Results;
     }
   }, [phase4Results]);
+
+  useEffect(() => {
+    if (phase5Results.length > 0) {
+      (window as unknown as { __phase5Results?: unknown }).__phase5Results = phase5Results;
+    }
+  }, [phase5Results]);
 
   useEffect(() => {
     questionStartTimeRef.current = Date.now();
@@ -903,6 +1096,20 @@ export default function QuestionOnePage() {
     });
   };
 
+  const handlePhase5Answer = (v: number) => {
+    const next = [...phase5Answers];
+    next[currentBlock] = v;
+    phase5AnswersRef.current = next;
+    setPhase5Answers(next);
+  };
+
+  const handlePhase5Confidence = (v: number) => {
+    const next = [...phase5Confidence];
+    next[currentBlock] = v;
+    phase5ConfidenceRef.current = next;
+    setPhase5Confidence(next);
+  };
+
   const handlePhase3BeadClick = (beadIndex: number) => {
     if (phase3Answers[currentBlock] != null) return;
     setPhase3Answers((prev) => {
@@ -918,8 +1125,8 @@ export default function QuestionOnePage() {
       <div style={headerStyle}>
         <div style={progressStyle}>
           <span style={progressLabelStyle}>
-            {phase === 1 ? "Phase 1" : phase === 2 ? "Phase 2" : phase === 3 ? "Phase 3" : "Phase 4"} — Question {currentBlock + 1} /{" "}
-            {phase === 1 ? NUM_QUESTIONS : phase === 2 ? NUM_PHASE2_QUESTIONS : phase === 3 ? NUM_PHASE3_QUESTIONS : NUM_PHASE4_QUESTIONS}
+            {phase === 1 ? "Phase 1" : phase === 2 ? "Phase 2" : phase === 3 ? "Phase 3" : phase === 4 ? "Phase 4" : "Phase 5"} — Question {currentBlock + 1} /{" "}
+            {phase === 1 ? NUM_QUESTIONS : phase === 2 ? NUM_PHASE2_QUESTIONS : phase === 3 ? NUM_PHASE3_QUESTIONS : phase === 4 ? NUM_PHASE4_QUESTIONS : NUM_PHASE5_QUESTIONS}
           </span>
           <div style={progressBarTrackStyle}>
             <div
@@ -927,22 +1134,13 @@ export default function QuestionOnePage() {
                 ...progressBarFillStyle,
                 width: `${
                   ((currentBlock + 1) /
-                    (phase === 1 ? NUM_QUESTIONS : phase === 2 ? NUM_PHASE2_QUESTIONS : phase === 3 ? NUM_PHASE3_QUESTIONS : NUM_PHASE4_QUESTIONS)) *
+                    (phase === 1 ? NUM_QUESTIONS : phase === 2 ? NUM_PHASE2_QUESTIONS : phase === 3 ? NUM_PHASE3_QUESTIONS : phase === 4 ? NUM_PHASE4_QUESTIONS : NUM_PHASE5_QUESTIONS)) *
                   100
                 }%`,
               }}
             />
           </div>
         </div>
-        <h2 style={questionTitleStyle}>
-          {phase === 1
-            ? "How similar is the 1D track to its 3D mapping?"
-            : phase === 2
-              ? "Which peak has been highlighted?"
-              : phase === 3
-                ? "Click on the bead that corresponds to the highlighted peak"
-                : "How confident are you in recognizing the changing patterns of all the tracks here?"}
-        </h2>
       </div>
 
       {/* ── Body: split panel ── */}
@@ -1226,6 +1424,63 @@ export default function QuestionOnePage() {
             </div>
           </>
         )}
+
+        {!loading && !error && phase === 5 && phase5Block && (
+          <>
+            {/* Left panel (1D line charts) hidden for Phase 5
+            <div style={panelStyle}>
+              <div style={panelLabelStyle}>1D Signal Tracks</div>
+              <div style={chartContainerStyle}>
+                <MultiTrackLineChartColumn tracks={phase5Block.tracks} compact />
+              </div>
+            </div>
+            <div style={dividerStyle} /> */}
+            <div style={panelStyle}>
+              <div style={panelLabelStyle}>3D Chromatin Structure</div>
+              <div style={canvasWrapperStyle}>
+                <Canvas
+                  camera={{ position: [0, 0, 500], fov: 60, near: 0.1, far: 10000 }}
+                  style={{ width: "100%", height: "100%", background: "#060f1a" }}
+                >
+                  <ambientLight intensity={0.6} />
+                  <directionalLight position={[100, 100, 100]} intensity={0.8} />
+                  {phase5Block.beads.length > 1 && phase5Block.trackNames.length > 0 && (
+                    <ChromosomePipeline
+                      beads={phase5Block.beads}
+                      enabledTrackIndices={phase5Block.trackNames.map((_, i) => i)}
+                      trackNames={phase5Block.trackNames}
+                      highlightStartEnd
+                      gamma={gamma}
+                    />
+                  )}
+                  <OrbitControls enableZoom enablePan enableRotate />
+                </Canvas>
+                <div style={legendStyle}>
+                  <div style={gammaControlStyle}>
+                    <span style={{ whiteSpace: "nowrap", fontSize: 12 }}>Gamma {gamma}</span>
+                    <input
+                      type="range"
+                      min={1}
+                      max={20}
+                      step={0.1}
+                      value={gamma}
+                      onChange={(e) => setGamma(Number(e.target.value))}
+                      style={gammaSliderStyle}
+                    />
+                  </div>
+                  <div style={legendItemStyle}>
+                    <span style={{ ...legendDotStyle, background: "#22c55e" }} />
+                    Start
+                  </div>
+                  <div style={legendItemStyle}>
+                    <span style={{ ...legendDotStyle, background: "#ef4444" }} />
+                    End
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* ── Questions panel ── */}
@@ -1315,6 +1570,43 @@ export default function QuestionOnePage() {
         </div>
       )}
 
+      {/* ── Phase 5: Common peak count + confidence ── */}
+      {!loading && !error && phase === 5 && phase5Block && (
+        <div key={`p5-b${currentBlock}`} style={questionsPanelStyle}>
+          <div style={{ ...questionBlockStyle, flex: 1 }}>
+            <div style={questionLabelStyle}>
+              Q1. How many locations can you find where a common peak exists?
+            </div>
+            <div style={peakOptionsStyle}>
+              {phase5Block.options.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => handlePhase5Answer(opt)}
+                  style={{
+                    ...peakOptionBtnStyle,
+                    ...(phase5Answers[currentBlock] === opt ? peakOptionBtnActiveStyle : {}),
+                  }}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={questionBlockStyle}>
+            <div style={questionLabelStyle}>
+              Q2. How confident are you about your result?
+            </div>
+            <RatingScale
+              value={phase5Confidence[currentBlock] ?? null}
+              onChange={handlePhase5Confidence}
+              labelLow="1 = least confident"
+              labelHigh="5 = very confident"
+            />
+          </div>
+        </div>
+      )}
+
       {/* ── Footer ── */}
       <div style={footerStyle}>
         <button
@@ -1343,7 +1635,10 @@ export default function QuestionOnePage() {
               phase3Results.length >= NUM_PHASE3_QUESTIONS) ||
             (phase === 4 &&
               currentBlock >= NUM_PHASE4_QUESTIONS - 1 &&
-              phase4Results.length >= NUM_PHASE4_QUESTIONS)
+              phase4Results.length >= NUM_PHASE4_QUESTIONS) ||
+            (phase === 5 &&
+              currentBlock >= NUM_PHASE5_QUESTIONS - 1 &&
+              phase5Results.length >= NUM_PHASE5_QUESTIONS)
           }
         >
           {phase === 1 && currentBlock >= NUM_QUESTIONS - 1
@@ -1353,8 +1648,10 @@ export default function QuestionOnePage() {
               : phase === 3 && currentBlock >= NUM_PHASE3_QUESTIONS - 1
                 ? "Next phase →"
                 : phase === 4 && currentBlock >= NUM_PHASE4_QUESTIONS - 1
-                  ? "Complete"
-                  : "Next →"}
+                  ? "Next phase →"
+                  : phase === 5 && currentBlock >= NUM_PHASE5_QUESTIONS - 1
+                    ? "Complete"
+                    : "Next →"}
         </button>
       </div>
     </div>
@@ -1406,14 +1703,6 @@ const progressBarFillStyle: React.CSSProperties = {
   borderRadius: 2,
   background: "#45b7d1",
   transition: "width 0.4s ease",
-};
-
-const questionTitleStyle: React.CSSProperties = {
-  margin: 0,
-  fontSize: 16,
-  fontWeight: 500,
-  lineHeight: 1.5,
-  color: "#e8f4f8",
 };
 
 const bodyStyle: React.CSSProperties = {
