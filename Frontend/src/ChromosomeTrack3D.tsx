@@ -414,6 +414,10 @@ export default function ChromosomeTrack3D() {
   /** View direction used for 2D projection only; fixed when 2D is toggled on so one projection (unchanged by next/prev). */
   const [viewFor2DProjection, setViewFor2DProjection] = useState<{ position: [number, number, number]; target: [number, number, number] } | null>(null);
   const prevNbvOpen = useRef(false);
+  /** NBV panel position when user has dragged it; null = use default bottom-right. */
+  const [nbvPanelPos, setNbvPanelPos] = useState<{ x: number; y: number } | null>(null);
+  const nbvPanelRef = useRef<HTMLDivElement>(null);
+  const nbvDragStartRef = useRef<{ panelLeft: number; panelTop: number; clientX: number; clientY: number } | null>(null);
 
   useEffect(() => {
     if (show2D && nbvView) setViewFor2DProjection(nbvView);
@@ -435,6 +439,37 @@ export default function ChromosomeTrack3D() {
       setNbvSelectMode(false);
     },
     [selectionStart]
+  );
+
+  const handleNbvBarPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (e.button !== 0) return;
+      if ((e.target as HTMLElement).closest("button, input")) return;
+      const panelEl = nbvPanelRef.current;
+      if (!panelEl) return;
+      e.preventDefault();
+      const rect = panelEl.getBoundingClientRect();
+      const panelLeft = nbvPanelPos?.x ?? rect.left;
+      const panelTop = nbvPanelPos?.y ?? rect.top;
+      if (nbvPanelPos === null) setNbvPanelPos({ x: rect.left, y: rect.top });
+      nbvDragStartRef.current = { panelLeft, panelTop, clientX: e.clientX, clientY: e.clientY };
+      const onMove = (ev: PointerEvent) => {
+        const d = nbvDragStartRef.current;
+        if (!d) return;
+        setNbvPanelPos({
+          x: d.panelLeft + (ev.clientX - d.clientX),
+          y: d.panelTop + (ev.clientY - d.clientY),
+        });
+      };
+      const onUp = () => {
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+        nbvDragStartRef.current = null;
+      };
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+    },
+    [nbvPanelPos]
   );
 
   const displayBeads = useMemo(() => {
@@ -693,14 +728,16 @@ export default function ChromosomeTrack3D() {
 
         {nbvOpen && (
           <div
+            ref={nbvPanelRef}
             style={{
               position: "absolute",
-              bottom: 0,
-              right: 0,
+              ...(nbvPanelPos !== null
+                ? { left: nbvPanelPos.x, top: nbvPanelPos.y, bottom: "auto", right: "auto" }
+                : { bottom: 0, right: 0 }),
               width: "30vw",
-              height: nbvMinimized ? 22 : "30vh",
+              height: nbvMinimized ? 40 : "30vh",
               minWidth: 200,
-              minHeight: nbvMinimized ? 22 : 140,
+              minHeight: nbvMinimized ? 40 : 140,
               borderRadius: "8px 8px 0 0",
               overflow: "hidden",
               boxShadow: "0 -4px 20px rgba(0,0,0,0.4)",
@@ -729,6 +766,7 @@ export default function ChromosomeTrack3D() {
                 minimized={nbvMinimized}
                 onClose={() => setNbvOpen(false)}
                 onMinimize={() => setNbvMinimized((m) => !m)}
+                onBarPointerDown={handleNbvBarPointerDown}
               />
             </div>
             {!nbvMinimized && (

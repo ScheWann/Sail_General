@@ -42,6 +42,8 @@ export interface NBVProps {
   onClose?: () => void;
   onMinimize?: () => void;
   minimized?: boolean;
+  /** Called when user presses pointer on the bar (for drag-to-move). */
+  onBarPointerDown?: (e: React.PointerEvent) => void;
 }
 
 type Vec3 = [number, number, number];
@@ -240,7 +242,7 @@ function selectTop10(views: Viewpoint[], scores: Record<string, number>, center:
 
 const DEFAULT_MAX_BEADS = 110;
 
-export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView, onNbvActiveTracksChange, onBeadRangeApply, onToggleSelectMode, isSelectMode, selectedRange, onToggle2D, show2D, onClose, onMinimize, minimized }: NBVProps) {
+export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView, onNbvActiveTracksChange, onBeadRangeApply, onToggleSelectMode, isSelectMode, selectedRange, onToggle2D, show2D, onClose, onMinimize, minimized, onBarPointerDown }: NBVProps) {
   const [busy, setBusy] = useState(false);
   const [topViews, setTopViews] = useState<Viewpoint[]>([]);
   const [center, setCenter] = useState<Vec3>([0, 0, 0]);
@@ -313,7 +315,10 @@ export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView,
 
   return (
     <div className="nbv">
-      <div className={`nbv__bar ${minimized ? "nbv__bar--minimized" : ""}`}>
+      <div
+          className={`nbv__bar ${minimized ? "nbv__bar--minimized" : ""}`}
+          onPointerDown={onBarPointerDown}
+        >
         <span className="nbv__title">NBV</span>
         <div className="nbv__tracks">
           {tracks.map((t, i) => (
