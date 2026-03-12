@@ -133,6 +133,28 @@ function getTrackQuads(beads: NBVBead[], trackIdx: number, numTracks: number): V
   return quads;
 }
 
+/** Orthographic projection of a segment onto the view plane; returns projected length (for skeleton visibility). */
+function projectedSegmentLength(p0: Vec3, p1: Vec3, viewPos: Vec3, center: Vec3): number {
+  const vx = viewPos[0] - center[0], vy = viewPos[1] - center[1], vz = viewPos[2] - center[2];
+  const lenV = Math.hypot(vx, vy, vz) || 1;
+  const vnx = vx / lenV, vny = vy / lenV, vnz = vz / lenV;
+  const right: Vec3 = [1, 0, 0];
+  let rx = right[0] - vnx * (right[0] * vnx + right[1] * vny + right[2] * vnz);
+  let ry = right[1] - vny * (right[0] * vnx + right[1] * vny + right[2] * vnz);
+  let rz = right[2] - vnz * (right[0] * vnx + right[1] * vny + right[2] * vnz);
+  const lenR = Math.hypot(rx, ry, rz) || 1;
+  rx /= lenR; ry /= lenR; rz /= lenR;
+  const ux = vny * rz - vnz * ry, uy = vnz * rx - vnx * rz, uz = vnx * ry - vny * rx;
+  const proj = (p: Vec3) => [
+    (p[0] - center[0]) * rx + (p[1] - center[1]) * ry + (p[2] - center[2]) * rz,
+    (p[0] - center[0]) * ux + (p[1] - center[1]) * uy + (p[2] - center[2]) * uz,
+  ] as [number, number];
+  const a = proj(p0), b = proj(p1);
+  return Math.hypot(b[0] - a[0], b[1] - a[1]);
+}
+
+const SKELETON_VIEW_ID = "__skeleton__";
+
 // Project quad onto view plane (orthographic), return 2D area
 function projectedArea(quad: Vec3[], viewPos: Vec3, center: Vec3): number {
   const vx = viewPos[0] - center[0], vy = viewPos[1] - center[1], vz = viewPos[2] - center[2];
@@ -156,7 +178,7 @@ function projectedArea(quad: Vec3[], viewPos: Vec3, center: Vec3): number {
   return Math.abs((a[0] * b[1] + b[0] * c[1] + c[0] * d[1] + d[0] * a[1]) - (a[1] * b[0] + b[1] * c[0] + c[1] * d[0] + d[1] * a[0])) * 0.5;
 }
 
-// visibility[viewId][trackId] = sum of projected areas for that track
+// visibility[viewId][trackId] = sum of projected areas for that track; when no tracks, [viewId][SKELETON_VIEW_ID] = total projected skeleton length
 function computeVisibility(views: Viewpoint[], tracks: NBVTrack[], beads: NBVBead[], center: Vec3): Record<string, Record<string, number>> {
   const vis: Record<string, Record<string, number>> = {};
   const active = tracks.filter((t) => t.active);
@@ -164,12 +186,21 @@ function computeVisibility(views: Viewpoint[], tracks: NBVTrack[], beads: NBVBea
 
   for (const v of views) {
     vis[v.id] = {};
-    for (const t of active) {
-      const trackIdx = tracks.findIndex((x) => x.id === t.id);
-      const quads = getTrackQuads(beads, trackIdx >= 0 ? trackIdx : 0, numTracks);
-      let sum = 0;
-      for (const q of quads) sum += projectedArea(q, v.position, center);
-      vis[v.id][t.id] = Math.max(0, sum);
+    if (active.length === 0) {
+      // Skeleton-only: maximize total projected length of bead-to-bead connections (maximum entropy view)
+      let totalLen = 0;
+      for (let i = 0; i < beads.length - 1; i++) {
+        totalLen += projectedSegmentLength(beads[i].position, beads[i + 1].position, v.position, center);
+      }
+      vis[v.id][SKELETON_VIEW_ID] = Math.max(0, totalLen);
+    } else {
+      for (const t of active) {
+        const trackIdx = tracks.findIndex((x) => x.id === t.id);
+        const quads = getTrackQuads(beads, trackIdx >= 0 ? trackIdx : 0, numTracks);
+        let sum = 0;
+        for (const q of quads) sum += projectedArea(q, v.position, center);
+        vis[v.id][t.id] = Math.max(0, sum);
+      }
     }
   }
   return vis;
@@ -177,9 +208,9 @@ function computeVisibility(views: Viewpoint[], tracks: NBVTrack[], beads: NBVBea
 
 /**
  * Score views by visible track surface. For one track: pick view that maximizes that track's
- * visible area. For multiple tracks: maximize sum of per-track normalized visibility so
- * all tracks are shown as much as possible in the same ratio (balanced).
- * Returns viewId -> score (higher = more visible surface).
+ * visible area. For multiple tracks: maximize sum of per-track normalized visibility.
+ * When no tracks active (skeleton only): score = total projected skeleton length (maximum entropy).
+ * Returns viewId -> score (higher = better).
  */
 function computeVisibleSurfaceScores(
   views: Viewpoint[],
@@ -187,7 +218,15 @@ function computeVisibleSurfaceScores(
   visibility: Record<string, Record<string, number>>,
 ): Record<string, number> {
   const active = tracks.filter((t) => t.active);
-  if (active.length === 0) return {};
+
+  if (active.length === 0) {
+    // Skeleton-only: score = total projected connection length (maximize visible skeleton)
+    const scores: Record<string, number> = {};
+    for (const v of views) {
+      scores[v.id] = visibility[v.id]?.[SKELETON_VIEW_ID] ?? 0;
+    }
+    return scores;
+  }
 
   // Per track: max visibility over all views (best possible for that track)
   const maxVis: Record<string, number> = {};
@@ -277,14 +316,13 @@ export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView,
     [nbvActiveTrackIndices, onNbvActiveTracksChange]
   );
 
-  // Recalculate NBV from current node range (start/end inputs). First view in list is the best view.
+  // Recalculate NBV from current node range (start/end inputs). When no tracks selected, score by skeleton visibility (max entropy).
   const runPipeline = useCallback(() => {
     const [start, end] = getBeadRange();
     const beadsInRange = beads.slice(start - 1, end);
     const set = new Set(nbvActiveTrackIndices);
     const forCalc = tracks.map((t, i) => ({ ...t, active: set.has(i) }));
-    const activeTracks = forCalc.filter((t) => t.active);
-    if (beadsInRange.length < 2 || activeTracks.length === 0) return;
+    if (beadsInRange.length < 2) return;
     onBeadRangeApply?.(start, end);
     setBusy(true);
     requestAnimationFrame(() => {
@@ -372,22 +410,22 @@ export default function NBV({ beads, tracks, nbvActiveTrackIndices, onApplyView,
         <button type="button" className="nbv__btn nbv__btn--primary" onClick={runPipeline} disabled={busy || beads.length < 2}>
           {busy ? "…" : "NBV"}
         </button>
-        {onToggle2D && (
-          <button
-            type="button"
-            className={`nbv__btn nbv__btn--2d ${show2D ? "nbv__btn--select-active" : ""}`}
-            onClick={onToggle2D}
-            title={show2D ? "Show 3D preview" : "Show 2D planar projection"}
-          >
-            2D
-          </button>
-        )}
         {topViews.length > 0 && (
           <div className="nbv__nav">
             <button type="button" className="nbv__btn" onClick={goPrev} disabled={currentIndex <= 0}>‹</button>
             <span className="nbv__nav-label">{currentIndex + 1}/{topViews.length}</span>
             <button type="button" className="nbv__btn" onClick={goNext} disabled={currentIndex >= topViews.length - 1}>›</button>
           </div>
+        )}
+        {onToggle2D && (
+          <button
+            type="button"
+            className={`nbv__btn nbv__btn--2d ${show2D ? "nbv__btn--select-active" : ""}`}
+            onClick={onToggle2D}
+            title={show2D ? "Show 3D preview" : "Show 2D from current view (e.g. this 4/10)"}
+          >
+            2D
+          </button>
         )}
         <div className="nbv__spacer" />
         {onMinimize && (

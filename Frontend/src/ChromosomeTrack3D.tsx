@@ -153,11 +153,12 @@ function ChromosomePipeline({
   const activeTrackIndices =
     enabledTrackIndices ?? Array.from({ length: totalTracks }, (_, i) => i);
   const numTracks = activeTrackIndices.length;
+  const skeletonOnly = numTracks === 0;
   const beadRadius = 0.8;
   const maxRadarRadius = 20;
   const scale = 1;
 
-  if (beads.length < 2 || numTracks === 0) return null;
+  if (beads.length < 2) return null;
 
   const hasValid = beads.every(
     (b) =>
@@ -167,7 +168,24 @@ function ChromosomePipeline({
   );
   if (!hasValid) return null;
 
-  // Per-bead baseline + actual radar vertices
+  // Backbone tube (skeleton) – always built; when skeletonOnly this is all we show
+  const centerPts = beads.map(
+    (b) => new THREE.Vector3(b.position[0] * scale, b.position[1] * scale, b.position[2] * scale),
+  );
+  const backboneCurve = new THREE.CatmullRomCurve3(centerPts, false, "catmullrom", 0.3);
+  const tubeGeo = new THREE.TubeGeometry(backboneCurve, beads.length * 20, 0.5, 8, false);
+
+  if (skeletonOnly) {
+    return (
+      <group>
+        <mesh geometry={tubeGeo}>
+          <meshStandardMaterial color="#ffffff" transparent opacity={0.9 * opacity} metalness={0.3} roughness={0.4} />
+        </mesh>
+      </group>
+    );
+  }
+
+  // Per-bead baseline + actual radar vertices (tracks on)
   const beadBaselineVertices = beads.map((bead, beadIndex) => {
     const pos = [
       bead.position[0] * scale,
@@ -238,13 +256,6 @@ function ChromosomePipeline({
 
     return { baseline: baselineVertices, actual: actualVertices };
   });
-
-  // Backbone tube
-  const centerPts = beads.map(
-    (b) => new THREE.Vector3(b.position[0] * scale, b.position[1] * scale, b.position[2] * scale),
-  );
-  const backboneCurve = new THREE.CatmullRomCurve3(centerPts, false, "catmullrom", 0.3);
-  const tubeGeo = new THREE.TubeGeometry(backboneCurve, beads.length * 20, 0.5, 8, false);
 
   // Radar polygon outline (white baseline)
   const rpVerts: number[] = [];
@@ -411,7 +422,7 @@ export default function ChromosomeTrack3D() {
   const [nbvSelectMode, setNbvSelectMode] = useState(false);
   const [selectionStart, setSelectionStart] = useState<number | null>(null);
   const [show2D, setShow2D] = useState(false);
-  /** View direction used for 2D projection only; fixed when 2D is toggled on so one projection (unchanged by next/prev). */
+  /** View direction used for 2D projection only; fixed when 2D is toggled on (so the first 2D view is the current NBV view, i.e. best view if user just ran NBV). */
   const [viewFor2DProjection, setViewFor2DProjection] = useState<{ position: [number, number, number]; target: [number, number, number] } | null>(null);
   const prevNbvOpen = useRef(false);
   /** NBV panel position when user has dragged it; null = use default bottom-right. */
@@ -734,7 +745,7 @@ export default function ChromosomeTrack3D() {
               ...(nbvPanelPos !== null
                 ? { left: nbvPanelPos.x, top: nbvPanelPos.y, bottom: "auto", right: "auto" }
                 : { bottom: 0, right: 0 }),
-              width: "30vw",
+              width: "32vw",
               height: nbvMinimized ? 40 : "30vh",
               minWidth: 200,
               minHeight: nbvMinimized ? 40 : 140,
@@ -778,6 +789,36 @@ export default function ChromosomeTrack3D() {
                   background: "#0a1929",
                 }}
               >
+                {show2D && (() => {
+                  const view2D = viewFor2DProjection ?? nbvView;
+                  if (!view2D) return null;
+                  const dx = view2D.target[0] - view2D.position[0];
+                  const dy = view2D.target[1] - view2D.position[1];
+                  const dz = view2D.target[2] - view2D.position[2];
+                  const len = Math.hypot(dx, dy, dz) || 1;
+                  const dir: [number, number, number] = [dx / len, dy / len, dz / len];
+                  const fmt = (x: number) => x.toFixed(3);
+                  return (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 5,
+                        padding: "6px 8px",
+                        background: "rgba(0,0,0,0.75)",
+                        color: "rgba(255,255,255,0.95)",
+                        fontSize: 10,
+                        fontFamily: "monospace",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      <div>Camera position: ({fmt(view2D.position[0])}, {fmt(view2D.position[1])}, {fmt(view2D.position[2])})</div>
+                      <div>View direction: ({fmt(dir[0])}, {fmt(dir[1])}, {fmt(dir[2])})</div>
+                    </div>
+                  );
+                })()}
                 {show2D && points2D && points2D.length > 0 ? (
                   <svg
                     width="100%"
