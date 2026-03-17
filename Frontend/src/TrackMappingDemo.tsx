@@ -91,7 +91,14 @@ function BeadSphere({ position }: { position: [number, number, number] }) {
     <group position={position}>
       <mesh>
         <sphereGeometry args={[3, 32, 32]} />
-        <meshStandardMaterial color="#888" transparent opacity={0.6} />
+        <meshStandardMaterial
+          color="#c4d4e8"
+          metalness={0.2}
+          roughness={0.4}
+          transparent
+          opacity={0.9}
+          emissive="#334455"
+        />
       </mesh>
     </group>
   );
