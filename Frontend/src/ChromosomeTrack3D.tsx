@@ -224,57 +224,71 @@ function ChromosomePipeline({
   rpGeo.setAttribute("position", new THREE.Float32BufferAttribute(rpVerts, 3));
   rpGeo.setAttribute("color", new THREE.Float32BufferAttribute(rpColors, 3));
 
-  // Triangular track fill between beads
+  // Continuous track ribbon: one Catmull-Rom curve per track through every bead
+  // (no per-segment slicing → ribbon never breaks at bead boundaries), plus a
+  // darker highlight patch on the same surface at each bead.
   const triVerts: number[] = [];
   const triColors: number[] = [];
   const triIdx: number[] = [];
   let vi = 0;
+
+  const hlVerts: number[] = [];
+  const hlColors: number[] = [];
+  const hlIdx: number[] = [];
+  let hi = 0;
+
+  // subDiv must be even so each bead index lands exactly on a sample.
   const subDiv = 8;
+  // One quad on each side of the bead (bead sits on the boundary between them).
+  const highlightHalfWidth = 1;
 
-  for (let bi = 0; bi < beads.length - 1; bi++) {
-    for (let ti = 0; ti < numTracks; ti++) {
-      const cb = beadBaselineVertices[bi].baseline[ti];
-      const nb = beadBaselineVertices[bi + 1].baseline[ti];
-      const ca = beadBaselineVertices[bi].actual[ti];
-      const na = beadBaselineVertices[bi + 1].actual[ti];
+  for (let ti = 0; ti < numTracks; ti++) {
+    const allBaseline = beads.map((_, i) => beadBaselineVertices[i].baseline[ti]);
+    const allActual = beads.map((_, i) => beadBaselineVertices[i].actual[ti]);
 
-      let prevB = cb, prevA = ca;
-      if (bi > 0) {
-        prevB = beadBaselineVertices[bi - 1].baseline[ti];
-        prevA = beadBaselineVertices[bi - 1].actual[ti];
-      }
-      let nnB = nb, nnA = na;
-      if (bi < beads.length - 2) {
-        nnB = beadBaselineVertices[bi + 2].baseline[ti];
-        nnA = beadBaselineVertices[bi + 2].actual[ti];
-      }
+    // One continuous curve through every bead — no per-segment slicing needed.
+    const bCurve = new THREE.CatmullRomCurve3(allBaseline, false, "catmullrom", 0.3);
+    const aCurve = new THREE.CatmullRomCurve3(allActual, false, "catmullrom", 0.3);
 
-      const bCurve = new THREE.CatmullRomCurve3([prevB, cb, nb, nnB], false, "catmullrom", 0.3);
-      const aCurve = new THREE.CatmullRomCurve3([prevA, ca, na, nnA], false, "catmullrom", 0.3);
+    const totalSamples = (beads.length - 1) * subDiv + 1;
+    const bPts = bCurve.getPoints(totalSamples - 1);
+    const aPts = aCurve.getPoints(totalSamples - 1);
 
-      const startT = bi > 0 ? 0.33 : 0;
-      const endT = bi < beads.length - 2 ? 0.67 : 1.0;
-      const totalPts = subDiv * 3;
-      const bPts = bCurve.getPoints(totalPts);
-      const aPts = aCurve.getPoints(totalPts);
-      const si = Math.floor(startT * bPts.length);
-      const ei = Math.floor(endT * bPts.length);
-      const segB = bPts.slice(si, ei);
-      const segA = aPts.slice(si, ei);
+    const origIdx = activeTrackIndices[ti];
+    const tc = new THREE.Color(getTrackColor(origIdx));
+    const hsl = { h: 0, s: 0, l: 0 };
+    tc.getHSL(hsl);
+    const darkColor = new THREE.Color().setHSL(hsl.h, hsl.s, hsl.l * 1.5);
 
-      const origIdx = activeTrackIndices[ti];
-      const tc = new THREE.Color(getTrackColor(origIdx));
+    // Full ribbon (normal track color)
+    for (let i = 0; i < bPts.length - 1; i++) {
+      const bl1 = bPts[i], bl2 = bPts[i + 1];
+      const ac1 = aPts[i], ac2 = aPts[i + 1];
+      triVerts.push(
+        bl1.x, bl1.y, bl1.z, bl2.x, bl2.y, bl2.z,
+        ac1.x, ac1.y, ac1.z, ac2.x, ac2.y, ac2.z,
+      );
+      for (let j = 0; j < 4; j++) triColors.push(tc.r, tc.g, tc.b);
+      triIdx.push(vi, vi + 1, vi + 2, vi + 1, vi + 3, vi + 2);
+      vi += 4;
+    }
 
-      for (let i = 0; i < segB.length - 1; i++) {
-        triVerts.push(
-          segB[i].x, segB[i].y, segB[i].z,
-          segB[i + 1].x, segB[i + 1].y, segB[i + 1].z,
-          segA[i].x, segA[i].y, segA[i].z,
-          segA[i + 1].x, segA[i + 1].y, segA[i + 1].z,
+    // Darker highlight patch on the same ribbon surface at each bead.
+    // Bead bi sits at sample index (bi * subDiv) in the array.
+    for (let bi = 0; bi < beads.length; bi++) {
+      const center = bi * subDiv;
+      const lo = Math.max(0, center - highlightHalfWidth);
+      const high = Math.min(bPts.length - 2, center + highlightHalfWidth - 1);
+      for (let i = lo; i <= high; i++) {
+        const bl1 = bPts[i], bl2 = bPts[i + 1];
+        const ac1 = aPts[i], ac2 = aPts[i + 1];
+        hlVerts.push(
+          bl1.x, bl1.y, bl1.z, bl2.x, bl2.y, bl2.z,
+          ac1.x, ac1.y, ac1.z, ac2.x, ac2.y, ac2.z,
         );
-        for (let j = 0; j < 4; j++) triColors.push(tc.r, tc.g, tc.b);
-        triIdx.push(vi, vi + 1, vi + 2, vi + 1, vi + 3, vi + 2);
-        vi += 4;
+        for (let j = 0; j < 4; j++) hlColors.push(darkColor.r, darkColor.g, darkColor.b);
+        hlIdx.push(hi, hi + 1, hi + 2, hi + 1, hi + 3, hi + 2);
+        hi += 4;
       }
     }
   }
@@ -285,10 +299,21 @@ function ChromosomePipeline({
   triGeo.setIndex(triIdx);
   triGeo.computeVertexNormals();
 
+  const hlGeo = new THREE.BufferGeometry();
+  hlGeo.setAttribute("position", new THREE.Float32BufferAttribute(hlVerts, 3));
+  hlGeo.setAttribute("color", new THREE.Float32BufferAttribute(hlColors, 3));
+  hlGeo.setIndex(hlIdx);
+  hlGeo.computeVertexNormals();
+
   return (
     <group>
+      {/* Full ribbon — normal track color */}
       <mesh geometry={triGeo}>
         <meshBasicMaterial vertexColors transparent opacity={0.8 * opacity} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Per-bead highlight — same ribbon surface, darker color */}
+      <mesh geometry={hlGeo}>
+        <meshBasicMaterial vertexColors transparent={opacity < 1} opacity={opacity} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
       <mesh geometry={tubeGeo}>
         <meshStandardMaterial color="#ffffff" transparent opacity={0.9 * opacity} metalness={0.3} roughness={0.4} />
