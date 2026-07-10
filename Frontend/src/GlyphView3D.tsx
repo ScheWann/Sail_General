@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 
 // ── Data types ──────────────────────────────────────────────────────────────
@@ -62,7 +62,9 @@ const RANDOM_SEED = 3601;
 const DEFAULT_SAMPLE_COUNT = 4;
 const BACKBONE_COLOR = "#FFFFFF";
 const BEAD_COLOR = "#FFFFFF";
-const BACKBONE_RADIUS = 0.15;
+const BACKBONE_RADIUS = 0.25;
+const ENDPOINT_MARKER_COLOR = "#999";
+const ENDPOINT_MARKER_SIZE = 5;
 
 function createSeededRandom(seed: number) {
   let state = seed >>> 0;
@@ -128,11 +130,13 @@ function GlyphPipeline({
   enabledChannelIndices,
   gamma = 1,
   opacity = 1,
+  showTube = false,
 }: {
   nodes: NodeData[];
   enabledChannelIndices?: number[];
   gamma?: number;
   opacity?: number;
+  showTube?: boolean;
 }) {
   const totalChannels = nodes[0]?.values.length || 1;
   const activeChannelIndices =
@@ -322,34 +326,136 @@ function GlyphPipeline({
       <mesh geometry={hlGeo}>
         <meshBasicMaterial vertexColors transparent={opacity < 1} opacity={opacity} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
-      <mesh geometry={tubeGeo}>
-        <meshStandardMaterial
-          color={BACKBONE_COLOR}
-          emissive={BACKBONE_COLOR}
-          emissiveIntensity={0.18}
-          transparent
-          opacity={0.92 * opacity}
-        />
-      </mesh>
+      {showTube && (
+        <mesh geometry={tubeGeo}>
+          <meshBasicMaterial color={BACKBONE_COLOR} transparent={opacity < 1} opacity={opacity} />
+        </mesh>
+      )}
     </group>
   );
 }
 
-function ParticleSpheres({ nodes, opacity = 1 }: { nodes: NodeData[]; opacity?: number }) {
+function EndpointMarker({
+  label,
+  position,
+  targetPosition,
+  opacity = 1,
+  showCone = true,
+}: {
+  label: string;
+  position: [number, number, number];
+  targetPosition?: [number, number, number];
+  opacity?: number;
+  showCone?: boolean;
+}) {
+  const markerHeight = ENDPOINT_MARKER_SIZE * 1.2;
+  const labelY = -(markerHeight + ENDPOINT_MARKER_SIZE * 0.6);
+
+  const rotation = useMemo(() => {
+    if (!targetPosition) return new THREE.Euler(Math.PI / 2, 0, 0);
+
+    const direction = new THREE.Vector3(
+      targetPosition[0] - position[0],
+      targetPosition[1] - position[1],
+      targetPosition[2] - position[2],
+    );
+    if (direction.lengthSq() < 1e-10) return new THREE.Euler(Math.PI / 2, 0, 0);
+    direction.normalize();
+
+    const quaternion = new THREE.Quaternion();
+    quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+
+    const euler = new THREE.Euler();
+    euler.setFromQuaternion(quaternion);
+    return euler;
+  }, [position, targetPosition]);
+
+  return (
+    <group position={position}>
+      <group rotation={rotation}>
+        <Html
+          position={[0, labelY, 0]}
+          center
+          sprite
+          zIndexRange={[220, 120]}
+          style={{ pointerEvents: "none" }}
+        >
+          <div style={endpointLabelStyle}>{label}</div>
+        </Html>
+        {showCone && (
+          <mesh position={[0, -markerHeight / 2, 0]}>
+            <coneGeometry args={[ENDPOINT_MARKER_SIZE * 0.5, markerHeight, 6]} />
+            <meshStandardMaterial
+              color={ENDPOINT_MARKER_COLOR}
+              transparent={opacity < 1}
+              opacity={opacity}
+              metalness={0.4}
+              roughness={0.2}
+              emissive={ENDPOINT_MARKER_COLOR}
+              emissiveIntensity={0.3}
+            />
+          </mesh>
+        )}
+      </group>
+    </group>
+  );
+}
+
+function ParticleSpheres({
+  nodes,
+  opacity = 1,
+  showTube = false,
+}: {
+  nodes: NodeData[];
+  opacity?: number;
+  showTube?: boolean;
+}) {
+  const lastIndex = nodes.length - 1;
+
   return (
     <group>
-      {nodes.map((node, i) => (
-        <mesh key={i} position={node.position}>
-          <sphereGeometry args={[1, 16, 16]} />
-          <meshStandardMaterial
-            color={BEAD_COLOR}
-            emissive={BEAD_COLOR}
-            emissiveIntensity={0.18}
-            transparent
-            opacity={0.92 * opacity}
-          />
-        </mesh>
-      ))}
+      {nodes.map((node, i) => {
+        if (i === 0) {
+          return (
+            <EndpointMarker
+              key={i}
+              label="s"
+              position={node.position}
+              targetPosition={nodes[1]?.position}
+              opacity={opacity}
+              showCone={!showTube}
+            />
+          );
+        }
+
+        if (i === lastIndex) {
+          return (
+            <EndpointMarker
+              key={i}
+              label="e"
+              position={node.position}
+              targetPosition={nodes[i - 1]?.position}
+              opacity={opacity}
+              showCone={!showTube}
+            />
+          );
+        }
+
+        if (showTube) return null;
+
+        return (
+          <mesh key={i} position={node.position}>
+            <sphereGeometry args={[1, 16, 16]} />
+            <meshStandardMaterial
+              color={BEAD_COLOR}
+              emissive={BEAD_COLOR}
+              emissiveIntensity={0.18}
+              transparent
+              opacity={0.92 * opacity}
+            />
+          </mesh>
+        );
+      })}
     </group>
   );
 }
@@ -363,6 +469,7 @@ export default function GlyphView3D() {
   const [enabledChannels, setEnabledChannels] = useState<Set<number>>(new Set());
   const [sampleCount, setSampleCount] = useState(DEFAULT_SAMPLE_COUNT);
   const [gamma, setGamma] = useState(20);
+  const [showTube, setShowTube] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -497,6 +604,18 @@ export default function GlyphView3D() {
 
         <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
 
+        <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={showTube}
+            onChange={(e) => setShowTube(e.target.checked)}
+            style={{ accentColor: "#45b7d1" }}
+          />
+          Tube
+        </label>
+
+        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
+
         {/* Gamma control — remaps each channel value as v^gamma */}
         <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
           Gamma
@@ -541,8 +660,9 @@ export default function GlyphView3D() {
                   nodes={nodes}
                   enabledChannelIndices={enabledChannelIndices}
                   gamma={gamma}
+                  showTube={showTube}
                 />
-                <ParticleSpheres nodes={nodes} />
+                <ParticleSpheres nodes={nodes} showTube={showTube} />
               </group>
             );
           })}
@@ -577,4 +697,22 @@ const overlayStyle: React.CSSProperties = {
   justifyContent: "center",
   zIndex: 10,
   background: "rgba(10,25,41,0.8)",
+};
+
+const endpointLabelStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "rgba(0, 0, 0, 0.55)",
+  color: "#ffffff",
+  border: "1px solid rgba(255, 255, 255, 0.2)",
+  borderRadius: 6,
+  padding: "2px 6px 1px 7px",
+  fontSize: 12,
+  fontWeight: 600,
+  lineHeight: 1,
+  letterSpacing: "0.3px",
+  textIndent: "0.3px",
+  textTransform: "uppercase",
+  whiteSpace: "nowrap",
 };
