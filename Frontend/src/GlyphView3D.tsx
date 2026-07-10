@@ -60,6 +60,9 @@ function getChannelColor(index: number): string {
 const TARGET_EXTENT = 200;
 const RANDOM_SEED = 3601;
 const DEFAULT_SAMPLE_COUNT = 4;
+const BACKBONE_COLOR = "#FFFFFF";
+const BEAD_COLOR = "#FFFFFF";
+const BACKBONE_RADIUS = 0.15;
 
 function createSeededRandom(seed: number) {
   let state = seed >>> 0;
@@ -221,12 +224,12 @@ function GlyphPipeline({
     return { baseline: baselineVertices, actual: actualVertices };
   });
 
-  // Backbone tube
+  // Backbone connection skeleton
   const centerPts = nodes.map(
     (b) => new THREE.Vector3(b.position[0] * scale, b.position[1] * scale, b.position[2] * scale),
   );
   const backboneCurve = new THREE.CatmullRomCurve3(centerPts, false, "catmullrom", 0.3);
-  const tubeGeo = new THREE.TubeGeometry(backboneCurve, nodes.length * 20, 0.5, 8, false);
+  const tubeGeo = new THREE.TubeGeometry(backboneCurve, nodes.length * 20, BACKBONE_RADIUS, 8, false);
 
   // Continuous channel ribbon: one Catmull-Rom curve per channel through every
   // node (no per-node slicing → ribbon never breaks at node boundaries), plus a
@@ -320,8 +323,33 @@ function GlyphPipeline({
         <meshBasicMaterial vertexColors transparent={opacity < 1} opacity={opacity} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
       <mesh geometry={tubeGeo}>
-        <meshStandardMaterial color="#ffffff" transparent opacity={0.9 * opacity} metalness={0.3} roughness={0.4} />
+        <meshStandardMaterial
+          color={BACKBONE_COLOR}
+          emissive={BACKBONE_COLOR}
+          emissiveIntensity={0.18}
+          transparent
+          opacity={0.92 * opacity}
+        />
       </mesh>
+    </group>
+  );
+}
+
+function ParticleSpheres({ nodes, opacity = 1 }: { nodes: NodeData[]; opacity?: number }) {
+  return (
+    <group>
+      {nodes.map((node, i) => (
+        <mesh key={i} position={node.position}>
+          <sphereGeometry args={[1, 16, 16]} />
+          <meshStandardMaterial
+            color={BEAD_COLOR}
+            emissive={BEAD_COLOR}
+            emissiveIntensity={0.18}
+            transparent
+            opacity={0.92 * opacity}
+          />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -508,12 +536,14 @@ export default function GlyphView3D() {
           {sampledNodes.map((nodes, i) => {
             if (nodes.length <= 1) return null;
             return (
-              <GlyphPipeline
-                key={sampledObjects[i]?.objectId ?? i}
-                nodes={nodes}
-                enabledChannelIndices={enabledChannelIndices}
-                gamma={gamma}
-              />
+              <group key={sampledObjects[i]?.objectId ?? i}>
+                <GlyphPipeline
+                  nodes={nodes}
+                  enabledChannelIndices={enabledChannelIndices}
+                  gamma={gamma}
+                />
+                <ParticleSpheres nodes={nodes} />
+              </group>
             );
           })}
           <OrbitControls enableZoom enablePan enableRotate />
