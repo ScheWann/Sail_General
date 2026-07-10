@@ -5,124 +5,84 @@ import * as THREE from "three";
 
 // ── Data types ──────────────────────────────────────────────────────────────
 
-interface SampleData {
-  pid: number;
-  cell_line: string;
-  chrId: string;
-  sampleId: number;
-  start_value: number;
-  end_value: number;
+interface GlyphPoint {
   x: number;
   y: number;
   z: number;
+  values: number[];
 }
 
-interface BeadData {
+interface GlyphObject {
+  objectId: number;
+  label?: string;
+  points: GlyphPoint[];
+}
+
+interface GlyphDataset {
+  meta?: Record<string, unknown> & {
+    title?: string;
+    description?: string;
+    unit?: string;
+  };
+  channels: string[];
+  objects: GlyphObject[];
+}
+
+// Internal per-point representation consumed by the 3D pipeline.
+interface NodeData {
   position: [number, number, number];
-  trackValues: number[];
-  sampleData: SampleData;
-}
-
-interface TracksJson {
-  region: { chromosome: string; start: number; end: number; bin_size: number };
-  tracks: Record<string, { raw: number[]; normalized: number[] }>;
+  values: number[];
 }
 
 // ── Configuration ───────────────────────────────────────────────────────────
 
 interface DatasetConfig {
-  cellLine: string;
-  chrId: string;
-  start: number;
-  end: number;
-  positionPrefix?: string;
+  name: string;
+  path: string;
 }
 
 const AVAILABLE_DATASETS: DatasetConfig[] = [
-  { cellLine: "Calu3", chrId: "chr8", start: 127200000, end: 127750000 },
-  { cellLine: "GM12878", chrId: "chr8", start: 127200000, end: 127750000 },
-  { cellLine: "Monocytes", chrId: "chr8", start: 127200000, end: 127750000, positionPrefix: "monocytes" },
+  { name: "Turbulence tracers", path: "/Data/turb_glyph.json" },
 ];
 
-const TRACK_COLORS = [
+const CHANNEL_COLORS = [
   "#ff6b6b", "#bf812d", "#45b7d1",
   "#f9ca24", "#6c5ce7", "#00d2d3",
   "#ff9ff3", "#54a0ff", "#a29bfe",
 ];
 
-function getTrackColor(index: number): string {
-  return TRACK_COLORS[index % TRACK_COLORS.length];
+function getChannelColor(index: number): string {
+  return CHANNEL_COLORS[index % CHANNEL_COLORS.length];
 }
 
-// ── Data helpers ────────────────────────────────────────────────────────────
+// World-space extent each object's point cloud is scaled to, so the camera
+// framing and glyph sizes work regardless of the source data's units.
+const TARGET_EXTENT = 200;
 
-function parsePositionCsv(text: string): SampleData[] {
-  const lines = text.trim().split("\n");
-  const result: SampleData[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const v = lines[i].split(",");
-    if (v.length < 9) continue;
-    result.push({
-      pid: parseInt(v[0], 10),
-      cell_line: v[1],
-      chrId: v[2],
-      sampleId: parseInt(v[3], 10),
-      start_value: parseInt(v[4], 10),
-      end_value: parseInt(v[5], 10),
-      x: parseFloat(v[6]) || 0,
-      y: parseFloat(v[7]) || 0,
-      z: parseFloat(v[8]) || 0,
-    });
-  }
-  return result;
-}
+// ── 3D glyph pipeline ─────────────────────────────────────────────────────────
 
-function matchBeadsToTracks(
-  samples: SampleData[],
-  tracksJson: TracksJson,
-  trackNames: string[],
-  normalize: boolean,
-): BeadData[] {
-  return samples.map((sample, idx) => {
-    const trackValues = trackNames.map((name) => {
-      const track = tracksJson.tracks[name];
-      if (!track) return 0;
-      const arr = normalize ? track.normalized : track.raw;
-      if (!arr || idx >= arr.length) return 0;
-      const v = arr[idx];
-      return Number.isFinite(v) ? v : 0;
-    });
-    const x = Number.isFinite(sample.x) ? sample.x : 0;
-    const y = Number.isFinite(sample.y) ? sample.y : 0;
-    const z = Number.isFinite(sample.z) ? sample.z : 0;
-    return { position: [x, y, z], trackValues, sampleData: { ...sample, x, y, z } };
-  });
-}
-
-// ── 3D track pipeline ─────────
-
-function ChromosomePipeline({
-  beads,
-  enabledTrackIndices,
-  trackNames: _trackNames,
+function GlyphPipeline({
+  nodes,
+  enabledChannelIndices,
+  gamma = 1,
   opacity = 1,
 }: {
-  beads: BeadData[];
-  enabledTrackIndices?: number[];
-  trackNames: string[];
+  nodes: NodeData[];
+  enabledChannelIndices?: number[];
+  gamma?: number;
   opacity?: number;
 }) {
-  const totalTracks = beads[0]?.trackValues.length || 1;
-  const activeTrackIndices =
-    enabledTrackIndices ?? Array.from({ length: totalTracks }, (_, i) => i);
-  const numTracks = activeTrackIndices.length;
-  const beadRadius = 0.8;
-  const maxRadarRadius = 20;
+  const totalChannels = nodes[0]?.values.length || 1;
+  const activeChannelIndices =
+    enabledChannelIndices ?? Array.from({ length: totalChannels }, (_, i) => i);
+  const numChannels = activeChannelIndices.length;
+  const nodeRadius = 0.8;
+  const maxRadarRadius = 5;
   const scale = 1;
 
-  if (beads.length < 2 || numTracks === 0) return null;
+  if (nodes.length < 2 || numChannels === 0) return null;
 
-  const hasValid = beads.every(
+  const hasValid = nodes.every(
     (b) =>
       Number.isFinite(b.position[0]) &&
       Number.isFinite(b.position[1]) &&
@@ -130,30 +90,30 @@ function ChromosomePipeline({
   );
   if (!hasValid) return null;
 
-  // Per-bead baseline + actual radar vertices
-  const beadBaselineVertices = beads.map((bead, beadIndex) => {
+  // Per-node baseline + actual radar vertices
+  const nodeVertices = nodes.map((node, nodeIndex) => {
     const pos = [
-      bead.position[0] * scale,
-      bead.position[1] * scale,
-      bead.position[2] * scale,
+      node.position[0] * scale,
+      node.position[1] * scale,
+      node.position[2] * scale,
     ];
 
     let tangent = new THREE.Vector3(0, 0, 1);
-    if (beadIndex > 0 && beadIndex < beads.length - 1) {
-      const prev = beads[beadIndex - 1].position;
-      const next = beads[beadIndex + 1].position;
+    if (nodeIndex > 0 && nodeIndex < nodes.length - 1) {
+      const prev = nodes[nodeIndex - 1].position;
+      const next = nodes[nodeIndex + 1].position;
       tangent = new THREE.Vector3(
         next[0] - prev[0],
         next[1] - prev[1],
         next[2] - prev[2],
       );
       if (tangent.lengthSq() > 1e-10) tangent.normalize();
-    } else if (beadIndex === 0 && beads.length > 1) {
-      const next = beads[1].position;
+    } else if (nodeIndex === 0 && nodes.length > 1) {
+      const next = nodes[1].position;
       tangent = new THREE.Vector3(next[0] - pos[0], next[1] - pos[1], next[2] - pos[2]);
       if (tangent.lengthSq() > 1e-10) tangent.normalize();
-    } else if (beadIndex === beads.length - 1 && beads.length > 1) {
-      const prev = beads[beadIndex - 1].position;
+    } else if (nodeIndex === nodes.length - 1 && nodes.length > 1) {
+      const prev = nodes[nodeIndex - 1].position;
       tangent = new THREE.Vector3(pos[0] - prev[0], pos[1] - prev[1], pos[2] - prev[2]);
       if (tangent.lengthSq() > 1e-10) tangent.normalize();
     }
@@ -169,13 +129,13 @@ function ChromosomePipeline({
 
     const baselineVertices: THREE.Vector3[] = [];
     const actualVertices: THREE.Vector3[] = [];
-    const bRadius = beadRadius * 1.05;
+    const bRadius = nodeRadius * 1.05;
 
-    for (let i = 0; i < numTracks; i++) {
-      const angle = (i / numTracks) * Math.PI * 2;
-      const tIdx = activeTrackIndices[i];
-      const rawVal = bead.trackValues?.[tIdx];
-      const tv = Number.isFinite(rawVal) ? rawVal : 0;
+    for (let i = 0; i < numChannels; i++) {
+      const angle = (i / numChannels) * Math.PI * 2;
+      const cIdx = activeChannelIndices[i];
+      const rawVal = node.values?.[cIdx];
+      const tv = Number.isFinite(rawVal) ? Math.pow(Math.max(0, rawVal), gamma) : 0;
 
       const bx = Math.cos(angle) * bRadius;
       const by = Math.sin(angle) * bRadius;
@@ -203,19 +163,19 @@ function ChromosomePipeline({
   });
 
   // Backbone tube
-  const centerPts = beads.map(
+  const centerPts = nodes.map(
     (b) => new THREE.Vector3(b.position[0] * scale, b.position[1] * scale, b.position[2] * scale),
   );
   const backboneCurve = new THREE.CatmullRomCurve3(centerPts, false, "catmullrom", 0.3);
-  const tubeGeo = new THREE.TubeGeometry(backboneCurve, beads.length * 20, 0.5, 8, false);
+  const tubeGeo = new THREE.TubeGeometry(backboneCurve, nodes.length * 20, 0.5, 8, false);
 
   // Radar polygon outline (white baseline)
   const rpVerts: number[] = [];
   const rpColors: number[] = [];
-  for (let bi = 0; bi < beads.length; bi++) {
-    const bl = beadBaselineVertices[bi].baseline;
-    for (let ti = 0; ti < numTracks; ti++) {
-      const nti = (ti + 1) % numTracks;
+  for (let bi = 0; bi < nodes.length; bi++) {
+    const bl = nodeVertices[bi].baseline;
+    for (let ti = 0; ti < numChannels; ti++) {
+      const nti = (ti + 1) % numChannels;
       rpVerts.push(bl[ti].x, bl[ti].y, bl[ti].z, bl[nti].x, bl[nti].y, bl[nti].z);
       rpColors.push(1, 1, 1, 1, 1, 1);
     }
@@ -224,9 +184,9 @@ function ChromosomePipeline({
   rpGeo.setAttribute("position", new THREE.Float32BufferAttribute(rpVerts, 3));
   rpGeo.setAttribute("color", new THREE.Float32BufferAttribute(rpColors, 3));
 
-  // Continuous track ribbon: one Catmull-Rom curve per track through every bead
-  // (no per-segment slicing → ribbon never breaks at bead boundaries), plus a
-  // darker highlight patch on the same surface at each bead.
+  // Continuous channel ribbon: one Catmull-Rom curve per channel through every
+  // node (no per-node slicing → ribbon never breaks at node boundaries), plus a
+  // darker highlight patch on the same surface at each node.
   const triVerts: number[] = [];
   const triColors: number[] = [];
   const triIdx: number[] = [];
@@ -237,30 +197,30 @@ function ChromosomePipeline({
   const hlIdx: number[] = [];
   let hi = 0;
 
-  // subDiv must be even so each bead index lands exactly on a sample.
+  // subDiv must be even so each node index lands exactly on a sample.
   const subDiv = 8;
-  // One quad on each side of the bead (bead sits on the boundary between them).
+  // One quad on each side of the node (node sits on the boundary between them).
   const highlightHalfWidth = 1;
 
-  for (let ti = 0; ti < numTracks; ti++) {
-    const allBaseline = beads.map((_, i) => beadBaselineVertices[i].baseline[ti]);
-    const allActual = beads.map((_, i) => beadBaselineVertices[i].actual[ti]);
+  for (let ti = 0; ti < numChannels; ti++) {
+    const allBaseline = nodes.map((_, i) => nodeVertices[i].baseline[ti]);
+    const allActual = nodes.map((_, i) => nodeVertices[i].actual[ti]);
 
-    // One continuous curve through every bead — no per-segment slicing needed.
+    // One continuous curve through every node — no per-segment slicing needed.
     const bCurve = new THREE.CatmullRomCurve3(allBaseline, false, "catmullrom", 0.3);
     const aCurve = new THREE.CatmullRomCurve3(allActual, false, "catmullrom", 0.3);
 
-    const totalSamples = (beads.length - 1) * subDiv + 1;
+    const totalSamples = (nodes.length - 1) * subDiv + 1;
     const bPts = bCurve.getPoints(totalSamples - 1);
     const aPts = aCurve.getPoints(totalSamples - 1);
 
-    const origIdx = activeTrackIndices[ti];
-    const tc = new THREE.Color(getTrackColor(origIdx));
+    const origIdx = activeChannelIndices[ti];
+    const tc = new THREE.Color(getChannelColor(origIdx));
     const hsl = { h: 0, s: 0, l: 0 };
     tc.getHSL(hsl);
     const darkColor = new THREE.Color().setHSL(hsl.h, hsl.s, hsl.l * 1.5);
 
-    // Full ribbon (normal track color)
+    // Full ribbon (normal channel color)
     for (let i = 0; i < bPts.length - 1; i++) {
       const bl1 = bPts[i], bl2 = bPts[i + 1];
       const ac1 = aPts[i], ac2 = aPts[i + 1];
@@ -273,9 +233,9 @@ function ChromosomePipeline({
       vi += 4;
     }
 
-    // Darker highlight patch on the same ribbon surface at each bead.
-    // Bead bi sits at sample index (bi * subDiv) in the array.
-    for (let bi = 0; bi < beads.length; bi++) {
+    // Darker highlight patch on the same ribbon surface at each node.
+    // Node bi sits at sample index (bi * subDiv) in the array.
+    for (let bi = 0; bi < nodes.length; bi++) {
       const center = bi * subDiv;
       const lo = Math.max(0, center - highlightHalfWidth);
       const high = Math.min(bPts.length - 2, center + highlightHalfWidth - 1);
@@ -307,11 +267,11 @@ function ChromosomePipeline({
 
   return (
     <group>
-      {/* Full ribbon — normal track color */}
+      {/* Full ribbon — normal channel color */}
       <mesh geometry={triGeo}>
         <meshBasicMaterial vertexColors transparent opacity={0.8 * opacity} side={THREE.DoubleSide} />
       </mesh>
-      {/* Per-bead highlight — same ribbon surface, darker color */}
+      {/* Per-node highlight — same ribbon surface, darker color */}
       <mesh geometry={hlGeo}>
         <meshBasicMaterial vertexColors transparent={opacity < 1} opacity={opacity} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
@@ -327,56 +287,37 @@ function ChromosomePipeline({
 
 // ── Main exported viewer ────────────────────────────────────────────────────
 
-export default function ChromosomeTrack3D() {
+export default function GlyphView3D() {
   const [datasetIdx, setDatasetIdx] = useState(0);
-  const [sampleId, setSampleId] = useState(0);
-  const [beads, setBeads] = useState<BeadData[]>([]);
-  const [trackNames, setTrackNames] = useState<string[]>([]);
-  const [enabledTracks, setEnabledTracks] = useState<Set<number>>(new Set());
+  const [objectId, setObjectId] = useState(0);
+  const [data, setData] = useState<GlyphDataset | null>(null);
+  const [channels, setChannels] = useState<string[]>([]);
+  const [enabledChannels, setEnabledChannels] = useState<Set<number>>(new Set());
+  const [objectIds, setObjectIds] = useState<number[]>([]);
+  const [gamma, setGamma] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [availableSampleIds, setAvailableSampleIds] = useState<number[]>([]);
 
   const dataset = AVAILABLE_DATASETS[datasetIdx];
 
-  // Load data whenever dataset / sample / normalize changes
+  // Load the dataset JSON whenever the selected dataset changes.
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const { cellLine, chrId, start, end, positionPrefix } = dataset;
-        const posName = positionPrefix ?? cellLine;
-        const posPath = `/Data/Example/${posName}_${chrId}_${start}_${end}_original_position.csv`;
-        const trkPath = `/Data/Tracks/${cellLine}_${chrId}_${start}_${end}_tracks_data.json`;
-
-        const [posRes, trkRes] = await Promise.all([fetch(posPath), fetch(trkPath)]);
-        if (!posRes.ok) throw new Error(`Position CSV not found (${posRes.status})`);
-        if (!trkRes.ok) throw new Error(`Tracks JSON not found (${trkRes.status})`);
-
-        const posText = await posRes.text();
-        const trkJson: TracksJson = await trkRes.json();
-
-        const allSamples = parsePositionCsv(posText);
-        const sampleIds = [...new Set(allSamples.map((s) => s.sampleId))].sort((a, b) => a - b);
-        const names = Object.keys(trkJson.tracks);
-
+        const res = await fetch(dataset.path);
+        if (!res.ok) throw new Error(`Dataset not found (${res.status})`);
+        const json: GlyphDataset = await res.json();
         if (cancelled) return;
-        setAvailableSampleIds(sampleIds);
-        setTrackNames(names);
-        setEnabledTracks(new Set(names.map((_, i) => i)));
 
-        const targetSid = sampleIds.includes(sampleId) ? sampleId : sampleIds[0] ?? 0;
-        if (targetSid !== sampleId) setSampleId(targetSid);
-
-        const filtered = allSamples
-          .filter((s) => s.sampleId === targetSid)
-          .sort((a, b) => a.start_value - b.start_value);
-
-        if (filtered.length === 0) throw new Error("No position data for selected sample");
-
-        setBeads(matchBeadsToTracks(filtered, trkJson, names, true));
+        const ids = json.objects.map((o) => o.objectId).sort((a, b) => a - b);
+        setData(json);
+        setChannels(json.channels);
+        setEnabledChannels(new Set(json.channels.map((_, i) => i)));
+        setObjectIds(ids);
+        setObjectId((prev) => (ids.includes(prev) ? prev : ids[0] ?? 0));
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -385,21 +326,63 @@ export default function ChromosomeTrack3D() {
     };
     load();
     return () => { cancelled = true; };
-  }, [dataset, sampleId]);
+  }, [dataset]);
 
-  const enabledTrackIndices = useMemo(
-    () => [...enabledTracks].sort((a, b) => a - b),
-    [enabledTracks],
+  const currentObject = useMemo(
+    () => data?.objects.find((o) => o.objectId === objectId) ?? data?.objects[0] ?? null,
+    [data, objectId],
   );
 
-  const toggleTrack = useCallback((idx: number) => {
-    setEnabledTracks((prev) => {
+  // Center + scale the selected object into a canonical box so camera framing
+  // and glyph sizes are independent of the source data's units.
+  const nodes = useMemo<NodeData[]>(() => {
+    if (!data || !currentObject) return [];
+    const pts = currentObject.points;
+    if (pts.length === 0) return [];
+
+    const min = [Infinity, Infinity, Infinity];
+    const max = [-Infinity, -Infinity, -Infinity];
+    for (const p of pts) {
+      const c = [p.x, p.y, p.z];
+      for (let k = 0; k < 3; k++) {
+        if (Number.isFinite(c[k])) {
+          if (c[k] < min[k]) min[k] = c[k];
+          if (c[k] > max[k]) max[k] = c[k];
+        }
+      }
+    }
+    const center = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
+    const extent = Math.max(max[0] - min[0], max[1] - min[1], max[2] - min[2]) || 1;
+    const s = TARGET_EXTENT / extent;
+
+    return pts.map((p) => ({
+      position: [
+        ((Number.isFinite(p.x) ? p.x : center[0]) - center[0]) * s,
+        ((Number.isFinite(p.y) ? p.y : center[1]) - center[1]) * s,
+        ((Number.isFinite(p.z) ? p.z : center[2]) - center[2]) * s,
+      ] as [number, number, number],
+      values: data.channels.map((_, i) => {
+        const v = p.values?.[i];
+        return Number.isFinite(v) ? v : 0;
+      }),
+    }));
+  }, [data, currentObject]);
+
+  const enabledChannelIndices = useMemo(
+    () => [...enabledChannels].sort((a, b) => a - b),
+    [enabledChannels],
+  );
+
+  const toggleChannel = useCallback((idx: number) => {
+    setEnabledChannels((prev) => {
       const next = new Set(prev);
       if (next.has(idx)) next.delete(idx);
       else next.add(idx);
       return next;
     });
   }, []);
+
+  const title = (data?.meta?.title as string | undefined) ?? dataset.name;
 
   // ── Render ──
 
@@ -422,7 +405,7 @@ export default function ChromosomeTrack3D() {
       >
         {/* Dataset selector */}
         <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          Cell Line
+          Dataset
           <select
             value={datasetIdx}
             onChange={(e) => setDatasetIdx(Number(e.target.value))}
@@ -430,32 +413,35 @@ export default function ChromosomeTrack3D() {
           >
             {AVAILABLE_DATASETS.map((d, i) => (
               <option key={i} value={i}>
-                {d.cellLine}
+                {d.name}
               </option>
             ))}
           </select>
         </label>
 
-        {/* Sample selector */}
+        {/* Object selector */}
         <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          Sample
+          Object
           <select
-            value={sampleId}
-            onChange={(e) => setSampleId(Number(e.target.value))}
+            value={objectId}
+            onChange={(e) => setObjectId(Number(e.target.value))}
             style={selectStyle}
           >
-            {availableSampleIds.slice(0, 5000).map((sid) => (
-              <option key={sid} value={sid}>
-                {sid}
-              </option>
-            ))}
+            {objectIds.map((id) => {
+              const obj = data?.objects.find((o) => o.objectId === id);
+              return (
+                <option key={id} value={id}>
+                  {obj?.label ?? id}
+                </option>
+              );
+            })}
           </select>
         </label>
 
         <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
 
-        {/* Track toggles */}
-        {trackNames.map((name, i) => (
+        {/* Channel toggles */}
+        {channels.map((name, i) => (
           <label
             key={name}
             style={{
@@ -463,18 +449,37 @@ export default function ChromosomeTrack3D() {
               alignItems: "center",
               gap: 4,
               cursor: "pointer",
-              opacity: enabledTracks.has(i) ? 1 : 0.4,
+              opacity: enabledChannels.has(i) ? 1 : 0.4,
             }}
           >
             <input
               type="checkbox"
-              checked={enabledTracks.has(i)}
-              onChange={() => toggleTrack(i)}
-              style={{ accentColor: getTrackColor(i) }}
+              checked={enabledChannels.has(i)}
+              onChange={() => toggleChannel(i)}
+              style={{ accentColor: getChannelColor(i) }}
             />
             {name}
           </label>
         ))}
+
+        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
+
+        {/* Gamma control — remaps each channel value as v^gamma */}
+        <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          Gamma
+          <input
+            type="range"
+            min={1}
+            max={20}
+            step={1}
+            value={gamma}
+            onChange={(e) => setGamma(Number(e.target.value))}
+            style={{ width: 120, accentColor: "#45b7d1" }}
+          />
+          <span style={{ width: 28, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+            {gamma.toFixed(1)}
+          </span>
+        </label>
       </div>
 
       {/* ── 3D viewport ── */}
@@ -495,36 +500,15 @@ export default function ChromosomeTrack3D() {
         >
           <ambientLight intensity={0.6} />
           <directionalLight position={[100, 100, 100]} intensity={0.8} />
-          {beads.length > 1 && (
-            <ChromosomePipeline
-              beads={beads}
-              enabledTrackIndices={enabledTrackIndices}
-              trackNames={trackNames}
+          {nodes.length > 1 && (
+            <GlyphPipeline
+              nodes={nodes}
+              enabledChannelIndices={enabledChannelIndices}
+              gamma={gamma}
             />
           )}
           <OrbitControls enableZoom enablePan enableRotate />
         </Canvas>
-      </div>
-
-      {/* ── Legend ── */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 16,
-          left: 16,
-          background: "rgba(0,0,0,0.55)",
-          backdropFilter: "blur(8px)",
-          borderRadius: 8,
-          padding: "10px 14px",
-          color: "#e0e0e0",
-          fontSize: 12,
-          fontFamily: "system-ui, sans-serif",
-          lineHeight: 1.8,
-        }}
-      >
-        <div style={{ fontWeight: 600, marginBottom: 2 }}>
-          {dataset.cellLine} &middot; {dataset.chrId}:{dataset.start.toLocaleString()}-{dataset.end.toLocaleString()}
-        </div>
       </div>
     </div>
   );

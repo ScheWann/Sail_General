@@ -1,7 +1,7 @@
-import ChromosomeTrack3D from "./ChromosomeTrack3D";
+import GlyphView3D from "./GlyphView3D";
 
 function App() {
-  return <ChromosomeTrack3D />;
+  return <GlyphView3D />;
 }
 
 export default App;
