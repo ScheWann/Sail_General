@@ -55,9 +55,68 @@ function getChannelColor(index: number): string {
   return CHANNEL_COLORS[index % CHANNEL_COLORS.length];
 }
 
-// World-space extent each object's point cloud is scaled to, so the camera
-// framing and glyph sizes work regardless of the source data's units.
+// World-space extent the sampled point clouds are scaled to, so camera framing
+// and glyph sizes work while preserving their relative source positions.
 const TARGET_EXTENT = 200;
+const RANDOM_SEED = 3601;
+const DEFAULT_SAMPLE_COUNT = 4;
+
+function createSeededRandom(seed: number) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
+}
+
+function sampleObjects(objects: GlyphObject[], count: number, seed: number) {
+  const rand = createSeededRandom(seed);
+  const shuffled = [...objects];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.slice(0, count);
+}
+
+function objectsToNodeGroups(objects: GlyphObject[], channels: string[]): NodeData[][] {
+  const min = [Infinity, Infinity, Infinity];
+  const max = [-Infinity, -Infinity, -Infinity];
+
+  for (const object of objects) {
+    for (const p of object.points) {
+      const c = [p.x, p.y, p.z];
+      for (let k = 0; k < 3; k++) {
+        if (Number.isFinite(c[k])) {
+          if (c[k] < min[k]) min[k] = c[k];
+          if (c[k] > max[k]) max[k] = c[k];
+        }
+      }
+    }
+  }
+
+  if (!min.every(Number.isFinite) || !max.every(Number.isFinite)) {
+    return objects.map(() => []);
+  }
+
+  const center = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
+  const extent = Math.max(max[0] - min[0], max[1] - min[1], max[2] - min[2]) || 1;
+  const s = TARGET_EXTENT / extent;
+
+  return objects.map((object) =>
+    object.points.map((p) => ({
+      position: [
+        ((Number.isFinite(p.x) ? p.x : center[0]) - center[0]) * s,
+        ((Number.isFinite(p.y) ? p.y : center[1]) - center[1]) * s,
+        ((Number.isFinite(p.z) ? p.z : center[2]) - center[2]) * s,
+      ] as [number, number, number],
+      values: channels.map((_, i) => {
+        const v = p.values?.[i];
+        return Number.isFinite(v) ? v : 0;
+      }),
+    })),
+  );
+}
 
 // ── 3D glyph pipeline ─────────────────────────────────────────────────────────
 
@@ -271,11 +330,10 @@ function GlyphPipeline({
 
 export default function GlyphView3D() {
   const [datasetIdx, setDatasetIdx] = useState(0);
-  const [objectId, setObjectId] = useState(0);
   const [data, setData] = useState<GlyphDataset | null>(null);
   const [channels, setChannels] = useState<string[]>([]);
   const [enabledChannels, setEnabledChannels] = useState<Set<number>>(new Set());
-  const [objectIds, setObjectIds] = useState<number[]>([]);
+  const [sampleCount, setSampleCount] = useState(DEFAULT_SAMPLE_COUNT);
   const [gamma, setGamma] = useState(20);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -294,12 +352,9 @@ export default function GlyphView3D() {
         const json: GlyphDataset = await res.json();
         if (cancelled) return;
 
-        const ids = json.objects.map((o) => o.objectId).sort((a, b) => a - b);
         setData(json);
         setChannels(json.channels);
         setEnabledChannels(new Set(json.channels.map((_, i) => i)));
-        setObjectIds(ids);
-        setObjectId((prev) => (ids.includes(prev) ? prev : ids[0] ?? 0));
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -310,45 +365,15 @@ export default function GlyphView3D() {
     return () => { cancelled = true; };
   }, [dataset]);
 
-  const currentObject = useMemo(
-    () => data?.objects.find((o) => o.objectId === objectId) ?? data?.objects[0] ?? null,
-    [data, objectId],
+  const sampledObjects = useMemo(
+    () => sampleObjects(data?.objects ?? [], sampleCount, RANDOM_SEED),
+    [data, sampleCount],
   );
 
-  // Center + scale the selected object into a canonical box so camera framing
-  // and glyph sizes are independent of the source data's units.
-  const nodes = useMemo<NodeData[]>(() => {
-    if (!data || !currentObject) return [];
-    const pts = currentObject.points;
-    if (pts.length === 0) return [];
-
-    const min = [Infinity, Infinity, Infinity];
-    const max = [-Infinity, -Infinity, -Infinity];
-    for (const p of pts) {
-      const c = [p.x, p.y, p.z];
-      for (let k = 0; k < 3; k++) {
-        if (Number.isFinite(c[k])) {
-          if (c[k] < min[k]) min[k] = c[k];
-          if (c[k] > max[k]) max[k] = c[k];
-        }
-      }
-    }
-    const center = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
-    const extent = Math.max(max[0] - min[0], max[1] - min[1], max[2] - min[2]) || 1;
-    const s = TARGET_EXTENT / extent;
-
-    return pts.map((p) => ({
-      position: [
-        ((Number.isFinite(p.x) ? p.x : center[0]) - center[0]) * s,
-        ((Number.isFinite(p.y) ? p.y : center[1]) - center[1]) * s,
-        ((Number.isFinite(p.z) ? p.z : center[2]) - center[2]) * s,
-      ] as [number, number, number],
-      values: data.channels.map((_, i) => {
-        const v = p.values?.[i];
-        return Number.isFinite(v) ? v : 0;
-      }),
-    }));
-  }, [data, currentObject]);
+  const sampledNodes = useMemo(
+    () => objectsToNodeGroups(sampledObjects, channels),
+    [sampledObjects, channels],
+  );
 
   const enabledChannelIndices = useMemo(
     () => [...enabledChannels].sort((a, b) => a - b),
@@ -363,6 +388,12 @@ export default function GlyphView3D() {
       return next;
     });
   }, []);
+
+  const updateSampleCount = useCallback((value: number) => {
+    if (!Number.isFinite(value)) return;
+    const maxCount = data?.objects.length ?? DEFAULT_SAMPLE_COUNT;
+    setSampleCount(Math.max(1, Math.min(maxCount, Math.floor(value))));
+  }, [data]);
 
   // ── Render ──
 
@@ -399,23 +430,17 @@ export default function GlyphView3D() {
           </select>
         </label>
 
-        {/* Object selector */}
         <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          Object
-          <select
-            value={objectId}
-            onChange={(e) => setObjectId(Number(e.target.value))}
-            style={selectStyle}
-          >
-            {objectIds.map((id) => {
-              const obj = data?.objects.find((o) => o.objectId === id);
-              return (
-                <option key={id} value={id}>
-                  {obj?.label ?? id}
-                </option>
-              );
-            })}
-          </select>
+          Counts
+          <input
+            type="number"
+            min={1}
+            max={data?.objects.length ?? undefined}
+            step={1}
+            value={sampleCount}
+            onChange={(e) => updateSampleCount(Number(e.target.value))}
+            style={numberInputStyle}
+          />
         </label>
 
         <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
@@ -480,13 +505,17 @@ export default function GlyphView3D() {
         >
           <ambientLight intensity={0.6} />
           <directionalLight position={[100, 100, 100]} intensity={0.8} />
-          {nodes.length > 1 && (
-            <GlyphPipeline
-              nodes={nodes}
-              enabledChannelIndices={enabledChannelIndices}
-              gamma={gamma}
-            />
-          )}
+          {sampledNodes.map((nodes, i) => {
+            if (nodes.length <= 1) return null;
+            return (
+              <GlyphPipeline
+                key={sampledObjects[i]?.objectId ?? i}
+                nodes={nodes}
+                enabledChannelIndices={enabledChannelIndices}
+                gamma={gamma}
+              />
+            );
+          })}
           <OrbitControls enableZoom enablePan enableRotate />
         </Canvas>
       </div>
@@ -503,6 +532,11 @@ const selectStyle: React.CSSProperties = {
   borderRadius: 4,
   padding: "3px 6px",
   fontSize: 13,
+};
+
+const numberInputStyle: React.CSSProperties = {
+  ...selectStyle,
+  width: 64,
 };
 
 const overlayStyle: React.CSSProperties = {
