@@ -42,7 +42,7 @@ interface DatasetConfig {
 }
 
 const AVAILABLE_DATASETS: DatasetConfig[] = [
-  { name: "Turbulence tracers", path: "/Data/turb_glyph.json" },
+  { name: "Turbulence tracers", path: "/turb_glyph.json" },
 ];
 
 const CHANNEL_COLORS = [
@@ -169,21 +169,6 @@ function GlyphPipeline({
   const backboneCurve = new THREE.CatmullRomCurve3(centerPts, false, "catmullrom", 0.3);
   const tubeGeo = new THREE.TubeGeometry(backboneCurve, nodes.length * 20, 0.5, 8, false);
 
-  // Radar polygon outline (white baseline)
-  const rpVerts: number[] = [];
-  const rpColors: number[] = [];
-  for (let bi = 0; bi < nodes.length; bi++) {
-    const bl = nodeVertices[bi].baseline;
-    for (let ti = 0; ti < numChannels; ti++) {
-      const nti = (ti + 1) % numChannels;
-      rpVerts.push(bl[ti].x, bl[ti].y, bl[ti].z, bl[nti].x, bl[nti].y, bl[nti].z);
-      rpColors.push(1, 1, 1, 1, 1, 1);
-    }
-  }
-  const rpGeo = new THREE.BufferGeometry();
-  rpGeo.setAttribute("position", new THREE.Float32BufferAttribute(rpVerts, 3));
-  rpGeo.setAttribute("color", new THREE.Float32BufferAttribute(rpColors, 3));
-
   // Continuous channel ribbon: one Catmull-Rom curve per channel through every
   // node (no per-node slicing → ribbon never breaks at node boundaries), plus a
   // darker highlight patch on the same surface at each node.
@@ -278,9 +263,6 @@ function GlyphPipeline({
       <mesh geometry={tubeGeo}>
         <meshStandardMaterial color="#ffffff" transparent opacity={0.9 * opacity} metalness={0.3} roughness={0.4} />
       </mesh>
-      <lineSegments geometry={rpGeo}>
-        <lineBasicMaterial vertexColors linewidth={3} transparent opacity={0.9 * opacity} />
-      </lineSegments>
     </group>
   );
 }
@@ -294,7 +276,7 @@ export default function GlyphView3D() {
   const [channels, setChannels] = useState<string[]>([]);
   const [enabledChannels, setEnabledChannels] = useState<Set<number>>(new Set());
   const [objectIds, setObjectIds] = useState<number[]>([]);
-  const [gamma, setGamma] = useState(1);
+  const [gamma, setGamma] = useState(20);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -381,8 +363,6 @@ export default function GlyphView3D() {
       return next;
     });
   }, []);
-
-  const title = (data?.meta?.title as string | undefined) ?? dataset.name;
 
   // ── Render ──
 
