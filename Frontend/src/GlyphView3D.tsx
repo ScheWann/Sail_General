@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -34,6 +34,13 @@ interface NodeData {
   values: number[];
 }
 
+interface SelectionRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 // ── Configuration ───────────────────────────────────────────────────────────
 
 interface DatasetConfig {
@@ -46,9 +53,16 @@ const AVAILABLE_DATASETS: DatasetConfig[] = [
 ];
 
 const CHANNEL_COLORS = [
-  "#ff6b6b", "#bf812d", "#45b7d1",
-  "#f9ca24", "#6c5ce7", "#00d2d3",
-  "#ff9ff3", "#54a0ff", "#a29bfe",
+  "#ff6b6b", // Red
+  "#45b7d1", // Blue
+  "#4daf4a", // Green
+  "#6c5ce7", // Purple
+  "#f3722c", // Orange
+  "#f9ca24", // Yellow
+  "#ff9ff3", // Pink
+  "#a29bfe", // Lavender
+  "#00d2d3", // Teal
+  "#54a0ff", // Light Blue
 ];
 
 function getChannelColor(index: number): string {
@@ -341,12 +355,14 @@ function EndpointMarker({
   targetPosition,
   opacity = 1,
   showCone = true,
+  showLabel = true,
 }: {
   label: string;
   position: [number, number, number];
   targetPosition?: [number, number, number];
   opacity?: number;
   showCone?: boolean;
+  showLabel?: boolean;
 }) {
   const markerHeight = ENDPOINT_MARKER_SIZE * 1.2;
   const labelY = -(markerHeight + ENDPOINT_MARKER_SIZE * 0.6);
@@ -373,15 +389,17 @@ function EndpointMarker({
   return (
     <group position={position}>
       <group rotation={rotation}>
-        <Html
-          position={[0, labelY, 0]}
-          center
-          sprite
-          zIndexRange={[220, 120]}
-          style={{ pointerEvents: "none" }}
-        >
-          <div style={endpointLabelStyle}>{label}</div>
-        </Html>
+        {showLabel && (
+          <Html
+            position={[0, labelY, 0]}
+            center
+            sprite
+            zIndexRange={[220, 120]}
+            style={{ pointerEvents: "none" }}
+          >
+            <div style={endpointLabelStyle}>{label}</div>
+          </Html>
+        )}
         {showCone && (
           <mesh position={[0, -markerHeight / 2, 0]}>
             <coneGeometry args={[ENDPOINT_MARKER_SIZE * 0.5, markerHeight, 6]} />
@@ -405,10 +423,12 @@ function ParticleSpheres({
   nodes,
   opacity = 1,
   showTube = false,
+  showLabels = true,
 }: {
   nodes: NodeData[];
   opacity?: number;
   showTube?: boolean;
+  showLabels?: boolean;
 }) {
   const lastIndex = nodes.length - 1;
 
@@ -424,6 +444,7 @@ function ParticleSpheres({
               targetPosition={nodes[1]?.position}
               opacity={opacity}
               showCone={!showTube}
+              showLabel={showLabels}
             />
           );
         }
@@ -437,6 +458,7 @@ function ParticleSpheres({
               targetPosition={nodes[i - 1]?.position}
               opacity={opacity}
               showCone={!showTube}
+              showLabel={showLabels}
             />
           );
         }
@@ -463,6 +485,9 @@ function ParticleSpheres({
 // ── Main exported viewer ────────────────────────────────────────────────────
 
 export default function GlyphView3D() {
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const cameraRef = useRef<THREE.Camera | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const [datasetIdx, setDatasetIdx] = useState(0);
   const [data, setData] = useState<GlyphDataset | null>(null);
   const [channels, setChannels] = useState<string[]>([]);
@@ -470,6 +495,11 @@ export default function GlyphView3D() {
   const [sampleCount, setSampleCount] = useState(DEFAULT_SAMPLE_COUNT);
   const [gamma, setGamma] = useState(20);
   const [showTube, setShowTube] = useState(true);
+  const [showLabels, setShowLabels] = useState(true);
+  const [selectMode, setSelectMode] = useState(false);
+  const [hiddenObjectIds, setHiddenObjectIds] = useState<Set<number>>(new Set());
+  const [selectedObjectIds, setSelectedObjectIds] = useState<Set<number>>(new Set());
+  const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -490,6 +520,8 @@ export default function GlyphView3D() {
         setData(json);
         setChannels(json.channels);
         setEnabledChannels(new Set(json.channels.map((_, i) => i)));
+        setHiddenObjectIds(new Set());
+        setSelectedObjectIds(new Set());
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -508,6 +540,14 @@ export default function GlyphView3D() {
   const sampledNodes = useMemo(
     () => objectsToNodeGroups(sampledObjects, channels),
     [sampledObjects, channels],
+  );
+
+  const visibleItems = useMemo(
+    () =>
+      sampledObjects
+        .map((object, i) => ({ object, nodes: sampledNodes[i] ?? [] }))
+        .filter(({ object }) => !hiddenObjectIds.has(object.objectId)),
+    [hiddenObjectIds, sampledNodes, sampledObjects],
   );
 
   const enabledChannelIndices = useMemo(
@@ -529,6 +569,112 @@ export default function GlyphView3D() {
     const maxCount = data?.objects.length ?? DEFAULT_SAMPLE_COUNT;
     setSampleCount(Math.max(1, Math.min(maxCount, Math.floor(value))));
   }, [data]);
+
+  const hideSelected = useCallback(() => {
+    setHiddenObjectIds((prev) => {
+      const next = new Set(prev);
+      selectedObjectIds.forEach((id) => next.add(id));
+      return next;
+    });
+    setSelectedObjectIds(new Set());
+  }, [selectedObjectIds]);
+
+  const showAllObjects = useCallback(() => {
+    setHiddenObjectIds(new Set());
+    setSelectedObjectIds(new Set());
+  }, []);
+
+  const updateDragRect = useCallback((x: number, y: number) => {
+    const start = dragStartRef.current;
+    if (!start) return;
+    setSelectionRect({
+      x: Math.min(start.x, x),
+      y: Math.min(start.y, y),
+      width: Math.abs(x - start.x),
+      height: Math.abs(y - start.y),
+    });
+  }, []);
+
+  const selectItemsInRect = useCallback((rect: SelectionRect, additive: boolean) => {
+    const camera = cameraRef.current;
+    const viewport = viewportRef.current;
+    if (!camera || !viewport || rect.width < 4 || rect.height < 4) return;
+
+    camera.updateMatrixWorld();
+    const point = new THREE.Vector3();
+    const nextSelected = additive ? new Set(selectedObjectIds) : new Set<number>();
+
+    for (const { object, nodes } of visibleItems) {
+      let hits = 0;
+      let endpointHit = false;
+
+      for (let i = 0; i < nodes.length; i++) {
+        const [x, y, z] = nodes[i].position;
+        point.set(x, y, z).project(camera);
+        if (point.z < -1 || point.z > 1) continue;
+
+        const sx = ((point.x + 1) / 2) * viewport.clientWidth;
+        const sy = ((-point.y + 1) / 2) * viewport.clientHeight;
+        const inside =
+          sx >= rect.x &&
+          sx <= rect.x + rect.width &&
+          sy >= rect.y &&
+          sy <= rect.y + rect.height;
+
+        if (inside) {
+          hits += 1;
+          if (i === 0 || i === nodes.length - 1) endpointHit = true;
+        }
+      }
+
+      if (endpointHit || hits >= 3) nextSelected.add(object.objectId);
+    }
+
+    setSelectedObjectIds(nextSelected);
+  }, [selectedObjectIds, visibleItems]);
+
+  const startSelection = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const bounds = viewport.getBoundingClientRect();
+    const x = event.clientX - bounds.left;
+    const y = event.clientY - bounds.top;
+    dragStartRef.current = { x, y };
+    setSelectionRect({ x, y, width: 0, height: 0 });
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, []);
+
+  const moveSelection = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragStartRef.current) return;
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const bounds = viewport.getBoundingClientRect();
+    updateDragRect(event.clientX - bounds.left, event.clientY - bounds.top);
+  }, [updateDragRect]);
+
+  const finishSelection = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    const start = dragStartRef.current;
+    const viewport = viewportRef.current;
+    if (!start || !viewport) return;
+
+    const bounds = viewport.getBoundingClientRect();
+    const x = event.clientX - bounds.left;
+    const y = event.clientY - bounds.top;
+    const finalRect = {
+      x: Math.min(start.x, x),
+      y: Math.min(start.y, y),
+      width: Math.abs(x - start.x),
+      height: Math.abs(y - start.y),
+    };
+
+    selectItemsInRect(finalRect, event.shiftKey);
+    dragStartRef.current = null;
+    setSelectionRect(null);
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  }, [selectItemsInRect]);
 
   // ── Render ──
 
@@ -614,6 +760,48 @@ export default function GlyphView3D() {
           Tube
         </label>
 
+        <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={showLabels}
+            onChange={(e) => setShowLabels(e.target.checked)}
+            style={{ accentColor: "#45b7d1" }}
+          />
+          Labels
+        </label>
+
+        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
+
+        <button
+          type="button"
+          onClick={() => setSelectMode((value) => !value)}
+          style={selectMode ? activeButtonStyle : buttonStyle}
+        >
+          Select
+        </button>
+
+        <button
+          type="button"
+          onClick={hideSelected}
+          disabled={selectedObjectIds.size === 0}
+          style={selectedObjectIds.size === 0 ? disabledButtonStyle : buttonStyle}
+        >
+          Hide selected
+        </button>
+
+        <button
+          type="button"
+          onClick={showAllObjects}
+          disabled={hiddenObjectIds.size === 0 && selectedObjectIds.size === 0}
+          style={hiddenObjectIds.size === 0 && selectedObjectIds.size === 0 ? disabledButtonStyle : buttonStyle}
+        >
+          Show all
+        </button>
+
+        <span style={{ color: "rgba(224,224,224,0.72)", fontVariantNumeric: "tabular-nums" }}>
+          {selectedObjectIds.size} selected / {hiddenObjectIds.size} hidden
+        </span>
+
         <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
 
         {/* Gamma control — remaps each channel value as v^gamma */}
@@ -622,7 +810,7 @@ export default function GlyphView3D() {
           <input
             type="range"
             min={1}
-            max={20}
+            max={50}
             step={1}
             value={gamma}
             onChange={(e) => setGamma(Number(e.target.value))}
@@ -635,7 +823,7 @@ export default function GlyphView3D() {
       </div>
 
       {/* ── 3D viewport ── */}
-      <div style={{ flex: 1, position: "relative" }}>
+      <div ref={viewportRef} style={{ flex: 1, position: "relative" }}>
         {loading && (
           <div style={overlayStyle}>
             <div style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}>Loading 3D structure...</div>
@@ -648,26 +836,51 @@ export default function GlyphView3D() {
         )}
         <Canvas
           camera={{ position: [0, 0, 500], fov: 60, near: 0.1, far: 10000 }}
+          onCreated={({ camera }) => {
+            cameraRef.current = camera;
+          }}
           style={{ background: "#0a1929", width: "100%", height: "100%" }}
         >
           <ambientLight intensity={0.6} />
           <directionalLight position={[100, 100, 100]} intensity={0.8} />
-          {sampledNodes.map((nodes, i) => {
+          {visibleItems.map(({ object, nodes }) => {
             if (nodes.length <= 1) return null;
+            const isSelected = selectedObjectIds.has(object.objectId);
+            const opacity = isSelected ? 0.42 : 1;
             return (
-              <group key={sampledObjects[i]?.objectId ?? i}>
+              <group key={object.objectId}>
                 <GlyphPipeline
                   nodes={nodes}
                   enabledChannelIndices={enabledChannelIndices}
                   gamma={gamma}
+                  opacity={opacity}
                   showTube={showTube}
                 />
-                <ParticleSpheres nodes={nodes} showTube={showTube} />
+                <ParticleSpheres
+                  nodes={nodes}
+                  opacity={opacity}
+                  showTube={showTube}
+                  showLabels={showLabels}
+                />
               </group>
             );
           })}
-          <OrbitControls enableZoom enablePan enableRotate />
+          <OrbitControls enableZoom={!selectMode} enablePan={!selectMode} enableRotate={!selectMode} />
         </Canvas>
+        {selectMode && (
+          <div
+            style={selectionLayerStyle}
+            onPointerDown={startSelection}
+            onPointerMove={moveSelection}
+            onPointerUp={finishSelection}
+            onPointerCancel={() => {
+              dragStartRef.current = null;
+              setSelectionRect(null);
+            }}
+          >
+            {selectionRect && <div style={selectionBoxStyle(selectionRect)} />}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -689,6 +902,28 @@ const numberInputStyle: React.CSSProperties = {
   width: 64,
 };
 
+const buttonStyle: React.CSSProperties = {
+  background: "#1a2a3e",
+  color: "#e0e0e0",
+  border: "1px solid rgba(255,255,255,0.2)",
+  borderRadius: 4,
+  padding: "4px 8px",
+  fontSize: 13,
+  cursor: "pointer",
+};
+
+const activeButtonStyle: React.CSSProperties = {
+  ...buttonStyle,
+  background: "#256d85",
+  borderColor: "rgba(69,183,209,0.85)",
+};
+
+const disabledButtonStyle: React.CSSProperties = {
+  ...buttonStyle,
+  opacity: 0.45,
+  cursor: "not-allowed",
+};
+
 const overlayStyle: React.CSSProperties = {
   position: "absolute",
   inset: 0,
@@ -698,6 +933,28 @@ const overlayStyle: React.CSSProperties = {
   zIndex: 10,
   background: "rgba(10,25,41,0.8)",
 };
+
+const selectionLayerStyle: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  zIndex: 6,
+  cursor: "crosshair",
+  touchAction: "none",
+};
+
+function selectionBoxStyle(rect: SelectionRect): React.CSSProperties {
+  return {
+    position: "absolute",
+    left: rect.x,
+    top: rect.y,
+    width: rect.width,
+    height: rect.height,
+    border: "1px solid rgba(69,183,209,0.95)",
+    background: "rgba(69,183,209,0.16)",
+    boxShadow: "0 0 0 1px rgba(0,0,0,0.35)",
+    pointerEvents: "none",
+  };
+}
 
 const endpointLabelStyle: React.CSSProperties = {
   display: "flex",
