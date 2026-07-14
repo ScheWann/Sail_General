@@ -2,3 +2,5 @@
 node_modules
 
 /Scripts/turb_subset.h5
+/Scripts/C0099.vtp
+/Scripts/centerlines.vtp

@@ -10,6 +10,7 @@ interface GlyphPoint {
   y: number;
   z: number;
   values: number[];
+  attributes?: Record<string, unknown>;
 }
 
 interface GlyphObject {
@@ -26,6 +27,60 @@ interface GlyphDataset {
   };
   channels: string[];
   objects: GlyphObject[];
+}
+
+interface AneurysmGeometry {
+  meta?: Record<string, unknown>;
+  center: { x: number; y: number; z: number };
+  size: {
+    bboxMin?: number[];
+    bboxMax?: number[];
+    extent?: number[];
+    maxRadiusFromCenter?: number;
+    meanRadiusFromCenter?: number;
+    equivalentDiameterApprox?: number;
+  };
+  neck?: {
+    x: number;
+    y: number;
+    z: number;
+    node?: number;
+    arclen?: number;
+    dist_to_sac?: number;
+  };
+  mesh?: {
+    vertices: number[][];
+    faces: number[][];
+    originalVertexIds?: number[];
+    distanceToNeck?: number[];
+  };
+  vessel?: {
+    description?: string;
+    center?: { x: number; y: number; z: number };
+    size?: {
+      bboxMin?: number[];
+      bboxMax?: number[];
+      extent?: number[];
+    };
+    mesh?: {
+      vertices: number[][];
+      faces: number[][];
+      originalVertexIds?: number[];
+      distanceToNeck?: number[];
+    };
+    fields?: string[];
+    distanceToNeckRange?: number[];
+    nWallPoints?: number;
+    nWallFaces?: number;
+    nVesselMeshVertices?: number;
+    nVesselMeshFaces?: number;
+  };
+  nSacWallPoints?: number;
+}
+
+interface CoordinateTransform {
+  center: [number, number, number];
+  scale: number;
 }
 
 // Internal per-point representation consumed by the 3D pipeline.
@@ -46,10 +101,24 @@ interface SelectionRect {
 interface DatasetConfig {
   name: string;
   path: string;
+  geometryPath?: string;
+  defaultSampleCount?: number;
 }
 
+// World-space extent the sampled point clouds are scaled to, so camera framing
+// and glyph sizes work while preserving their relative source positions.
+const TARGET_EXTENT = 200;
+const RANDOM_SEED = 3601;
+const DEFAULT_SAMPLE_COUNT = 4;
+
 const AVAILABLE_DATASETS: DatasetConfig[] = [
-  { name: "Turbulence tracers", path: "/turb_glyph.json" },
+  { name: "Turbulence tracers", path: "/turb_glyph.json", defaultSampleCount: DEFAULT_SAMPLE_COUNT },
+  {
+    name: "Aneurysm",
+    path: "/aneurysm_glyph.json",
+    geometryPath: "/aneurysm_geometry.json",
+    defaultSampleCount: 1,
+  },
 ];
 
 const CHANNEL_COLORS = [
@@ -69,11 +138,6 @@ function getChannelColor(index: number): string {
   return CHANNEL_COLORS[index % CHANNEL_COLORS.length];
 }
 
-// World-space extent the sampled point clouds are scaled to, so camera framing
-// and glyph sizes work while preserving their relative source positions.
-const TARGET_EXTENT = 200;
-const RANDOM_SEED = 3601;
-const DEFAULT_SAMPLE_COUNT = 4;
 const BACKBONE_COLOR = "#FFFFFF";
 const BEAD_COLOR = "#FFFFFF";
 const BACKBONE_RADIUS = 0.25;
@@ -98,7 +162,7 @@ function sampleObjects(objects: GlyphObject[], count: number, seed: number) {
   return shuffled.slice(0, count);
 }
 
-function objectsToNodeGroups(objects: GlyphObject[], channels: string[]): NodeData[][] {
+function getCoordinateTransform(objects: GlyphObject[]): CoordinateTransform | null {
   const min = [Infinity, Infinity, Infinity];
   const max = [-Infinity, -Infinity, -Infinity];
 
@@ -115,26 +179,71 @@ function objectsToNodeGroups(objects: GlyphObject[], channels: string[]): NodeDa
   }
 
   if (!min.every(Number.isFinite) || !max.every(Number.isFinite)) {
-    return objects.map(() => []);
+    return null;
   }
 
   const center = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
   const extent = Math.max(max[0] - min[0], max[1] - min[1], max[2] - min[2]) || 1;
-  const s = TARGET_EXTENT / extent;
+  return {
+    center: center as [number, number, number],
+    scale: TARGET_EXTENT / extent,
+  };
+}
+
+function transformPoint(
+  point: { x: number; y: number; z: number },
+  transform: CoordinateTransform,
+): [number, number, number] {
+  const { center, scale } = transform;
+  return [
+    ((Number.isFinite(point.x) ? point.x : center[0]) - center[0]) * scale,
+    ((Number.isFinite(point.y) ? point.y : center[1]) - center[1]) * scale,
+    ((Number.isFinite(point.z) ? point.z : center[2]) - center[2]) * scale,
+  ];
+}
+
+function objectsToNodeGroups(
+  objects: GlyphObject[],
+  channels: string[],
+  transform: CoordinateTransform | null,
+): NodeData[][] {
+  if (!transform) return objects.map(() => []);
 
   return objects.map((object) =>
     object.points.map((p) => ({
-      position: [
-        ((Number.isFinite(p.x) ? p.x : center[0]) - center[0]) * s,
-        ((Number.isFinite(p.y) ? p.y : center[1]) - center[1]) * s,
-        ((Number.isFinite(p.z) ? p.z : center[2]) - center[2]) * s,
-      ] as [number, number, number],
+      position: transformPoint(p, transform),
       values: channels.map((_, i) => {
         const v = p.values?.[i];
         return Number.isFinite(v) ? v : 0;
       }),
     })),
   );
+}
+
+function makeSurfaceGeometry(
+  mesh: { vertices: number[][]; faces: number[][] } | undefined,
+  transform: CoordinateTransform,
+) {
+  if (!mesh?.vertices?.length || !mesh.faces?.length) return null;
+
+  const positions: number[] = [];
+  for (const vertex of mesh.vertices) {
+    if (vertex.length < 3) continue;
+    const [x, y, z] = transformPoint({ x: vertex[0], y: vertex[1], z: vertex[2] }, transform);
+    positions.push(x, y, z);
+  }
+
+  const indices: number[] = [];
+  for (const face of mesh.faces) {
+    if (face.length < 3) continue;
+    indices.push(face[0], face[1], face[2]);
+  }
+
+  const buffer = new THREE.BufferGeometry();
+  buffer.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  buffer.setIndex(indices);
+  buffer.computeVertexNormals();
+  return buffer;
 }
 
 // ── 3D glyph pipeline ─────────────────────────────────────────────────────────
@@ -482,6 +591,95 @@ function ParticleSpheres({
   );
 }
 
+function AneurysmOverlay({
+  geometry,
+  transform,
+  showVessel,
+}: {
+  geometry: AneurysmGeometry;
+  transform: CoordinateTransform;
+  showVessel: boolean;
+}) {
+  const center = transformPoint(geometry.center, transform);
+  const radius =
+    (geometry.size.maxRadiusFromCenter ??
+      (geometry.size.equivalentDiameterApprox ? geometry.size.equivalentDiameterApprox / 2 : 2)) *
+    transform.scale;
+
+  const sacMeshGeometry = useMemo(
+    () => makeSurfaceGeometry(geometry.mesh, transform),
+    [geometry.mesh, transform],
+  );
+
+  const vesselMeshGeometry = useMemo(
+    () => makeSurfaceGeometry(geometry.vessel?.mesh, transform),
+    [geometry.vessel?.mesh, transform],
+  );
+
+  const neck = geometry.neck ? transformPoint(geometry.neck, transform) : null;
+
+  return (
+    <group>
+      {showVessel && vesselMeshGeometry && (
+        <mesh geometry={vesselMeshGeometry}>
+          <meshStandardMaterial
+            color="#8ca3ad"
+            emissive="#32424a"
+            emissiveIntensity={0.08}
+            transparent
+            opacity={0.18}
+            roughness={0.62}
+            metalness={0.03}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+      {sacMeshGeometry ? (
+        <mesh geometry={sacMeshGeometry}>
+          <meshStandardMaterial
+            color="#e84a5f"
+            emissive="#e84a5f"
+            emissiveIntensity={0.18}
+            transparent
+            opacity={0.38}
+            roughness={0.42}
+            metalness={0.05}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
+      ) : (
+        <mesh position={center}>
+          <sphereGeometry args={[Math.max(radius, 1.5), 32, 18]} />
+          <meshStandardMaterial
+            color="#e84a5f"
+            emissive="#e84a5f"
+            emissiveIntensity={0.2}
+            transparent
+            opacity={0.22}
+            roughness={0.35}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+      {neck && (
+        <group position={neck}>
+          <mesh>
+            <sphereGeometry args={[3, 18, 18]} />
+            <meshStandardMaterial
+              color="#ffffff"
+              emissive="#ffffff"
+              emissiveIntensity={0.45}
+              roughness={0.3}
+            />
+          </mesh>
+        </group>
+      )}
+    </group>
+  );
+}
+
 // ── Main exported viewer ────────────────────────────────────────────────────
 
 export default function GlyphView3D() {
@@ -490,12 +688,14 @@ export default function GlyphView3D() {
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const [datasetIdx, setDatasetIdx] = useState(0);
   const [data, setData] = useState<GlyphDataset | null>(null);
+  const [aneurysmGeometry, setAneurysmGeometry] = useState<AneurysmGeometry | null>(null);
   const [channels, setChannels] = useState<string[]>([]);
   const [enabledChannels, setEnabledChannels] = useState<Set<number>>(new Set());
   const [sampleCount, setSampleCount] = useState(DEFAULT_SAMPLE_COUNT);
   const [gamma, setGamma] = useState(20);
   const [showTube, setShowTube] = useState(true);
   const [showLabels, setShowLabels] = useState(true);
+  const [showVessel, setShowVessel] = useState(true);
   const [selectMode, setSelectMode] = useState(false);
   const [hiddenObjectIds, setHiddenObjectIds] = useState<Set<number>>(new Set());
   const [selectedObjectIds, setSelectedObjectIds] = useState<Set<number>>(new Set());
@@ -515,15 +715,28 @@ export default function GlyphView3D() {
         const res = await fetch(dataset.path);
         if (!res.ok) throw new Error(`Dataset not found (${res.status})`);
         const json: GlyphDataset = await res.json();
+        let geometryJson: AneurysmGeometry | null = null;
+        if (dataset.geometryPath) {
+          const geometryRes = await fetch(dataset.geometryPath);
+          if (!geometryRes.ok) throw new Error(`Geometry not found (${geometryRes.status})`);
+          geometryJson = await geometryRes.json();
+        }
         if (cancelled) return;
 
         setData(json);
+        setAneurysmGeometry(geometryJson);
         setChannels(json.channels);
         setEnabledChannels(new Set(json.channels.map((_, i) => i)));
+        setSampleCount(Math.min(dataset.defaultSampleCount ?? DEFAULT_SAMPLE_COUNT, json.objects.length));
+        setShowVessel(true);
+        setSelectMode(false);
         setHiddenObjectIds(new Set());
         setSelectedObjectIds(new Set());
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+        if (!cancelled) {
+          setAneurysmGeometry(null);
+          setError(err instanceof Error ? err.message : String(err));
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -537,9 +750,14 @@ export default function GlyphView3D() {
     [data, sampleCount],
   );
 
+  const coordinateTransform = useMemo(
+    () => getCoordinateTransform(sampledObjects),
+    [sampledObjects],
+  );
+
   const sampledNodes = useMemo(
-    () => objectsToNodeGroups(sampledObjects, channels),
-    [sampledObjects, channels],
+    () => objectsToNodeGroups(sampledObjects, channels, coordinateTransform),
+    [coordinateTransform, sampledObjects, channels],
   );
 
   const visibleItems = useMemo(
@@ -554,6 +772,9 @@ export default function GlyphView3D() {
     () => [...enabledChannels].sort((a, b) => a - b),
     [enabledChannels],
   );
+
+  const hasVesselMesh = Boolean(aneurysmGeometry?.vessel?.mesh?.vertices?.length);
+  const supportsObjectSelection = (data?.objects.length ?? 0) > 1;
 
   const toggleChannel = useCallback((idx: number) => {
     setEnabledChannels((prev) => {
@@ -770,37 +991,53 @@ export default function GlyphView3D() {
           Labels
         </label>
 
-        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
+        {hasVesselMesh && (
+          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={showVessel}
+              onChange={(e) => setShowVessel(e.target.checked)}
+              style={{ accentColor: "#8ca3ad" }}
+            />
+            Vessel
+          </label>
+        )}
 
-        <button
-          type="button"
-          onClick={() => setSelectMode((value) => !value)}
-          style={selectMode ? activeButtonStyle : buttonStyle}
-        >
-          Select
-        </button>
+        {supportsObjectSelection && (
+          <>
+            <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
 
-        <button
-          type="button"
-          onClick={hideSelected}
-          disabled={selectedObjectIds.size === 0}
-          style={selectedObjectIds.size === 0 ? disabledButtonStyle : buttonStyle}
-        >
-          Hide selected
-        </button>
+            <button
+              type="button"
+              onClick={() => setSelectMode((value) => !value)}
+              style={selectMode ? activeButtonStyle : buttonStyle}
+            >
+              Select
+            </button>
 
-        <button
-          type="button"
-          onClick={showAllObjects}
-          disabled={hiddenObjectIds.size === 0 && selectedObjectIds.size === 0}
-          style={hiddenObjectIds.size === 0 && selectedObjectIds.size === 0 ? disabledButtonStyle : buttonStyle}
-        >
-          Show all
-        </button>
+            <button
+              type="button"
+              onClick={hideSelected}
+              disabled={selectedObjectIds.size === 0}
+              style={selectedObjectIds.size === 0 ? disabledButtonStyle : buttonStyle}
+            >
+              Hide selected
+            </button>
 
-        <span style={{ color: "rgba(224,224,224,0.72)", fontVariantNumeric: "tabular-nums" }}>
-          {selectedObjectIds.size} selected / {hiddenObjectIds.size} hidden
-        </span>
+            <button
+              type="button"
+              onClick={showAllObjects}
+              disabled={hiddenObjectIds.size === 0 && selectedObjectIds.size === 0}
+              style={hiddenObjectIds.size === 0 && selectedObjectIds.size === 0 ? disabledButtonStyle : buttonStyle}
+            >
+              Show all
+            </button>
+
+            <span style={{ color: "rgba(224,224,224,0.72)", fontVariantNumeric: "tabular-nums" }}>
+              {selectedObjectIds.size} selected / {hiddenObjectIds.size} hidden
+            </span>
+          </>
+        )}
 
         <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
 
@@ -865,9 +1102,20 @@ export default function GlyphView3D() {
               </group>
             );
           })}
-          <OrbitControls enableZoom={!selectMode} enablePan={!selectMode} enableRotate={!selectMode} />
+          {aneurysmGeometry && coordinateTransform && (
+            <AneurysmOverlay
+              geometry={aneurysmGeometry}
+              transform={coordinateTransform}
+              showVessel={showVessel}
+            />
+          )}
+          <OrbitControls
+            enableZoom={!supportsObjectSelection || !selectMode}
+            enablePan={!supportsObjectSelection || !selectMode}
+            enableRotate={!supportsObjectSelection || !selectMode}
+          />
         </Canvas>
-        {selectMode && (
+        {supportsObjectSelection && selectMode && (
           <div
             style={selectionLayerStyle}
             onPointerDown={startSelection}

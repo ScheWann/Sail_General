@@ -1,0 +1,3176 @@
+{
+  "meta": {
+    "title": "Aneurysm centerline branch 1 glyphs",
+    "description": "One object for centerline branch 1. Each point is a resampled centerline node; values are rank-normalized wall-derived attributes in the order listed by channels.",
+    "unit": "millimeters for coordinates/radius/arclen; values rank-normalized to [0,1]",
+    "source": {
+      "surface": "C0099.vtp",
+      "centerline": "centerlines.vtp"
+    },
+    "branch": 1,
+    "nObjects": 1,
+    "nPointsPerObject": 131,
+    "resampleMm": 0.5,
+    "sampleRadii": 1.5,
+    "slabMm": 1.0,
+    "coordinates": "original VTP coordinate system"
+  },
+  "channels": [
+    "TAWSSG",
+    "WSS_average_normalized_div",
+    "Lambda2_average",
+    "OSI"
+  ],
+  "objects": [
+    {
+      "objectId": 1,
+      "label": "centerline-branch-1",
+      "points": [
+        {
+          "x": 19.3731,
+          "y": 7.7506,
+          "z": 51.5122,
+          "values": [
+            0.6794,
+            0.916,
+            0.6641,
+            0.0076
+          ],
+          "attributes": {
+            "node": 0,
+            "arclen": 0.0,
+            "radius": 1.6127,
+            "dist_to_sac": 24.539,
+            "n_wall": 33,
+            "raw_values": {
+              "TAWSSG": 725.445478,
+              "WSS_average_normalized_div": 0.059202,
+              "Lambda2_average": 776.968885,
+              "OSI": 1e-06
+            }
+          }
+        },
+        {
+          "x": 18.9542,
+          "y": 7.699,
+          "z": 51.2444,
+          "values": [
+            0.4733,
+            0.8321,
+            0.4733,
+            0.0153
+          ],
+          "attributes": {
+            "node": 1,
+            "arclen": 0.5,
+            "radius": 1.6005,
+            "dist_to_sac": 24.5109,
+            "n_wall": 293,
+            "raw_values": {
+              "TAWSSG": 217.315213,
+              "WSS_average_normalized_div": 0.012312,
+              "Lambda2_average": 227.115926,
+              "OSI": 1e-06
+            }
+          }
+        },
+        {
+          "x": 18.5355,
+          "y": 7.6341,
+          "z": 50.9814,
+          "values": [
+            0.4351,
+            0.7939,
+            0.4198,
+            0.0229
+          ],
+          "attributes": {
+            "node": 2,
+            "arclen": 1.0,
+            "radius": 1.6074,
+            "dist_to_sac": 24.5058,
+            "n_wall": 600,
+            "raw_values": {
+              "TAWSSG": 94.090298,
+              "WSS_average_normalized_div": 0.004907,
+              "Lambda2_average": 113.899638,
+              "OSI": 2e-06
+            }
+          }
+        },
+        {
+          "x": 18.1152,
+          "y": 7.5661,
+          "z": 50.722,
+          "values": [
+            0.4198,
+            0.771,
+            0.3969,
+            0.0305
+          ],
+          "attributes": {
+            "node": 3,
+            "arclen": 1.5,
+            "radius": 1.6141,
+            "dist_to_sac": 24.5137,
+            "n_wall": 900,
+            "raw_values": {
+              "TAWSSG": 62.89302,
+              "WSS_average_normalized_div": 0.002969,
+              "Lambda2_average": 75.737411,
+              "OSI": 3e-06
+            }
+          }
+        },
+        {
+          "x": 17.7127,
+          "y": 7.5135,
+          "z": 50.4304,
+          "values": [
+            0.4122,
+            0.7634,
+            0.374,
+            0.0382
+          ],
+          "attributes": {
+            "node": 4,
+            "arclen": 2.0,
+            "radius": 1.6216,
+            "dist_to_sac": 24.4955,
+            "n_wall": 1225,
+            "raw_values": {
+              "TAWSSG": 45.453378,
+              "WSS_average_normalized_div": 0.001303,
+              "Lambda2_average": 55.439565,
+              "OSI": 5e-06
+            }
+          }
+        },
+        {
+          "x": 17.3185,
+          "y": 7.4634,
+          "z": 50.1285,
+          "values": [
+            0.3969,
+            0.7481,
+            0.3206,
+            0.0458
+          ],
+          "attributes": {
+            "node": 5,
+            "arclen": 2.5,
+            "radius": 1.6342,
+            "dist_to_sac": 24.4772,
+            "n_wall": 1227,
+            "raw_values": {
+              "TAWSSG": -17.208866,
+              "WSS_average_normalized_div": -0.002396,
+              "Lambda2_average": -0.358099,
+              "OSI": 1.1e-05
+            }
+          }
+        },
+        {
+          "x": 16.9113,
+          "y": 7.451,
+          "z": 49.8393,
+          "values": [
+            0.3893,
+            0.7405,
+            0.3282,
+            0.0534
+          ],
+          "attributes": {
+            "node": 6,
+            "arclen": 3.0,
+            "radius": 1.6296,
+            "dist_to_sac": 24.4508,
+            "n_wall": 1239,
+            "raw_values": {
+              "TAWSSG": -28.627494,
+              "WSS_average_normalized_div": -0.002891,
+              "Lambda2_average": 0.043704,
+              "OSI": 2e-05
+            }
+          }
+        },
+        {
+          "x": 16.5069,
+          "y": 7.4255,
+          "z": 49.5467,
+          "values": [
+            0.3588,
+            0.7176,
+            0.3435,
+            0.0611
+          ],
+          "attributes": {
+            "node": 7,
+            "arclen": 3.5,
+            "radius": 1.6314,
+            "dist_to_sac": 24.4395,
+            "n_wall": 1249,
+            "raw_values": {
+              "TAWSSG": -82.868168,
+              "WSS_average_normalized_div": -0.00669,
+              "Lambda2_average": 2.16552,
+              "OSI": 3.7e-05
+            }
+          }
+        },
+        {
+          "x": 16.1091,
+          "y": 7.3671,
+          "z": 49.2503,
+          "values": [
+            0.2824,
+            0.7023,
+            0.3359,
+            0.0687
+          ],
+          "attributes": {
+            "node": 8,
+            "arclen": 4.0,
+            "radius": 1.6366,
+            "dist_to_sac": 24.4591,
+            "n_wall": 1260,
+            "raw_values": {
+              "TAWSSG": -224.553509,
+              "WSS_average_normalized_div": -0.015075,
+              "Lambda2_average": 0.656827,
+              "OSI": 8.7e-05
+            }
+          }
+        },
+        {
+          "x": 15.7482,
+          "y": 7.288,
+          "z": 48.914,
+          "values": [
+            0.2672,
+            0.626,
+            0.2977,
+            0.0916
+          ],
+          "attributes": {
+            "node": 9,
+            "arclen": 4.5,
+            "radius": 1.6369,
+            "dist_to_sac": 24.4707,
+            "n_wall": 1250,
+            "raw_values": {
+              "TAWSSG": -247.539552,
+              "WSS_average_normalized_div": -0.03149,
+              "Lambda2_average": -26.567971,
+              "OSI": 0.000221
+            }
+          }
+        },
+        {
+          "x": 15.3983,
+          "y": 7.2181,
+          "z": 48.564,
+          "values": [
+            0.313,
+            0.4427,
+            0.2672,
+            0.1832
+          ],
+          "attributes": {
+            "node": 10,
+            "arclen": 5.0,
+            "radius": 1.6251,
+            "dist_to_sac": 24.4744,
+            "n_wall": 1280,
+            "raw_values": {
+              "TAWSSG": -179.185161,
+              "WSS_average_normalized_div": -0.06508,
+              "Lambda2_average": -37.111893,
+              "OSI": 0.00056
+            }
+          }
+        },
+        {
+          "x": 15.0281,
+          "y": 7.1606,
+          "z": 48.2337,
+          "values": [
+            0.2443,
+            0.2748,
+            0.2824,
+            0.3206
+          ],
+          "attributes": {
+            "node": 11,
+            "arclen": 5.5,
+            "radius": 1.6227,
+            "dist_to_sac": 24.4949,
+            "n_wall": 1273,
+            "raw_values": {
+              "TAWSSG": -266.828034,
+              "WSS_average_normalized_div": -0.12117,
+              "Lambda2_average": -28.270747,
+              "OSI": 0.001303
+            }
+          }
+        },
+        {
+          "x": 14.6568,
+          "y": 7.1194,
+          "z": 47.902,
+          "values": [
+            0.2519,
+            0.1679,
+            0.2901,
+            0.542
+          ],
+          "attributes": {
+            "node": 12,
+            "arclen": 6.0,
+            "radius": 1.6499,
+            "dist_to_sac": 24.5112,
+            "n_wall": 1268,
+            "raw_values": {
+              "TAWSSG": -259.938831,
+              "WSS_average_normalized_div": -0.172534,
+              "Lambda2_average": -27.120916,
+              "OSI": 0.002484
+            }
+          }
+        },
+        {
+          "x": 14.3113,
+          "y": 7.1158,
+          "z": 47.5416,
+          "values": [
+            0.2977,
+            0.0534,
+            0.313,
+            0.771
+          ],
+          "attributes": {
+            "node": 13,
+            "arclen": 6.5,
+            "radius": 1.6618,
+            "dist_to_sac": 24.4843,
+            "n_wall": 1275,
+            "raw_values": {
+              "TAWSSG": -206.488008,
+              "WSS_average_normalized_div": -0.237059,
+              "Lambda2_average": -4.249619,
+              "OSI": 0.004762
+            }
+          }
+        },
+        {
+          "x": 13.9772,
+          "y": 7.14,
+          "z": 47.1713,
+          "values": [
+            0.2901,
+            0.0305,
+            0.3588,
+            0.9008
+          ],
+          "attributes": {
+            "node": 14,
+            "arclen": 7.0,
+            "radius": 1.6623,
+            "dist_to_sac": 24.4364,
+            "n_wall": 1273,
+            "raw_values": {
+              "TAWSSG": -211.250543,
+              "WSS_average_normalized_div": -0.296542,
+              "Lambda2_average": 52.612442,
+              "OSI": 0.00823
+            }
+          }
+        },
+        {
+          "x": 13.6688,
+          "y": 7.1809,
+          "z": 46.7807,
+          "values": [
+            0.3053,
+            0.0382,
+            0.4351,
+            0.9237
+          ],
+          "attributes": {
+            "node": 15,
+            "arclen": 7.5,
+            "radius": 1.6879,
+            "dist_to_sac": 24.3654,
+            "n_wall": 1304,
+            "raw_values": {
+              "TAWSSG": -187.624328,
+              "WSS_average_normalized_div": -0.296445,
+              "Lambda2_average": 133.246541,
+              "OSI": 0.011819
+            }
+          }
+        },
+        {
+          "x": 13.3928,
+          "y": 7.2723,
+          "z": 46.3752,
+          "values": [
+            0.3206,
+            0.0611,
+            0.5267,
+            0.9313
+          ],
+          "attributes": {
+            "node": 16,
+            "arclen": 8.0,
+            "radius": 1.7157,
+            "dist_to_sac": 24.2407,
+            "n_wall": 1313,
+            "raw_values": {
+              "TAWSSG": -155.757223,
+              "WSS_average_normalized_div": -0.220857,
+              "Lambda2_average": 281.499785,
+              "OSI": 0.012933
+            }
+          }
+        },
+        {
+          "x": 13.1427,
+          "y": 7.4187,
+          "z": 45.9685,
+          "values": [
+            0.3282,
+            0.3282,
+            0.6183,
+            0.916
+          ],
+          "attributes": {
+            "node": 17,
+            "arclen": 8.5,
+            "radius": 1.7389,
+            "dist_to_sac": 24.0699,
+            "n_wall": 1296,
+            "raw_values": {
+              "TAWSSG": -130.627137,
+              "WSS_average_normalized_div": -0.105872,
+              "Lambda2_average": 510.233614,
+              "OSI": 0.011015
+            }
+          }
+        },
+        {
+          "x": 12.9019,
+          "y": 7.6306,
+          "z": 45.5868,
+          "values": [
+            0.374,
+            0.4656,
+            0.6718,
+            0.8931
+          ],
+          "attributes": {
+            "node": 18,
+            "arclen": 9.0,
+            "radius": 1.7539,
+            "dist_to_sac": 23.8627,
+            "n_wall": 1302,
+            "raw_values": {
+              "TAWSSG": -34.177328,
+              "WSS_average_normalized_div": -0.061533,
+              "Lambda2_average": 815.54177,
+              "OSI": 0.007748
+            }
+          }
+        },
+        {
+          "x": 12.6834,
+          "y": 7.8737,
+          "z": 45.2088,
+          "values": [
+            0.3664,
+            0.6107,
+            0.7023,
+            0.8015
+          ],
+          "attributes": {
+            "node": 19,
+            "arclen": 9.5,
+            "radius": 1.7806,
+            "dist_to_sac": 23.6303,
+            "n_wall": 1303,
+            "raw_values": {
+              "TAWSSG": -50.403659,
+              "WSS_average_normalized_div": -0.041476,
+              "Lambda2_average": 1108.805646,
+              "OSI": 0.005489
+            }
+          }
+        },
+        {
+          "x": 12.4964,
+          "y": 8.1525,
+          "z": 44.8396,
+          "values": [
+            0.2748,
+            0.6718,
+            0.7252,
+            0.6641
+          ],
+          "attributes": {
+            "node": 20,
+            "arclen": 10.0,
+            "radius": 1.8072,
+            "dist_to_sac": 23.3659,
+            "n_wall": 1303,
+            "raw_values": {
+              "TAWSSG": -239.035105,
+              "WSS_average_normalized_div": -0.018759,
+              "Lambda2_average": 1431.614077,
+              "OSI": 0.003864
+            }
+          }
+        },
+        {
+          "x": 12.3031,
+          "y": 8.5032,
+          "z": 44.5408,
+          "values": [
+            0.2595,
+            0.8473,
+            0.7557,
+            0.6794
+          ],
+          "attributes": {
+            "node": 21,
+            "arclen": 10.5,
+            "radius": 1.7918,
+            "dist_to_sac": 23.083,
+            "n_wall": 1323,
+            "raw_values": {
+              "TAWSSG": -250.818065,
+              "WSS_average_normalized_div": 0.015633,
+              "Lambda2_average": 1626.947509,
+              "OSI": 0.003933
+            }
+          }
+        },
+        {
+          "x": 12.1112,
+          "y": 8.8883,
+          "z": 44.2869,
+          "values": [
+            0.3359,
+            0.8626,
+            0.7863,
+            0.7405
+          ],
+          "attributes": {
+            "node": 22,
+            "arclen": 11.0,
+            "radius": 1.781,
+            "dist_to_sac": 22.7959,
+            "n_wall": 1323,
+            "raw_values": {
+              "TAWSSG": -124.577774,
+              "WSS_average_normalized_div": 0.020287,
+              "Lambda2_average": 1732.106392,
+              "OSI": 0.004191
+            }
+          }
+        },
+        {
+          "x": 11.9481,
+          "y": 9.293,
+          "z": 44.0444,
+          "values": [
+            0.3511,
+            0.9008,
+            0.7786,
+            0.7481
+          ],
+          "attributes": {
+            "node": 23,
+            "arclen": 11.5,
+            "radius": 1.758,
+            "dist_to_sac": 22.4876,
+            "n_wall": 1314,
+            "raw_values": {
+              "TAWSSG": -107.893098,
+              "WSS_average_normalized_div": 0.028784,
+              "Lambda2_average": 1722.743149,
+              "OSI": 0.004232
+            }
+          }
+        },
+        {
+          "x": 11.852,
+          "y": 9.7336,
+          "z": 43.8309,
+          "values": [
+            0.5115,
+            0.8702,
+            0.7176,
+            0.7634
+          ],
+          "attributes": {
+            "node": 24,
+            "arclen": 12.0,
+            "radius": 1.724,
+            "dist_to_sac": 22.132,
+            "n_wall": 1294,
+            "raw_values": {
+              "TAWSSG": 320.881905,
+              "WSS_average_normalized_div": 0.021658,
+              "Lambda2_average": 1330.415087,
+              "OSI": 0.004258
+            }
+          }
+        },
+        {
+          "x": 11.7964,
+          "y": 10.2022,
+          "z": 43.6661,
+          "values": [
+            0.7252,
+            0.8855,
+            0.6794,
+            0.687
+          ],
+          "attributes": {
+            "node": 25,
+            "arclen": 12.5,
+            "radius": 1.6832,
+            "dist_to_sac": 21.7553,
+            "n_wall": 1287,
+            "raw_values": {
+              "TAWSSG": 856.460254,
+              "WSS_average_normalized_div": 0.023995,
+              "Lambda2_average": 998.449003,
+              "OSI": 0.003965
+            }
+          }
+        },
+        {
+          "x": 11.774,
+          "y": 10.6744,
+          "z": 43.5039,
+          "values": [
+            0.8092,
+            0.855,
+            0.6489,
+            0.5954
+          ],
+          "attributes": {
+            "node": 26,
+            "arclen": 13.0,
+            "radius": 1.6713,
+            "dist_to_sac": 21.3626,
+            "n_wall": 1265,
+            "raw_values": {
+              "TAWSSG": 1249.697323,
+              "WSS_average_normalized_div": 0.018554,
+              "Lambda2_average": 639.809143,
+              "OSI": 0.003126
+            }
+          }
+        },
+        {
+          "x": 11.766,
+          "y": 11.1485,
+          "z": 43.3458,
+          "values": [
+            0.8779,
+            0.8397,
+            0.5802,
+            0.5115
+          ],
+          "attributes": {
+            "node": 27,
+            "arclen": 13.5,
+            "radius": 1.659,
+            "dist_to_sac": 20.9659,
+            "n_wall": 1257,
+            "raw_values": {
+              "TAWSSG": 1606.924363,
+              "WSS_average_normalized_div": 0.014673,
+              "Lambda2_average": 395.969858,
+              "OSI": 0.002234
+            }
+          }
+        },
+        {
+          "x": 11.7806,
+          "y": 11.6214,
+          "z": 43.1842,
+          "values": [
+            0.8397,
+            0.8168,
+            0.5191,
+            0.458
+          ],
+          "attributes": {
+            "node": 28,
+            "arclen": 14.0,
+            "radius": 1.6516,
+            "dist_to_sac": 20.546,
+            "n_wall": 1252,
+            "raw_values": {
+              "TAWSSG": 1400.693283,
+              "WSS_average_normalized_div": 0.011557,
+              "Lambda2_average": 261.946699,
+              "OSI": 0.001787
+            }
+          }
+        },
+        {
+          "x": 11.7953,
+          "y": 12.0988,
+          "z": 43.0371,
+          "values": [
+            0.8244,
+            0.8244,
+            0.4275,
+            0.3588
+          ],
+          "attributes": {
+            "node": 29,
+            "arclen": 14.5,
+            "radius": 1.6516,
+            "dist_to_sac": 20.125,
+            "n_wall": 1249,
+            "raw_values": {
+              "TAWSSG": 1342.482184,
+              "WSS_average_normalized_div": 0.011849,
+              "Lambda2_average": 131.246869,
+              "OSI": 0.001412
+            }
+          }
+        },
+        {
+          "x": 11.8167,
+          "y": 12.5805,
+          "z": 42.9062,
+          "values": [
+            0.7634,
+            0.8092,
+            0.4046,
+            0.3053
+          ],
+          "attributes": {
+            "node": 30,
+            "arclen": 15.0,
+            "radius": 1.6606,
+            "dist_to_sac": 19.7073,
+            "n_wall": 1245,
+            "raw_values": {
+              "TAWSSG": 963.689966,
+              "WSS_average_normalized_div": 0.01099,
+              "Lambda2_average": 110.211477,
+              "OSI": 0.001216
+            }
+          }
+        },
+        {
+          "x": 11.8727,
+          "y": 13.054,
+          "z": 42.7564,
+          "values": [
+            0.5878,
+            0.8015,
+            0.3511,
+            0.2672
+          ],
+          "attributes": {
+            "node": 31,
+            "arclen": 15.5,
+            "radius": 1.6769,
+            "dist_to_sac": 19.2722,
+            "n_wall": 1242,
+            "raw_values": {
+              "TAWSSG": 415.029962,
+              "WSS_average_normalized_div": 0.009537,
+              "Lambda2_average": 47.021722,
+              "OSI": 0.001106
+            }
+          }
+        },
+        {
+          "x": 11.9612,
+          "y": 13.5216,
+          "z": 42.604,
+          "values": [
+            0.5802,
+            0.7786,
+            0.3053,
+            0.2443
+          ],
+          "attributes": {
+            "node": 32,
+            "arclen": 16.0,
+            "radius": 1.6581,
+            "dist_to_sac": 18.8249,
+            "n_wall": 1245,
+            "raw_values": {
+              "TAWSSG": 413.005141,
+              "WSS_average_normalized_div": 0.003506,
+              "Lambda2_average": -17.732491,
+              "OSI": 0.001049
+            }
+          }
+        },
+        {
+          "x": 12.0274,
+          "y": 13.9911,
+          "z": 42.4456,
+          "values": [
+            0.4962,
+            0.7557,
+            0.2748,
+            0.2824
+          ],
+          "attributes": {
+            "node": 33,
+            "arclen": 16.5,
+            "radius": 1.6497,
+            "dist_to_sac": 18.3896,
+            "n_wall": 1242,
+            "raw_values": {
+              "TAWSSG": 286.046568,
+              "WSS_average_normalized_div": -0.002168,
+              "Lambda2_average": -34.75598,
+              "OSI": 0.001159
+            }
+          }
+        },
+        {
+          "x": 12.1082,
+          "y": 14.4544,
+          "z": 42.2759,
+          "values": [
+            0.4427,
+            0.7099,
+            0.2519,
+            0.3435
+          ],
+          "attributes": {
+            "node": 34,
+            "arclen": 17.0,
+            "radius": 1.6604,
+            "dist_to_sac": 17.9487,
+            "n_wall": 1253,
+            "raw_values": {
+              "TAWSSG": 123.196781,
+              "WSS_average_normalized_div": -0.009131,
+              "Lambda2_average": -75.519215,
+              "OSI": 0.001365
+            }
+          }
+        },
+        {
+          "x": 12.1904,
+          "y": 14.9014,
+          "z": 42.0688,
+          "values": [
+            0.3435,
+            0.6794,
+            0.2443,
+            0.3969
+          ],
+          "attributes": {
+            "node": 35,
+            "arclen": 17.5,
+            "radius": 1.6568,
+            "dist_to_sac": 17.5063,
+            "n_wall": 1273,
+            "raw_values": {
+              "TAWSSG": -119.422107,
+              "WSS_average_normalized_div": -0.018436,
+              "Lambda2_average": -107.665975,
+              "OSI": 0.001562
+            }
+          }
+        },
+        {
+          "x": 12.287,
+          "y": 15.3381,
+          "z": 41.8461,
+          "values": [
+            0.1985,
+            0.6336,
+            0.2366,
+            0.4275
+          ],
+          "attributes": {
+            "node": 36,
+            "arclen": 18.0,
+            "radius": 1.6225,
+            "dist_to_sac": 17.059,
+            "n_wall": 1262,
+            "raw_values": {
+              "TAWSSG": -549.67044,
+              "WSS_average_normalized_div": -0.031095,
+              "Lambda2_average": -116.92308,
+              "OSI": 0.001646
+            }
+          }
+        },
+        {
+          "x": 12.341,
+          "y": 15.7739,
+          "z": 41.6076,
+          "values": [
+            0.1756,
+            0.5878,
+            0.2214,
+            0.4046
+          ],
+          "attributes": {
+            "node": 37,
+            "arclen": 18.5,
+            "radius": 1.5933,
+            "dist_to_sac": 16.6357,
+            "n_wall": 1265,
+            "raw_values": {
+              "TAWSSG": -777.014006,
+              "WSS_average_normalized_div": -0.042929,
+              "Lambda2_average": -197.37438,
+              "OSI": 0.001587
+            }
+          }
+        },
+        {
+          "x": 12.3583,
+          "y": 16.1941,
+          "z": 41.3374,
+          "values": [
+            0.2061,
+            0.5344,
+            0.2061,
+            0.4122
+          ],
+          "attributes": {
+            "node": 38,
+            "arclen": 19.0,
+            "radius": 1.5761,
+            "dist_to_sac": 16.2381,
+            "n_wall": 1275,
+            "raw_values": {
+              "TAWSSG": -504.916247,
+              "WSS_average_normalized_div": -0.05244,
+              "Lambda2_average": -293.98106,
+              "OSI": 0.001613
+            }
+          }
+        },
+        {
+          "x": 12.361,
+          "y": 16.6035,
+          "z": 41.051,
+          "values": [
+            0.4046,
+            0.4198,
+            0.1985,
+            0.4351
+          ],
+          "attributes": {
+            "node": 39,
+            "arclen": 19.5,
+            "radius": 1.57,
+            "dist_to_sac": 15.8569,
+            "n_wall": 1271,
+            "raw_values": {
+              "TAWSSG": 27.361781,
+              "WSS_average_normalized_div": -0.068765,
+              "Lambda2_average": -297.518143,
+              "OSI": 0.001675
+            }
+          }
+        },
+        {
+          "x": 12.3187,
+          "y": 16.9968,
+          "z": 40.7459,
+          "values": [
+            0.5725,
+            0.3359,
+            0.2137,
+            0.4656
+          ],
+          "attributes": {
+            "node": 40,
+            "arclen": 20.0,
+            "radius": 1.5622,
+            "dist_to_sac": 15.5159,
+            "n_wall": 1262,
+            "raw_values": {
+              "TAWSSG": 367.179921,
+              "WSS_average_normalized_div": -0.099282,
+              "Lambda2_average": -252.800558,
+              "OSI": 0.001828
+            }
+          }
+        },
+        {
+          "x": 12.2425,
+          "y": 17.3938,
+          "z": 40.4525,
+          "values": [
+            0.6336,
+            0.2366,
+            0.229,
+            0.4962
+          ],
+          "attributes": {
+            "node": 41,
+            "arclen": 20.5,
+            "radius": 1.5628,
+            "dist_to_sac": 15.2091,
+            "n_wall": 1249,
+            "raw_values": {
+              "TAWSSG": 585.021516,
+              "WSS_average_normalized_div": -0.127543,
+              "Lambda2_average": -161.40525,
+              "OSI": 0.002065
+            }
+          }
+        },
+        {
+          "x": 12.1439,
+          "y": 17.7721,
+          "z": 40.1414,
+          "values": [
+            0.7023,
+            0.2595,
+            0.2595,
+            0.5267
+          ],
+          "attributes": {
+            "node": 42,
+            "arclen": 21.0,
+            "radius": 1.5749,
+            "dist_to_sac": 14.934,
+            "n_wall": 1245,
+            "raw_values": {
+              "TAWSSG": 750.066839,
+              "WSS_average_normalized_div": -0.124808,
+              "Lambda2_average": -53.365562,
+              "OSI": 0.002448
+            }
+          }
+        },
+        {
+          "x": 12.0156,
+          "y": 18.1221,
+          "z": 39.8086,
+          "values": [
+            0.687,
+            0.2443,
+            0.3664,
+            0.5725
+          ],
+          "attributes": {
+            "node": 43,
+            "arclen": 21.5,
+            "radius": 1.5993,
+            "dist_to_sac": 14.7014,
+            "n_wall": 1237,
+            "raw_values": {
+              "TAWSSG": 732.320169,
+              "WSS_average_normalized_div": -0.12599,
+              "Lambda2_average": 54.750736,
+              "OSI": 0.003004
+            }
+          }
+        },
+        {
+          "x": 11.8824,
+          "y": 18.4432,
+          "z": 39.4497,
+          "values": [
+            0.5267,
+            0.3206,
+            0.4504,
+            0.6565
+          ],
+          "attributes": {
+            "node": 44,
+            "arclen": 22.0,
+            "radius": 1.63,
+            "dist_to_sac": 14.488,
+            "n_wall": 1251,
+            "raw_values": {
+              "TAWSSG": 342.972459,
+              "WSS_average_normalized_div": -0.10872,
+              "Lambda2_average": 175.905927,
+              "OSI": 0.0037
+            }
+          }
+        },
+        {
+          "x": 11.7398,
+          "y": 18.7193,
+          "z": 39.0587,
+          "values": [
+            0.4504,
+            0.3588,
+            0.4809,
+            0.7176
+          ],
+          "attributes": {
+            "node": 45,
+            "arclen": 22.5,
+            "radius": 1.6396,
+            "dist_to_sac": 14.3116,
+            "n_wall": 1258,
+            "raw_values": {
+              "TAWSSG": 159.970564,
+              "WSS_average_normalized_div": -0.092741,
+              "Lambda2_average": 227.768151,
+              "OSI": 0.004104
+            }
+          }
+        },
+        {
+          "x": 11.6169,
+          "y": 18.9499,
+          "z": 38.633,
+          "values": [
+            0.4275,
+            0.5115,
+            0.4962,
+            0.7328
+          ],
+          "attributes": {
+            "node": 46,
+            "arclen": 23.0,
+            "radius": 1.6447,
+            "dist_to_sac": 14.1486,
+            "n_wall": 1268,
+            "raw_values": {
+              "TAWSSG": 69.720111,
+              "WSS_average_normalized_div": -0.05482,
+              "Lambda2_average": 260.24961,
+              "OSI": 0.004185
+            }
+          }
+        },
+        {
+          "x": 11.5425,
+          "y": 19.1477,
+          "z": 38.1803,
+          "values": [
+            0.5954,
+            0.5038,
+            0.5115,
+            0.6489
+          ],
+          "attributes": {
+            "node": 47,
+            "arclen": 23.5,
+            "radius": 1.6433,
+            "dist_to_sac": 13.9615,
+            "n_wall": 1275,
+            "raw_values": {
+              "TAWSSG": 462.534563,
+              "WSS_average_normalized_div": -0.055101,
+              "Lambda2_average": 261.673134,
+              "OSI": 0.003627
+            }
+          }
+        },
+        {
+          "x": 11.5124,
+          "y": 19.2913,
+          "z": 37.7025,
+          "values": [
+            0.6718,
+            0.5725,
+            0.5725,
+            0.6031
+          ],
+          "attributes": {
+            "node": 48,
+            "arclen": 24.0,
+            "radius": 1.63,
+            "dist_to_sac": 13.7778,
+            "n_wall": 1281,
+            "raw_values": {
+              "TAWSSG": 706.350948,
+              "WSS_average_normalized_div": -0.046192,
+              "Lambda2_average": 389.822806,
+              "OSI": 0.003252
+            }
+          }
+        },
+        {
+          "x": 11.4959,
+          "y": 19.4221,
+          "z": 37.2204,
+          "values": [
+            0.626,
+            0.6565,
+            0.6107,
+            0.5802
+          ],
+          "attributes": {
+            "node": 49,
+            "arclen": 24.5,
+            "radius": 1.6339,
+            "dist_to_sac": 13.6051,
+            "n_wall": 1279,
+            "raw_values": {
+              "TAWSSG": 565.502369,
+              "WSS_average_normalized_div": -0.026096,
+              "Lambda2_average": 478.794038,
+              "OSI": 0.003062
+            }
+          }
+        },
+        {
+          "x": 11.4893,
+          "y": 19.5462,
+          "z": 36.7378,
+          "values": [
+            0.6183,
+            0.687,
+            0.6336,
+            0.6107
+          ],
+          "attributes": {
+            "node": 50,
+            "arclen": 25.0,
+            "radius": 1.6429,
+            "dist_to_sac": 13.4443,
+            "n_wall": 1279,
+            "raw_values": {
+              "TAWSSG": 554.238163,
+              "WSS_average_normalized_div": -0.017535,
+              "Lambda2_average": 554.010151,
+              "OSI": 0.003254
+            }
+          }
+        },
+        {
+          "x": 11.4804,
+          "y": 19.6032,
+          "z": 36.2415,
+          "values": [
+            0.6107,
+            0.4504,
+            0.626,
+            0.8779
+          ],
+          "attributes": {
+            "node": 51,
+            "arclen": 25.5,
+            "radius": 1.6258,
+            "dist_to_sac": 13.3364,
+            "n_wall": 1281,
+            "raw_values": {
+              "TAWSSG": 521.698995,
+              "WSS_average_normalized_div": -0.062707,
+              "Lambda2_average": 529.170426,
+              "OSI": 0.00695
+            }
+          }
+        },
+        {
+          "x": 11.4947,
+          "y": 19.6499,
+          "z": 35.7441,
+          "values": [
+            0.7099,
+            0.313,
+            0.6031,
+            0.9389
+          ],
+          "attributes": {
+            "node": 52,
+            "arclen": 26.0,
+            "radius": 1.6347,
+            "dist_to_sac": 13.2315,
+            "n_wall": 1292,
+            "raw_values": {
+              "TAWSSG": 838.430612,
+              "WSS_average_normalized_div": -0.117012,
+              "Lambda2_average": 467.332524,
+              "OSI": 0.013911
+            }
+          }
+        },
+        {
+          "x": 11.5212,
+          "y": 19.6696,
+          "z": 35.2456,
+          "values": [
+            0.7939,
+            0.2977,
+            0.5878,
+            0.9542
+          ],
+          "attributes": {
+            "node": 53,
+            "arclen": 26.5,
+            "radius": 1.6807,
+            "dist_to_sac": 13.1445,
+            "n_wall": 1299,
+            "raw_values": {
+              "TAWSSG": 1185.128691,
+              "WSS_average_normalized_div": -0.118302,
+              "Lambda2_average": 406.420933,
+              "OSI": 0.020549
+            }
+          }
+        },
+        {
+          "x": 11.5872,
+          "y": 19.6489,
+          "z": 34.7509,
+          "values": [
+            0.6412,
+            0.2901,
+            0.5954,
+            0.9695
+          ],
+          "attributes": {
+            "node": 54,
+            "arclen": 27.0,
+            "radius": 1.7574,
+            "dist_to_sac": 13.0659,
+            "n_wall": 1315,
+            "raw_values": {
+              "TAWSSG": 587.558074,
+              "WSS_average_normalized_div": -0.11918,
+              "Lambda2_average": 421.757899,
+              "OSI": 0.024067
+            }
+          }
+        },
+        {
+          "x": 11.7175,
+          "y": 19.5469,
+          "z": 34.2806,
+          "values": [
+            0.4885,
+            0.2214,
+            0.5649,
+            0.9771
+          ],
+          "attributes": {
+            "node": 55,
+            "arclen": 27.5,
+            "radius": 1.7897,
+            "dist_to_sac": 12.9992,
+            "n_wall": 1315,
+            "raw_values": {
+              "TAWSSG": 284.309502,
+              "WSS_average_normalized_div": -0.136159,
+              "Lambda2_average": 339.924313,
+              "OSI": 0.029483
+            }
+          }
+        },
+        {
+          "x": 11.8488,
+          "y": 19.4137,
+          "z": 33.8177,
+          "values": [
+            0.5649,
+            0.229,
+            0.5344,
+            1.0
+          ],
+          "attributes": {
+            "node": 56,
+            "arclen": 28.0,
+            "radius": 1.8047,
+            "dist_to_sac": 12.9686,
+            "n_wall": 1310,
+            "raw_values": {
+              "TAWSSG": 366.294576,
+              "WSS_average_normalized_div": -0.132976,
+              "Lambda2_average": 283.746961,
+              "OSI": 0.034801
+            }
+          }
+        },
+        {
+          "x": 12.0059,
+          "y": 19.3267,
+          "z": 33.3512,
+          "values": [
+            0.542,
+            0.4809,
+            0.5038,
+            0.9924
+          ],
+          "attributes": {
+            "node": 57,
+            "arclen": 28.5,
+            "radius": 1.8139,
+            "dist_to_sac": 12.9093,
+            "n_wall": 1313,
+            "raw_values": {
+              "TAWSSG": 360.155312,
+              "WSS_average_normalized_div": -0.057258,
+              "Lambda2_average": 260.620235,
+              "OSI": 0.032942
+            }
+          }
+        },
+        {
+          "x": 12.2064,
+          "y": 19.2346,
+          "z": 32.9028,
+          "values": [
+            0.5496,
+            0.8779,
+            0.4885,
+            0.9847
+          ],
+          "attributes": {
+            "node": 58,
+            "arclen": 29.0,
+            "radius": 1.8322,
+            "dist_to_sac": 12.836,
+            "n_wall": 1314,
+            "raw_values": {
+              "TAWSSG": 362.675684,
+              "WSS_average_normalized_div": 0.022566,
+              "Lambda2_average": 235.324659,
+              "OSI": 0.030832
+            }
+          }
+        },
+        {
+          "x": 12.3874,
+          "y": 19.1334,
+          "z": 32.449,
+          "values": [
+            0.3817,
+            0.9389,
+            0.4656,
+            0.9618
+          ],
+          "attributes": {
+            "node": 59,
+            "arclen": 29.5,
+            "radius": 1.7968,
+            "dist_to_sac": 12.8034,
+            "n_wall": 1312,
+            "raw_values": {
+              "TAWSSG": -33.504644,
+              "WSS_average_normalized_div": 0.094461,
+              "Lambda2_average": 204.11854,
+              "OSI": 0.022216
+            }
+          }
+        },
+        {
+          "x": 12.5241,
+          "y": 19.0618,
+          "z": 31.9738,
+          "values": [
+            0.1832,
+            0.9542,
+            0.458,
+            0.9466
+          ],
+          "attributes": {
+            "node": 60,
+            "arclen": 30.0,
+            "radius": 1.7276,
+            "dist_to_sac": 12.806,
+            "n_wall": 1293,
+            "raw_values": {
+              "TAWSSG": -719.79426,
+              "WSS_average_normalized_div": 0.112423,
+              "Lambda2_average": 182.091072,
+              "OSI": 0.014757
+            }
+          }
+        },
+        {
+          "x": 12.6965,
+          "y": 18.9967,
+          "z": 31.5093,
+          "values": [
+            0.0763,
+            0.9237,
+            0.1908,
+            0.9084
+          ],
+          "attributes": {
+            "node": 61,
+            "arclen": 30.5,
+            "radius": 1.6891,
+            "dist_to_sac": 12.7937,
+            "n_wall": 1285,
+            "raw_values": {
+              "TAWSSG": -2217.038497,
+              "WSS_average_normalized_div": 0.066726,
+              "Lambda2_average": -379.61066,
+              "OSI": 0.010342
+            }
+          }
+        },
+        {
+          "x": 12.8895,
+          "y": 18.935,
+          "z": 31.0525,
+          "values": [
+            0.0534,
+            0.5191,
+            0.1069,
+            0.6947
+          ],
+          "attributes": {
+            "node": 62,
+            "arclen": 31.0,
+            "radius": 1.6634,
+            "dist_to_sac": 12.7817,
+            "n_wall": 1270,
+            "raw_values": {
+              "TAWSSG": -2451.916701,
+              "WSS_average_normalized_div": -0.053573,
+              "Lambda2_average": -2833.047974,
+              "OSI": 0.003977
+            }
+          }
+        },
+        {
+          "x": 13.0417,
+          "y": 18.8774,
+          "z": 30.5818,
+          "values": [
+            0.1069,
+            0.3053,
+            0.0916,
+            0.5344
+          ],
+          "attributes": {
+            "node": 63,
+            "arclen": 31.5,
+            "radius": 1.6132,
+            "dist_to_sac": 12.8199,
+            "n_wall": 1273,
+            "raw_values": {
+              "TAWSSG": -1777.178698,
+              "WSS_average_normalized_div": -0.117399,
+              "Lambda2_average": -4027.891227,
+              "OSI": 0.002461
+            }
+          }
+        },
+        {
+          "x": 13.1399,
+          "y": 18.8751,
+          "z": 30.0925,
+          "values": [
+            0.1145,
+            0.1832,
+            0.0763,
+            0.5191
+          ],
+          "attributes": {
+            "node": 64,
+            "arclen": 32.0,
+            "radius": 1.5438,
+            "dist_to_sac": 12.8861,
+            "n_wall": 1295,
+            "raw_values": {
+              "TAWSSG": -1738.448224,
+              "WSS_average_normalized_div": -0.163351,
+              "Lambda2_average": -4244.925528,
+              "OSI": 0.002324
+            }
+          }
+        },
+        {
+          "x": 13.1941,
+          "y": 18.937,
+          "z": 29.6004,
+          "values": [
+            0.1374,
+            0.1298,
+            0.0687,
+            0.5496
+          ],
+          "attributes": {
+            "node": 65,
+            "arclen": 32.5,
+            "radius": 1.4904,
+            "dist_to_sac": 12.962,
+            "n_wall": 1290,
+            "raw_values": {
+              "TAWSSG": -1280.49994,
+              "WSS_average_normalized_div": -0.192355,
+              "Lambda2_average": -4279.255958,
+              "OSI": 0.002589
+            }
+          }
+        },
+        {
+          "x": 13.2242,
+          "y": 19.0598,
+          "z": 29.1173,
+          "values": [
+            0.1908,
+            0.1069,
+            0.084,
+            0.6183
+          ],
+          "attributes": {
+            "node": 66,
+            "arclen": 33.0,
+            "radius": 1.4744,
+            "dist_to_sac": 13.0271,
+            "n_wall": 1279,
+            "raw_values": {
+              "TAWSSG": -690.660152,
+              "WSS_average_normalized_div": -0.19926,
+              "Lambda2_average": -4178.842898,
+              "OSI": 0.003302
+            }
+          }
+        },
+        {
+          "x": 13.1641,
+          "y": 19.2512,
+          "z": 28.6602,
+          "values": [
+            0.458,
+            0.145,
+            0.0992,
+            0.7557
+          ],
+          "attributes": {
+            "node": 67,
+            "arclen": 33.5,
+            "radius": 1.4779,
+            "dist_to_sac": 13.1216,
+            "n_wall": 1294,
+            "raw_values": {
+              "TAWSSG": 178.146054,
+              "WSS_average_normalized_div": -0.189153,
+              "Lambda2_average": -3597.875934,
+              "OSI": 0.004245
+            }
+          }
+        },
+        {
+          "x": 13.0633,
+          "y": 19.4871,
+          "z": 28.2317,
+          "values": [
+            0.7328,
+            0.0992,
+            0.1145,
+            0.8168
+          ],
+          "attributes": {
+            "node": 68,
+            "arclen": 34.0,
+            "radius": 1.5093,
+            "dist_to_sac": 13.2116,
+            "n_wall": 1306,
+            "raw_values": {
+              "TAWSSG": 858.174872,
+              "WSS_average_normalized_div": -0.206471,
+              "Lambda2_average": -2428.60922,
+              "OSI": 0.005574
+            }
+          }
+        },
+        {
+          "x": 12.8853,
+          "y": 19.772,
+          "z": 27.8702,
+          "values": [
+            0.8015,
+            0.1527,
+            0.1374,
+            0.8321
+          ],
+          "attributes": {
+            "node": 69,
+            "arclen": 34.5,
+            "radius": 1.5122,
+            "dist_to_sac": 13.3117,
+            "n_wall": 1293,
+            "raw_values": {
+              "TAWSSG": 1213.091067,
+              "WSS_average_normalized_div": -0.184791,
+              "Lambda2_average": -1232.269248,
+              "OSI": 0.005972
+            }
+          }
+        },
+        {
+          "x": 12.6105,
+          "y": 20.0782,
+          "z": 27.5878,
+          "values": [
+            0.8321,
+            0.1374,
+            0.5496,
+            0.855
+          ],
+          "attributes": {
+            "node": 70,
+            "arclen": 35.0,
+            "radius": 1.4791,
+            "dist_to_sac": 13.4549,
+            "n_wall": 1276,
+            "raw_values": {
+              "TAWSSG": 1378.265839,
+              "WSS_average_normalized_div": -0.191094,
+              "Lambda2_average": 330.065354,
+              "OSI": 0.006586
+            }
+          }
+        },
+        {
+          "x": 12.2785,
+          "y": 20.3771,
+          "z": 27.3653,
+          "values": [
+            0.7481,
+            0.084,
+            0.8015,
+            0.8855
+          ],
+          "attributes": {
+            "node": 71,
+            "arclen": 35.5,
+            "radius": 1.4334,
+            "dist_to_sac": 13.6331,
+            "n_wall": 1269,
+            "raw_values": {
+              "TAWSSG": 920.715354,
+              "WSS_average_normalized_div": -0.214669,
+              "Lambda2_average": 1774.735298,
+              "OSI": 0.007045
+            }
+          }
+        },
+        {
+          "x": 11.905,
+          "y": 20.6644,
+          "z": 27.2015,
+          "values": [
+            0.6489,
+            0.0687,
+            0.8779,
+            0.8626
+          ],
+          "attributes": {
+            "node": 72,
+            "arclen": 36.0,
+            "radius": 1.3995,
+            "dist_to_sac": 13.8396,
+            "n_wall": 1265,
+            "raw_values": {
+              "TAWSSG": 624.805524,
+              "WSS_average_normalized_div": -0.216646,
+              "Lambda2_average": 2741.220377,
+              "OSI": 0.00666
+            }
+          }
+        },
+        {
+          "x": 11.5263,
+          "y": 20.9856,
+          "z": 27.1517,
+          "values": [
+            0.7176,
+            0.1145,
+            0.916,
+            0.8397
+          ],
+          "attributes": {
+            "node": 73,
+            "arclen": 36.5,
+            "radius": 1.3925,
+            "dist_to_sac": 13.9998,
+            "n_wall": 1259,
+            "raw_values": {
+              "TAWSSG": 847.517903,
+              "WSS_average_normalized_div": -0.198682,
+              "Lambda2_average": 3036.823826,
+              "OSI": 0.006147
+            }
+          }
+        },
+        {
+          "x": 11.1315,
+          "y": 21.2893,
+          "z": 27.1686,
+          "values": [
+            0.8473,
+            0.1603,
+            0.9237,
+            0.8244
+          ],
+          "attributes": {
+            "node": 74,
+            "arclen": 37.0,
+            "radius": 1.4027,
+            "dist_to_sac": 14.1661,
+            "n_wall": 1255,
+            "raw_values": {
+              "TAWSSG": 1431.796425,
+              "WSS_average_normalized_div": -0.177082,
+              "Lambda2_average": 3148.860926,
+              "OSI": 0.005772
+            }
+          }
+        },
+        {
+          "x": 10.7366,
+          "y": 21.5869,
+          "z": 27.2401,
+          "values": [
+            0.9237,
+            0.2137,
+            0.9618,
+            0.8092
+          ],
+          "attributes": {
+            "node": 75,
+            "arclen": 37.5,
+            "radius": 1.3916,
+            "dist_to_sac": 14.3279,
+            "n_wall": 1239,
+            "raw_values": {
+              "TAWSSG": 2119.832186,
+              "WSS_average_normalized_div": -0.143986,
+              "Lambda2_average": 3475.615701,
+              "OSI": 0.005565
+            }
+          }
+        },
+        {
+          "x": 10.3698,
+          "y": 21.8962,
+          "z": 27.3786,
+          "values": [
+            0.9313,
+            0.3435,
+            0.9695,
+            0.7252
+          ],
+          "attributes": {
+            "node": 76,
+            "arclen": 38.0,
+            "radius": 1.3934,
+            "dist_to_sac": 14.4441,
+            "n_wall": 1232,
+            "raw_values": {
+              "TAWSSG": 2142.859389,
+              "WSS_average_normalized_div": -0.097779,
+              "Lambda2_average": 3574.151919,
+              "OSI": 0.004139
+            }
+          }
+        },
+        {
+          "x": 10.0164,
+          "y": 22.2032,
+          "z": 27.5522,
+          "values": [
+            0.9389,
+            0.2824,
+            0.9466,
+            0.6336
+          ],
+          "attributes": {
+            "node": 77,
+            "arclen": 38.5,
+            "radius": 1.425,
+            "dist_to_sac": 14.5453,
+            "n_wall": 1229,
+            "raw_values": {
+              "TAWSSG": 2392.690189,
+              "WSS_average_normalized_div": -0.120217,
+              "Lambda2_average": 3261.093701,
+              "OSI": 0.003575
+            }
+          }
+        },
+        {
+          "x": 9.7246,
+          "y": 22.5322,
+          "z": 27.7876,
+          "values": [
+            0.7863,
+            0.2061,
+            0.9008,
+            0.7939
+          ],
+          "attributes": {
+            "node": 78,
+            "arclen": 39.0,
+            "radius": 1.45,
+            "dist_to_sac": 14.5781,
+            "n_wall": 1236,
+            "raw_values": {
+              "TAWSSG": 1177.795019,
+              "WSS_average_normalized_div": -0.151168,
+              "Lambda2_average": 2970.019689,
+              "OSI": 0.005475
+            }
+          }
+        },
+        {
+          "x": 9.4704,
+          "y": 22.8663,
+          "z": 28.0583,
+          "values": [
+            0.2137,
+            0.3511,
+            0.8931,
+            0.8473
+          ],
+          "attributes": {
+            "node": 79,
+            "arclen": 39.5,
+            "radius": 1.4589,
+            "dist_to_sac": 14.5804,
+            "n_wall": 1239,
+            "raw_values": {
+              "TAWSSG": -472.572097,
+              "WSS_average_normalized_div": -0.096656,
+              "Lambda2_average": 2935.64198,
+              "OSI": 0.006559
+            }
+          }
+        },
+        {
+          "x": 9.2746,
+          "y": 23.1971,
+          "z": 28.3761,
+          "values": [
+            0.0687,
+            0.6947,
+            0.9313,
+            0.7863
+          ],
+          "attributes": {
+            "node": 80,
+            "arclen": 40.0,
+            "radius": 1.4548,
+            "dist_to_sac": 14.5322,
+            "n_wall": 1225,
+            "raw_values": {
+              "TAWSSG": -2352.156351,
+              "WSS_average_normalized_div": -0.016616,
+              "Lambda2_average": 3152.339882,
+              "OSI": 0.00547
+            }
+          }
+        },
+        {
+          "x": 9.1509,
+          "y": 23.5019,
+          "z": 28.7507,
+          "values": [
+            0.0458,
+            0.6031,
+            0.8855,
+            0.5649
+          ],
+          "attributes": {
+            "node": 81,
+            "arclen": 40.5,
+            "radius": 1.422,
+            "dist_to_sac": 14.4245,
+            "n_wall": 1217,
+            "raw_values": {
+              "TAWSSG": -2799.941095,
+              "WSS_average_normalized_div": -0.042516,
+              "Lambda2_average": 2789.529215,
+              "OSI": 0.002962
+            }
+          }
+        },
+        {
+          "x": 9.0567,
+          "y": 23.7684,
+          "z": 29.1627,
+          "values": [
+            0.0992,
+            0.3969,
+            0.8321,
+            0.4809
+          ],
+          "attributes": {
+            "node": 82,
+            "arclen": 41.0,
+            "radius": 1.3584,
+            "dist_to_sac": 14.3049,
+            "n_wall": 1198,
+            "raw_values": {
+              "TAWSSG": -1786.173984,
+              "WSS_average_normalized_div": -0.076679,
+              "Lambda2_average": 2338.360267,
+              "OSI": 0.001909
+            }
+          }
+        },
+        {
+          "x": 9.0407,
+          "y": 24.0452,
+          "z": 29.5782,
+          "values": [
+            0.229,
+            0.3664,
+            0.8092,
+            0.3893
+          ],
+          "attributes": {
+            "node": 83,
+            "arclen": 41.5,
+            "radius": 1.3058,
+            "dist_to_sac": 14.1258,
+            "n_wall": 1169,
+            "raw_values": {
+              "TAWSSG": -400.067748,
+              "WSS_average_normalized_div": -0.092455,
+              "Lambda2_average": 1939.989691,
+              "OSI": 0.00153
+            }
+          }
+        },
+        {
+          "x": 9.0713,
+          "y": 24.3274,
+          "z": 29.9896,
+          "values": [
+            0.6031,
+            0.3817,
+            0.7939,
+            0.374
+          ],
+          "attributes": {
+            "node": 84,
+            "arclen": 42.0,
+            "radius": 1.2811,
+            "dist_to_sac": 13.9185,
+            "n_wall": 1166,
+            "raw_values": {
+              "TAWSSG": 488.44674,
+              "WSS_average_normalized_div": -0.090195,
+              "Lambda2_average": 1747.999581,
+              "OSI": 0.001498
+            }
+          }
+        },
+        {
+          "x": 9.173,
+          "y": 24.5914,
+          "z": 30.4009,
+          "values": [
+            0.7786,
+            0.3893,
+            0.8244,
+            0.3817
+          ],
+          "attributes": {
+            "node": 85,
+            "arclen": 42.5,
+            "radius": 1.2602,
+            "dist_to_sac": 13.6627,
+            "n_wall": 1165,
+            "raw_values": {
+              "TAWSSG": 1104.53486,
+              "WSS_average_normalized_div": -0.078591,
+              "Lambda2_average": 2024.076984,
+              "OSI": 0.001503
+            }
+          }
+        },
+        {
+          "x": 9.3235,
+          "y": 24.8345,
+          "z": 30.8106,
+          "values": [
+            0.7405,
+            0.4351,
+            0.8702,
+            0.3664
+          ],
+          "attributes": {
+            "node": 86,
+            "arclen": 43.0,
+            "radius": 1.2493,
+            "dist_to_sac": 13.3784,
+            "n_wall": 1164,
+            "raw_values": {
+              "TAWSSG": 870.092488,
+              "WSS_average_normalized_div": -0.066215,
+              "Lambda2_average": 2669.548149,
+              "OSI": 0.001485
+            }
+          }
+        },
+        {
+          "x": 9.5127,
+          "y": 25.0504,
+          "z": 31.2195,
+          "values": [
+            0.771,
+            0.5496,
+            0.9389,
+            0.3359
+          ],
+          "attributes": {
+            "node": 87,
+            "arclen": 43.5,
+            "radius": 1.2523,
+            "dist_to_sac": 13.0751,
+            "n_wall": 1169,
+            "raw_values": {
+              "TAWSSG": 1001.500333,
+              "WSS_average_normalized_div": -0.049185,
+              "Lambda2_average": 3231.317728,
+              "OSI": 0.001353
+            }
+          }
+        },
+        {
+          "x": 9.7774,
+          "y": 25.2321,
+          "z": 31.6021,
+          "values": [
+            0.6565,
+            0.6183,
+            0.9542,
+            0.2901
+          ],
+          "attributes": {
+            "node": 88,
+            "arclen": 44.0,
+            "radius": 1.2499,
+            "dist_to_sac": 12.7209,
+            "n_wall": 1162,
+            "raw_values": {
+              "TAWSSG": 650.904945,
+              "WSS_average_normalized_div": -0.038816,
+              "Lambda2_average": 3466.937422,
+              "OSI": 0.001212
+            }
+          }
+        },
+        {
+          "x": 10.0533,
+          "y": 25.3957,
+          "z": 31.9849,
+          "values": [
+            0.6641,
+            0.6412,
+            0.9084,
+            0.2595
+          ],
+          "attributes": {
+            "node": 89,
+            "arclen": 44.5,
+            "radius": 1.2424,
+            "dist_to_sac": 12.3691,
+            "n_wall": 1168,
+            "raw_values": {
+              "TAWSSG": 679.8107,
+              "WSS_average_normalized_div": -0.02947,
+              "Lambda2_average": 2996.810326,
+              "OSI": 0.001093
+            }
+          }
+        },
+        {
+          "x": 10.3398,
+          "y": 25.5455,
+          "z": 32.3659,
+          "values": [
+            0.8168,
+            0.4046,
+            0.8397,
+            0.2366
+          ],
+          "attributes": {
+            "node": 90,
+            "arclen": 45.0,
+            "radius": 1.2321,
+            "dist_to_sac": 12.0196,
+            "n_wall": 1169,
+            "raw_values": {
+              "TAWSSG": 1330.044465,
+              "WSS_average_normalized_div": -0.072111,
+              "Lambda2_average": 2385.429416,
+              "OSI": 0.001016
+            }
+          }
+        },
+        {
+          "x": 10.6412,
+          "y": 25.7005,
+          "z": 32.7331,
+          "values": [
+            0.8855,
+            0.1985,
+            0.7405,
+            0.2519
+          ],
+          "attributes": {
+            "node": 91,
+            "arclen": 45.5,
+            "radius": 1.2325,
+            "dist_to_sac": 11.6667,
+            "n_wall": 1172,
+            "raw_values": {
+              "TAWSSG": 1635.782731,
+              "WSS_average_normalized_div": -0.15501,
+              "Lambda2_average": 1473.514648,
+              "OSI": 0.001051
+            }
+          }
+        },
+        {
+          "x": 10.9754,
+          "y": 25.8398,
+          "z": 33.0768,
+          "values": [
+            0.9542,
+            0.1756,
+            0.687,
+            0.3282
+          ],
+          "attributes": {
+            "node": 92,
+            "arclen": 46.0,
+            "radius": 1.2393,
+            "dist_to_sac": 11.2957,
+            "n_wall": 1168,
+            "raw_values": {
+              "TAWSSG": 2633.825546,
+              "WSS_average_normalized_div": -0.168433,
+              "Lambda2_average": 1057.961752,
+              "OSI": 0.001317
+            }
+          }
+        },
+        {
+          "x": 11.3375,
+          "y": 25.9654,
+          "z": 33.3974,
+          "values": [
+            0.9084,
+            0.374,
+            0.8168,
+            0.4504
+          ],
+          "attributes": {
+            "node": 93,
+            "arclen": 46.5,
+            "radius": 1.2524,
+            "dist_to_sac": 10.9097,
+            "n_wall": 1182,
+            "raw_values": {
+              "TAWSSG": 1935.390069,
+              "WSS_average_normalized_div": -0.092413,
+              "Lambda2_average": 1997.421787,
+              "OSI": 0.001778
+            }
+          }
+        },
+        {
+          "x": 11.7195,
+          "y": 26.1168,
+          "z": 33.6817,
+          "values": [
+            0.5191,
+            0.7328,
+            0.8473,
+            0.4733
+          ],
+          "attributes": {
+            "node": 94,
+            "arclen": 47.0,
+            "radius": 1.2723,
+            "dist_to_sac": 10.5095,
+            "n_wall": 1197,
+            "raw_values": {
+              "TAWSSG": 341.845516,
+              "WSS_average_normalized_div": -0.00355,
+              "Lambda2_average": 2425.301722,
+              "OSI": 0.001829
+            }
+          }
+        },
+        {
+          "x": 12.1077,
+          "y": 26.2708,
+          "z": 33.956,
+          "values": [
+            0.6947,
+            0.9313,
+            0.8626,
+            0.4198
+          ],
+          "attributes": {
+            "node": 95,
+            "arclen": 47.5,
+            "radius": 1.2991,
+            "dist_to_sac": 10.1113,
+            "n_wall": 1168,
+            "raw_values": {
+              "TAWSSG": 739.303997,
+              "WSS_average_normalized_div": 0.07948,
+              "Lambda2_average": 2644.057921,
+              "OSI": 0.001627
+            }
+          }
+        },
+        {
+          "x": 12.5066,
+          "y": 26.4799,
+          "z": 34.1724,
+          "values": [
+            0.8702,
+            0.7863,
+            0.7481,
+            0.2748
+          ],
+          "attributes": {
+            "node": 96,
+            "arclen": 48.0,
+            "radius": 1.285,
+            "dist_to_sac": 9.7017,
+            "n_wall": 1163,
+            "raw_values": {
+              "TAWSSG": 1566.944883,
+              "WSS_average_normalized_div": 0.004561,
+              "Lambda2_average": 1511.744122,
+              "OSI": 0.001108
+            }
+          }
+        },
+        {
+          "x": 12.9202,
+          "y": 26.6848,
+          "z": 34.3643,
+          "values": [
+            0.9008,
+            0.1908,
+            0.0534,
+            0.313
+          ],
+          "attributes": {
+            "node": 97,
+            "arclen": 48.5,
+            "radius": 1.2883,
+            "dist_to_sac": 9.2846,
+            "n_wall": 1192,
+            "raw_values": {
+              "TAWSSG": 1900.049305,
+              "WSS_average_normalized_div": -0.15695,
+              "Lambda2_average": -8909.765333,
+              "OSI": 0.001244
+            }
+          }
+        },
+        {
+          "x": 13.3382,
+          "y": 26.8882,
+          "z": 34.548,
+          "values": [
+            0.2214,
+            0.0916,
+            0.0458,
+            0.5573
+          ],
+          "attributes": {
+            "node": 98,
+            "arclen": 49.0,
+            "radius": 1.3037,
+            "dist_to_sac": 8.8708,
+            "n_wall": 1240,
+            "raw_values": {
+              "TAWSSG": -428.899486,
+              "WSS_average_normalized_div": -0.213759,
+              "Lambda2_average": -11144.854993,
+              "OSI": 0.002869
+            }
+          }
+        },
+        {
+          "x": 13.7515,
+          "y": 27.1241,
+          "z": 34.6959,
+          "values": [
+            0.0611,
+            0.8931,
+            0.0076,
+            0.6412
+          ],
+          "attributes": {
+            "node": 99,
+            "arclen": 49.5,
+            "radius": 1.334,
+            "dist_to_sac": 8.4644,
+            "n_wall": 1321,
+            "raw_values": {
+              "TAWSSG": -2358.761575,
+              "WSS_average_normalized_div": 0.026715,
+              "Lambda2_average": -20667.901485,
+              "OSI": 0.003613
+            }
+          }
+        },
+        {
+          "x": 14.1625,
+          "y": 27.3907,
+          "z": 34.7936,
+          "values": [
+            0.0229,
+            0.9618,
+            0.0305,
+            0.6718
+          ],
+          "attributes": {
+            "node": 100,
+            "arclen": 50.0,
+            "radius": 1.3576,
+            "dist_to_sac": 8.062,
+            "n_wall": 1293,
+            "raw_values": {
+              "TAWSSG": -4193.339465,
+              "WSS_average_normalized_div": 0.119297,
+              "Lambda2_average": -11615.704506,
+              "OSI": 0.003927
+            }
+          }
+        },
+        {
+          "x": 14.5439,
+          "y": 27.6966,
+          "z": 34.8965,
+          "values": [
+            0.0382,
+            0.9771,
+            0.4427,
+            0.626
+          ],
+          "attributes": {
+            "node": 101,
+            "arclen": 50.5,
+            "radius": 1.3449,
+            "dist_to_sac": 7.7016,
+            "n_wall": 1220,
+            "raw_values": {
+              "TAWSSG": -2944.017456,
+              "WSS_average_normalized_div": 0.279719,
+              "Lambda2_average": 148.310957,
+              "OSI": 0.003485
+            }
+          }
+        },
+        {
+          "x": 14.9052,
+          "y": 28.0228,
+          "z": 35.0094,
+          "values": [
+            0.4656,
+            0.9695,
+            0.4122,
+            0.5038
+          ],
+          "attributes": {
+            "node": 102,
+            "arclen": 51.0,
+            "radius": 1.3087,
+            "dist_to_sac": 7.3804,
+            "n_wall": 1183,
+            "raw_values": {
+              "TAWSSG": 208.944545,
+              "WSS_average_normalized_div": 0.160709,
+              "Lambda2_average": 113.213921,
+              "OSI": 0.002127
+            }
+          }
+        },
+        {
+          "x": 15.2593,
+          "y": 28.3544,
+          "z": 35.1298,
+          "values": [
+            0.7557,
+            0.9084,
+            0.542,
+            0.3511
+          ],
+          "attributes": {
+            "node": 103,
+            "arclen": 51.5,
+            "radius": 1.2787,
+            "dist_to_sac": 7.0748,
+            "n_wall": 1164,
+            "raw_values": {
+              "TAWSSG": 926.964881,
+              "WSS_average_normalized_div": 0.032831,
+              "Lambda2_average": 293.857092,
+              "OSI": 0.001385
+            }
+          }
+        },
+        {
+          "x": 15.6218,
+          "y": 28.6889,
+          "z": 35.209,
+          "values": [
+            0.4809,
+            0.7252,
+            0.5573,
+            0.229
+          ],
+          "attributes": {
+            "node": 104,
+            "arclen": 52.0,
+            "radius": 1.2604,
+            "dist_to_sac": 6.7617,
+            "n_wall": 1147,
+            "raw_values": {
+              "TAWSSG": 256.040625,
+              "WSS_average_normalized_div": -0.00487,
+              "Lambda2_average": 333.175088,
+              "OSI": 0.00098
+            }
+          }
+        },
+        {
+          "x": 15.9977,
+          "y": 29.0141,
+          "z": 35.2589,
+          "values": [
+            0.1221,
+            0.6489,
+            0.3817,
+            0.2061
+          ],
+          "attributes": {
+            "node": 105,
+            "arclen": 52.5,
+            "radius": 1.2403,
+            "dist_to_sac": 6.4499,
+            "n_wall": 1136,
+            "raw_values": {
+              "TAWSSG": -1538.436542,
+              "WSS_average_normalized_div": -0.028584,
+              "Lambda2_average": 64.618282,
+              "OSI": 0.000761
+            }
+          }
+        },
+        {
+          "x": 16.4325,
+          "y": 29.2593,
+          "z": 35.2714,
+          "values": [
+            0.0916,
+            0.5649,
+            0.1756,
+            0.1908
+          ],
+          "attributes": {
+            "node": 106,
+            "arclen": 53.0,
+            "radius": 1.1792,
+            "dist_to_sac": 6.0815,
+            "n_wall": 1136,
+            "raw_values": {
+              "TAWSSG": -2120.771469,
+              "WSS_average_normalized_div": -0.047467,
+              "Lambda2_average": -570.436339,
+              "OSI": 0.000607
+            }
+          }
+        },
+        {
+          "x": 16.855,
+          "y": 29.5257,
+          "z": 35.2836,
+          "values": [
+            0.1603,
+            0.458,
+            0.1527,
+            0.1679
+          ],
+          "attributes": {
+            "node": 107,
+            "arclen": 53.5,
+            "radius": 1.1339,
+            "dist_to_sac": 5.7492,
+            "n_wall": 1120,
+            "raw_values": {
+              "TAWSSG": -990.674941,
+              "WSS_average_normalized_div": -0.062161,
+              "Lambda2_average": -1171.105526,
+              "OSI": 0.000398
+            }
+          }
+        },
+        {
+          "x": 17.2878,
+          "y": 29.7747,
+          "z": 35.2995,
+          "values": [
+            0.5573,
+            0.4962,
+            0.1603,
+            0.1221
+          ],
+          "attributes": {
+            "node": 108,
+            "arclen": 54.0,
+            "radius": 1.1097,
+            "dist_to_sac": 5.4295,
+            "n_wall": 1116,
+            "raw_values": {
+              "TAWSSG": 365.47597,
+              "WSS_average_normalized_div": -0.055855,
+              "Lambda2_average": -945.715516,
+              "OSI": 0.000278
+            }
+          }
+        },
+        {
+          "x": 17.7443,
+          "y": 29.9767,
+          "z": 35.2977,
+          "values": [
+            0.8626,
+            0.5573,
+            0.1679,
+            0.0992
+          ],
+          "attributes": {
+            "node": 109,
+            "arclen": 54.5,
+            "radius": 1.0831,
+            "dist_to_sac": 5.0947,
+            "n_wall": 1107,
+            "raw_values": {
+              "TAWSSG": 1502.295552,
+              "WSS_average_normalized_div": -0.04859,
+              "Lambda2_average": -737.731821,
+              "OSI": 0.00025
+            }
+          }
+        },
+        {
+          "x": 18.2098,
+          "y": 30.1554,
+          "z": 35.2709,
+          "values": [
+            0.916,
+            0.5802,
+            0.3893,
+            0.1069
+          ],
+          "attributes": {
+            "node": 110,
+            "arclen": 55.0,
+            "radius": 1.0633,
+            "dist_to_sac": 4.7473,
+            "n_wall": 1100,
+            "raw_values": {
+              "TAWSSG": 2040.189706,
+              "WSS_average_normalized_div": -0.044393,
+              "Lambda2_average": 69.393912,
+              "OSI": 0.000263
+            }
+          }
+        },
+        {
+          "x": 18.6759,
+          "y": 30.332,
+          "z": 35.238,
+          "values": [
+            0.855,
+            0.5267,
+            0.7099,
+            0.1374
+          ],
+          "attributes": {
+            "node": 111,
+            "arclen": 55.5,
+            "radius": 1.0607,
+            "dist_to_sac": 4.4181,
+            "n_wall": 1107,
+            "raw_values": {
+              "TAWSSG": 1463.453131,
+              "WSS_average_normalized_div": -0.053166,
+              "Lambda2_average": 1255.24564,
+              "OSI": 0.00031
+            }
+          }
+        },
+        {
+          "x": 19.148,
+          "y": 30.4917,
+          "z": 35.2077,
+          "values": [
+            0.5344,
+            0.4885,
+            0.7634,
+            0.1527
+          ],
+          "attributes": {
+            "node": 112,
+            "arclen": 56.0,
+            "radius": 1.0819,
+            "dist_to_sac": 4.1113,
+            "n_wall": 1114,
+            "raw_values": {
+              "TAWSSG": 347.963299,
+              "WSS_average_normalized_div": -0.056898,
+              "Lambda2_average": 1680.385453,
+              "OSI": 0.000387
+            }
+          }
+        },
+        {
+          "x": 19.6359,
+          "y": 30.5996,
+          "z": 35.2093,
+          "values": [
+            0.2366,
+            0.4733,
+            0.6412,
+            0.1756
+          ],
+          "attributes": {
+            "node": 113,
+            "arclen": 56.5,
+            "radius": 1.1074,
+            "dist_to_sac": 3.8189,
+            "n_wall": 1114,
+            "raw_values": {
+              "TAWSSG": -267.074433,
+              "WSS_average_normalized_div": -0.059977,
+              "Lambda2_average": 633.292312,
+              "OSI": 0.000408
+            }
+          }
+        },
+        {
+          "x": 20.1289,
+          "y": 30.6776,
+          "z": 35.1901,
+          "values": [
+            0.1679,
+            0.542,
+            0.6947,
+            0.1603
+          ],
+          "attributes": {
+            "node": 114,
+            "arclen": 57.0,
+            "radius": 1.1026,
+            "dist_to_sac": 3.5405,
+            "n_wall": 1114,
+            "raw_values": {
+              "TAWSSG": -863.018473,
+              "WSS_average_normalized_div": -0.051407,
+              "Lambda2_average": 1079.008785,
+              "OSI": 0.000395
+            }
+          }
+        },
+        {
+          "x": 20.6165,
+          "y": 30.7678,
+          "z": 35.1336,
+          "values": [
+            0.1298,
+            0.5954,
+            0.7328,
+            0.145
+          ],
+          "attributes": {
+            "node": 115,
+            "arclen": 57.5,
+            "radius": 1.055,
+            "dist_to_sac": 3.3015,
+            "n_wall": 1097,
+            "raw_values": {
+              "TAWSSG": -1456.665386,
+              "WSS_average_normalized_div": -0.042602,
+              "Lambda2_average": 1459.219459,
+              "OSI": 0.000347
+            }
+          }
+        },
+        {
+          "x": 21.1123,
+          "y": 30.76,
+          "z": 35.0908,
+          "values": [
+            0.145,
+            0.6641,
+            0.6565,
+            0.1145
+          ],
+          "attributes": {
+            "node": 116,
+            "arclen": 58.0,
+            "radius": 1.0172,
+            "dist_to_sac": 3.0421,
+            "n_wall": 1057,
+            "raw_values": {
+              "TAWSSG": -1139.138966,
+              "WSS_average_normalized_div": -0.02547,
+              "Lambda2_average": 651.645595,
+              "OSI": 0.000274
+            }
+          }
+        },
+        {
+          "x": 21.6033,
+          "y": 30.7727,
+          "z": 34.9998,
+          "values": [
+            0.9695,
+            0.1221,
+            0.1221,
+            0.2977
+          ],
+          "attributes": {
+            "node": 117,
+            "arclen": 58.5,
+            "radius": 1.0199,
+            "dist_to_sac": 2.8253,
+            "n_wall": 1049,
+            "raw_values": {
+              "TAWSSG": 3963.77983,
+              "WSS_average_normalized_div": -0.197388,
+              "Lambda2_average": -1288.062823,
+              "OSI": 0.001215
+            }
+          }
+        },
+        {
+          "x": 22.0805,
+          "y": 30.7679,
+          "z": 34.8526,
+          "values": [
+            0.9924,
+            0.0229,
+            0.1298,
+            0.5878
+          ],
+          "attributes": {
+            "node": 118,
+            "arclen": 59.0,
+            "radius": 1.0319,
+            "dist_to_sac": 2.5608,
+            "n_wall": 1027,
+            "raw_values": {
+              "TAWSSG": 6051.598844,
+              "WSS_average_normalized_div": -0.494667,
+              "Lambda2_average": -1250.312815,
+              "OSI": 0.00308
+            }
+          }
+        },
+        {
+          "x": 22.5156,
+          "y": 30.7632,
+          "z": 34.6103,
+          "values": [
+            1.0,
+            0.0153,
+            0.145,
+            0.7786
+          ],
+          "attributes": {
+            "node": 119,
+            "arclen": 59.5,
+            "radius": 1.0171,
+            "dist_to_sac": 2.4088,
+            "n_wall": 974,
+            "raw_values": {
+              "TAWSSG": 7010.491336,
+              "WSS_average_normalized_div": -0.511447,
+              "Lambda2_average": -1180.687771,
+              "OSI": 0.00491
+            }
+          }
+        },
+        {
+          "x": 22.8796,
+          "y": 30.8426,
+          "z": 34.2798,
+          "values": [
+            0.9847,
+            0.0076,
+            0.855,
+            0.8702
+          ],
+          "attributes": {
+            "node": 120,
+            "arclen": 60.0,
+            "radius": 1.0099,
+            "dist_to_sac": 2.3092,
+            "n_wall": 809,
+            "raw_values": {
+              "TAWSSG": 5545.671938,
+              "WSS_average_normalized_div": -0.587525,
+              "Lambda2_average": 2581.881534,
+              "OSI": 0.006668
+            }
+          }
+        },
+        {
+          "x": 23.1544,
+          "y": 31.062,
+          "z": 33.9402,
+          "values": [
+            0.8931,
+            0.9466,
+            0.0611,
+            0.7099
+          ],
+          "attributes": {
+            "node": 121,
+            "arclen": 60.5,
+            "radius": 0.9381,
+            "dist_to_sac": 2.3795,
+            "n_wall": 780,
+            "raw_values": {
+              "TAWSSG": 1849.99142,
+              "WSS_average_normalized_div": 0.100395,
+              "Lambda2_average": -5449.532061,
+              "OSI": 0.004092
+            }
+          }
+        },
+        {
+          "x": 23.2303,
+          "y": 31.4214,
+          "z": 33.6149,
+          "values": [
+            0.9466,
+            0.9847,
+            0.1832,
+            0.7023
+          ],
+          "attributes": {
+            "node": 122,
+            "arclen": 61.0,
+            "radius": 0.7102,
+            "dist_to_sac": 2.5955,
+            "n_wall": 525,
+            "raw_values": {
+              "TAWSSG": 2558.158729,
+              "WSS_average_normalized_div": 0.538138,
+              "Lambda2_average": -394.299773,
+              "OSI": 0.00402
+            }
+          }
+        },
+        {
+          "x": 23.268,
+          "y": 31.7106,
+          "z": 33.2131,
+          "values": [
+            0.9771,
+            1.0,
+            0.0382,
+            0.4885
+          ],
+          "attributes": {
+            "node": 123,
+            "arclen": 61.5,
+            "radius": 0.537,
+            "dist_to_sac": 2.7885,
+            "n_wall": 352,
+            "raw_values": {
+              "TAWSSG": 5200.933971,
+              "WSS_average_normalized_div": 0.783808,
+              "Lambda2_average": -11157.767601,
+              "OSI": 0.001916
+            }
+          }
+        },
+        {
+          "x": 23.2855,
+          "y": 31.8562,
+          "z": 32.7398,
+          "values": [
+            0.0153,
+            0.9924,
+            0.0153,
+            0.4427
+          ],
+          "attributes": {
+            "node": 124,
+            "arclen": 62.0,
+            "radius": 0.4331,
+            "dist_to_sac": 2.9165,
+            "n_wall": 263,
+            "raw_values": {
+              "TAWSSG": -5104.264982,
+              "WSS_average_normalized_div": 0.610473,
+              "Lambda2_average": -20251.829021,
+              "OSI": 0.001701
+            }
+          }
+        },
+        {
+          "x": 23.3304,
+          "y": 31.8132,
+          "z": 32.248,
+          "values": [
+            0.0305,
+            0.0458,
+            0.0229,
+            0.1985
+          ],
+          "attributes": {
+            "node": 125,
+            "arclen": 62.5,
+            "radius": 0.3705,
+            "dist_to_sac": 2.9368,
+            "n_wall": 193,
+            "raw_values": {
+              "TAWSSG": -3117.763169,
+              "WSS_average_normalized_div": -0.287902,
+              "Lambda2_average": -13651.372333,
+              "OSI": 0.000713
+            }
+          }
+        },
+        {
+          "x": 23.4531,
+          "y": 31.6457,
+          "z": 31.8024,
+          "values": [
+            0.9618,
+            0.0763,
+            0.9847,
+            0.2214
+          ],
+          "attributes": {
+            "node": 126,
+            "arclen": 63.0,
+            "radius": 0.3803,
+            "dist_to_sac": 2.8968,
+            "n_wall": 213,
+            "raw_values": {
+              "TAWSSG": 3585.334809,
+              "WSS_average_normalized_div": -0.216357,
+              "Lambda2_average": 20902.094146,
+              "OSI": 0.00086
+            }
+          }
+        },
+        {
+          "x": 23.6702,
+          "y": 31.3548,
+          "z": 31.4653,
+          "values": [
+            0.0076,
+            0.2519,
+            1.0,
+            0.2137
+          ],
+          "attributes": {
+            "node": 127,
+            "arclen": 63.5,
+            "radius": 0.3843,
+            "dist_to_sac": 2.7713,
+            "n_wall": 227,
+            "raw_values": {
+              "TAWSSG": -7992.337599,
+              "WSS_average_normalized_div": -0.125915,
+              "Lambda2_average": 47153.32101,
+              "OSI": 0.000776
+            }
+          }
+        },
+        {
+          "x": 23.9305,
+          "y": 30.9578,
+          "z": 31.3263,
+          "values": [
+            0.1527,
+            0.2672,
+            0.9924,
+            0.1298
+          ],
+          "attributes": {
+            "node": 128,
+            "arclen": 64.0,
+            "radius": 0.3572,
+            "dist_to_sac": 2.5247,
+            "n_wall": 192,
+            "raw_values": {
+              "TAWSSG": -1009.368855,
+              "WSS_average_normalized_div": -0.122228,
+              "Lambda2_average": 26319.31522,
+              "OSI": 0.000304
+            }
+          }
+        },
+        {
+          "x": 24.182,
+          "y": 30.5331,
+          "z": 31.2642,
+          "values": [
+            0.084,
+            0.4122,
+            0.9771,
+            0.084
+          ],
+          "attributes": {
+            "node": 129,
+            "arclen": 64.5,
+            "radius": 0.3402,
+            "dist_to_sac": 2.2659,
+            "n_wall": 175,
+            "raw_values": {
+              "TAWSSG": -2121.65248,
+              "WSS_average_normalized_div": -0.07135,
+              "Lambda2_average": 15024.89317,
+              "OSI": 0.000214
+            }
+          }
+        },
+        {
+          "x": 24.3988,
+          "y": 30.0891,
+          "z": 31.3172,
+          "values": [
+            0.5038,
+            0.4275,
+            0.771,
+            0.0763
+          ],
+          "attributes": {
+            "node": 130,
+            "arclen": 65.0,
+            "radius": 0.3444,
+            "dist_to_sac": 1.9756,
+            "n_wall": 176,
+            "raw_values": {
+              "TAWSSG": 317.752403,
+              "WSS_average_normalized_div": -0.067208,
+              "Lambda2_average": 1718.735279,
+              "OSI": 0.00012
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
