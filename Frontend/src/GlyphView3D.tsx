@@ -932,20 +932,24 @@ export default function GlyphView3D() {
           </select>
         </label>
 
-        <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          Counts
-          <input
-            type="number"
-            min={1}
-            max={data?.objects.length ?? undefined}
-            step={1}
-            value={sampleCount}
-            onChange={(e) => updateSampleCount(Number(e.target.value))}
-            style={numberInputStyle}
-          />
-        </label>
+        {supportsObjectSelection && (
+          <>
+            <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              Counts
+              <input
+                type="number"
+                min={1}
+                max={data?.objects.length ?? undefined}
+                step={1}
+                value={sampleCount}
+                onChange={(e) => updateSampleCount(Number(e.target.value))}
+                style={numberInputStyle}
+              />
+            </label>
 
-        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
+            <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
+          </>
+        )}
 
         {/* Channel toggles */}
         {channels.map((name, i) => (
