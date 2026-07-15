@@ -55,8 +55,8 @@ If your data follows the same structure as those JSON files, it can be rendered 
 ```jsonc
 {
   "meta":     { "title": "...", "description": "...", "unit": "..." },
-  "channels": ["u_mag", "a_mag", "..."],         // fin labels, in order
-  "objects":  [                                   // one backbone per object
+  "channels": ["u_mag", "a_mag", "..."],
+  "objects":  [
     { "objectId": 0, "label": "...",
       "points": [ { "x": 0, "y": 0, "z": 0, "values": [0.1, 0.4, "..."] } ] }
   ]
