@@ -17,9 +17,11 @@
   },
   "channels": [
     "TAWSSG",
+    "TAWSS_rel",
     "WSS_average_normalized_div",
     "Lambda2_average",
-    "OSI"
+    "OSI",
+    "Lambda2_vortex"
   ],
   "objects": [
     {
@@ -32,9 +34,11 @@
           "z": 51.5122,
           "values": [
             0.6794,
+            0.5267,
             0.916,
             0.6641,
-            0.0076
+            0.0076,
+            0.3435
           ],
           "attributes": {
             "node": 0,
@@ -44,9 +48,11 @@
             "n_wall": 33,
             "raw_values": {
               "TAWSSG": 725.445478,
+              "TAWSS_rel": 1.01989,
               "WSS_average_normalized_div": 0.059202,
               "Lambda2_average": 776.968885,
-              "OSI": 1e-06
+              "OSI": 1e-06,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -56,9 +62,11 @@
           "z": 51.2444,
           "values": [
             0.4733,
+            0.374,
             0.8321,
             0.4733,
-            0.0153
+            0.0153,
+            0.3435
           ],
           "attributes": {
             "node": 1,
@@ -68,9 +76,11 @@
             "n_wall": 293,
             "raw_values": {
               "TAWSSG": 217.315213,
+              "TAWSS_rel": 0.997481,
               "WSS_average_normalized_div": 0.012312,
               "Lambda2_average": 227.115926,
-              "OSI": 1e-06
+              "OSI": 1e-06,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -80,9 +90,11 @@
           "z": 50.9814,
           "values": [
             0.4351,
+            0.3282,
             0.7939,
             0.4198,
-            0.0229
+            0.0229,
+            0.3435
           ],
           "attributes": {
             "node": 2,
@@ -92,9 +104,11 @@
             "n_wall": 600,
             "raw_values": {
               "TAWSSG": 94.090298,
+              "TAWSS_rel": 0.989849,
               "WSS_average_normalized_div": 0.004907,
               "Lambda2_average": 113.899638,
-              "OSI": 2e-06
+              "OSI": 2e-06,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -104,9 +118,11 @@
           "z": 50.722,
           "values": [
             0.4198,
+            0.2977,
             0.771,
             0.3969,
-            0.0305
+            0.0305,
+            0.3435
           ],
           "attributes": {
             "node": 3,
@@ -116,9 +132,11 @@
             "n_wall": 900,
             "raw_values": {
               "TAWSSG": 62.89302,
+              "TAWSS_rel": 0.983053,
               "WSS_average_normalized_div": 0.002969,
               "Lambda2_average": 75.737411,
-              "OSI": 3e-06
+              "OSI": 3e-06,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -128,9 +146,11 @@
           "z": 50.4304,
           "values": [
             0.4122,
+            0.2672,
             0.7634,
             0.374,
-            0.0382
+            0.0382,
+            0.3435
           ],
           "attributes": {
             "node": 4,
@@ -140,9 +160,11 @@
             "n_wall": 1225,
             "raw_values": {
               "TAWSSG": 45.453378,
+              "TAWSS_rel": 0.979549,
               "WSS_average_normalized_div": 0.001303,
               "Lambda2_average": 55.439565,
-              "OSI": 5e-06
+              "OSI": 5e-06,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -152,9 +174,11 @@
           "z": 50.1285,
           "values": [
             0.3969,
+            0.2443,
             0.7481,
             0.3206,
-            0.0458
+            0.0458,
+            0.687
           ],
           "attributes": {
             "node": 5,
@@ -164,9 +188,11 @@
             "n_wall": 1227,
             "raw_values": {
               "TAWSSG": -17.208866,
+              "TAWSS_rel": 0.977661,
               "WSS_average_normalized_div": -0.002396,
               "Lambda2_average": -0.358099,
-              "OSI": 1.1e-05
+              "OSI": 1.1e-05,
+              "Lambda2_vortex": 0.358099
             }
           }
         },
@@ -176,9 +202,11 @@
           "z": 49.8393,
           "values": [
             0.3893,
+            0.229,
             0.7405,
             0.3282,
-            0.0534
+            0.0534,
+            0.3435
           ],
           "attributes": {
             "node": 6,
@@ -188,9 +216,11 @@
             "n_wall": 1239,
             "raw_values": {
               "TAWSSG": -28.627494,
+              "TAWSS_rel": 0.974951,
               "WSS_average_normalized_div": -0.002891,
               "Lambda2_average": 0.043704,
-              "OSI": 2e-05
+              "OSI": 2e-05,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -200,9 +230,11 @@
           "z": 49.5467,
           "values": [
             0.3588,
+            0.2748,
             0.7176,
             0.3435,
-            0.0611
+            0.0611,
+            0.3435
           ],
           "attributes": {
             "node": 7,
@@ -212,9 +244,11 @@
             "n_wall": 1249,
             "raw_values": {
               "TAWSSG": -82.868168,
+              "TAWSS_rel": 0.980038,
               "WSS_average_normalized_div": -0.00669,
               "Lambda2_average": 2.16552,
-              "OSI": 3.7e-05
+              "OSI": 3.7e-05,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -224,9 +258,11 @@
           "z": 49.2503,
           "values": [
             0.2824,
+            0.3053,
             0.7023,
             0.3359,
-            0.0687
+            0.0687,
+            0.3435
           ],
           "attributes": {
             "node": 8,
@@ -236,9 +272,11 @@
             "n_wall": 1260,
             "raw_values": {
               "TAWSSG": -224.553509,
+              "TAWSS_rel": 0.983748,
               "WSS_average_normalized_div": -0.015075,
               "Lambda2_average": 0.656827,
-              "OSI": 8.7e-05
+              "OSI": 8.7e-05,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -248,9 +286,11 @@
           "z": 48.914,
           "values": [
             0.2672,
+            0.4122,
             0.626,
             0.2977,
-            0.0916
+            0.0916,
+            0.7099
           ],
           "attributes": {
             "node": 9,
@@ -260,9 +300,11 @@
             "n_wall": 1250,
             "raw_values": {
               "TAWSSG": -247.539552,
+              "TAWSS_rel": 1.0,
               "WSS_average_normalized_div": -0.03149,
               "Lambda2_average": -26.567971,
-              "OSI": 0.000221
+              "OSI": 0.000221,
+              "Lambda2_vortex": 26.567971
             }
           }
         },
@@ -272,9 +314,11 @@
           "z": 48.564,
           "values": [
             0.313,
+            0.4809,
             0.4427,
             0.2672,
-            0.1832
+            0.1832,
+            0.7405
           ],
           "attributes": {
             "node": 10,
@@ -284,9 +328,11 @@
             "n_wall": 1280,
             "raw_values": {
               "TAWSSG": -179.185161,
+              "TAWSS_rel": 1.0077,
               "WSS_average_normalized_div": -0.06508,
               "Lambda2_average": -37.111893,
-              "OSI": 0.00056
+              "OSI": 0.00056,
+              "Lambda2_vortex": 37.111893
             }
           }
         },
@@ -296,9 +342,11 @@
           "z": 48.2337,
           "values": [
             0.2443,
+            0.4427,
             0.2748,
             0.2824,
-            0.3206
+            0.3206,
+            0.7252
           ],
           "attributes": {
             "node": 11,
@@ -308,9 +356,11 @@
             "n_wall": 1273,
             "raw_values": {
               "TAWSSG": -266.828034,
+              "TAWSS_rel": 1.002657,
               "WSS_average_normalized_div": -0.12117,
               "Lambda2_average": -28.270747,
-              "OSI": 0.001303
+              "OSI": 0.001303,
+              "Lambda2_vortex": 28.270747
             }
           }
         },
@@ -320,9 +370,11 @@
           "z": 47.902,
           "values": [
             0.2519,
+            0.458,
             0.1679,
             0.2901,
-            0.542
+            0.542,
+            0.7176
           ],
           "attributes": {
             "node": 12,
@@ -332,9 +384,11 @@
             "n_wall": 1268,
             "raw_values": {
               "TAWSSG": -259.938831,
+              "TAWSS_rel": 1.004366,
               "WSS_average_normalized_div": -0.172534,
               "Lambda2_average": -27.120916,
-              "OSI": 0.002484
+              "OSI": 0.002484,
+              "Lambda2_vortex": 27.120916
             }
           }
         },
@@ -344,9 +398,11 @@
           "z": 47.5416,
           "values": [
             0.2977,
+            0.4275,
             0.0534,
             0.313,
-            0.771
+            0.771,
+            0.6947
           ],
           "attributes": {
             "node": 13,
@@ -356,9 +412,11 @@
             "n_wall": 1275,
             "raw_values": {
               "TAWSSG": -206.488008,
+              "TAWSS_rel": 1.001714,
               "WSS_average_normalized_div": -0.237059,
               "Lambda2_average": -4.249619,
-              "OSI": 0.004762
+              "OSI": 0.004762,
+              "Lambda2_vortex": 4.249619
             }
           }
         },
@@ -368,9 +426,11 @@
           "z": 47.1713,
           "values": [
             0.2901,
+            0.4656,
             0.0305,
             0.3588,
-            0.9008
+            0.9008,
+            0.3435
           ],
           "attributes": {
             "node": 14,
@@ -380,9 +440,11 @@
             "n_wall": 1273,
             "raw_values": {
               "TAWSSG": -211.250543,
+              "TAWSS_rel": 1.006211,
               "WSS_average_normalized_div": -0.296542,
               "Lambda2_average": 52.612442,
-              "OSI": 0.00823
+              "OSI": 0.00823,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -392,9 +454,11 @@
           "z": 46.7807,
           "values": [
             0.3053,
+            0.5191,
             0.0382,
             0.4351,
-            0.9237
+            0.9237,
+            0.3435
           ],
           "attributes": {
             "node": 15,
@@ -404,9 +468,11 @@
             "n_wall": 1304,
             "raw_values": {
               "TAWSSG": -187.624328,
+              "TAWSS_rel": 1.017895,
               "WSS_average_normalized_div": -0.296445,
               "Lambda2_average": 133.246541,
-              "OSI": 0.011819
+              "OSI": 0.011819,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -416,9 +482,11 @@
           "z": 46.3752,
           "values": [
             0.3206,
+            0.6565,
             0.0611,
             0.5267,
-            0.9313
+            0.9313,
+            0.3435
           ],
           "attributes": {
             "node": 16,
@@ -428,9 +496,11 @@
             "n_wall": 1313,
             "raw_values": {
               "TAWSSG": -155.757223,
+              "TAWSS_rel": 1.043367,
               "WSS_average_normalized_div": -0.220857,
               "Lambda2_average": 281.499785,
-              "OSI": 0.012933
+              "OSI": 0.012933,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -440,9 +510,11 @@
           "z": 45.9685,
           "values": [
             0.3282,
+            0.7176,
             0.3282,
             0.6183,
-            0.916
+            0.916,
+            0.3435
           ],
           "attributes": {
             "node": 17,
@@ -452,9 +524,11 @@
             "n_wall": 1296,
             "raw_values": {
               "TAWSSG": -130.627137,
+              "TAWSS_rel": 1.054803,
               "WSS_average_normalized_div": -0.105872,
               "Lambda2_average": 510.233614,
-              "OSI": 0.011015
+              "OSI": 0.011015,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -464,9 +538,11 @@
           "z": 45.5868,
           "values": [
             0.374,
+            0.7099,
             0.4656,
             0.6718,
-            0.8931
+            0.8931,
+            0.3435
           ],
           "attributes": {
             "node": 18,
@@ -476,9 +552,11 @@
             "n_wall": 1302,
             "raw_values": {
               "TAWSSG": -34.177328,
+              "TAWSS_rel": 1.054208,
               "WSS_average_normalized_div": -0.061533,
               "Lambda2_average": 815.54177,
-              "OSI": 0.007748
+              "OSI": 0.007748,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -488,9 +566,11 @@
           "z": 45.2088,
           "values": [
             0.3664,
+            0.6336,
             0.6107,
             0.7023,
-            0.8015
+            0.8015,
+            0.3435
           ],
           "attributes": {
             "node": 19,
@@ -500,9 +580,11 @@
             "n_wall": 1303,
             "raw_values": {
               "TAWSSG": -50.403659,
+              "TAWSS_rel": 1.04023,
               "WSS_average_normalized_div": -0.041476,
               "Lambda2_average": 1108.805646,
-              "OSI": 0.005489
+              "OSI": 0.005489,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -512,9 +594,11 @@
           "z": 44.8396,
           "values": [
             0.2748,
+            0.7481,
             0.6718,
             0.7252,
-            0.6641
+            0.6641,
+            0.3435
           ],
           "attributes": {
             "node": 20,
@@ -524,9 +608,11 @@
             "n_wall": 1303,
             "raw_values": {
               "TAWSSG": -239.035105,
+              "TAWSS_rel": 1.05637,
               "WSS_average_normalized_div": -0.018759,
               "Lambda2_average": 1431.614077,
-              "OSI": 0.003864
+              "OSI": 0.003864,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -536,9 +622,11 @@
           "z": 44.5408,
           "values": [
             0.2595,
+            0.7634,
             0.8473,
             0.7557,
-            0.6794
+            0.6794,
+            0.3435
           ],
           "attributes": {
             "node": 21,
@@ -548,9 +636,11 @@
             "n_wall": 1323,
             "raw_values": {
               "TAWSSG": -250.818065,
+              "TAWSS_rel": 1.062736,
               "WSS_average_normalized_div": 0.015633,
               "Lambda2_average": 1626.947509,
-              "OSI": 0.003933
+              "OSI": 0.003933,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -560,9 +650,11 @@
           "z": 44.2869,
           "values": [
             0.3359,
+            0.8702,
             0.8626,
             0.7863,
-            0.7405
+            0.7405,
+            0.3435
           ],
           "attributes": {
             "node": 22,
@@ -572,9 +664,11 @@
             "n_wall": 1323,
             "raw_values": {
               "TAWSSG": -124.577774,
+              "TAWSS_rel": 1.105906,
               "WSS_average_normalized_div": 0.020287,
               "Lambda2_average": 1732.106392,
-              "OSI": 0.004191
+              "OSI": 0.004191,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -584,9 +678,11 @@
           "z": 44.0444,
           "values": [
             0.3511,
+            0.9466,
             0.9008,
             0.7786,
-            0.7481
+            0.7481,
+            0.3435
           ],
           "attributes": {
             "node": 23,
@@ -596,9 +692,11 @@
             "n_wall": 1314,
             "raw_values": {
               "TAWSSG": -107.893098,
+              "TAWSS_rel": 1.227206,
               "WSS_average_normalized_div": 0.028784,
               "Lambda2_average": 1722.743149,
-              "OSI": 0.004232
+              "OSI": 0.004232,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -608,9 +706,11 @@
           "z": 43.8309,
           "values": [
             0.5115,
+            0.9847,
             0.8702,
             0.7176,
-            0.7634
+            0.7634,
+            0.3435
           ],
           "attributes": {
             "node": 24,
@@ -620,9 +720,11 @@
             "n_wall": 1294,
             "raw_values": {
               "TAWSSG": 320.881905,
+              "TAWSS_rel": 1.348123,
               "WSS_average_normalized_div": 0.021658,
               "Lambda2_average": 1330.415087,
-              "OSI": 0.004258
+              "OSI": 0.004258,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -632,9 +734,11 @@
           "z": 43.6661,
           "values": [
             0.7252,
+            1.0,
             0.8855,
             0.6794,
-            0.687
+            0.687,
+            0.3435
           ],
           "attributes": {
             "node": 25,
@@ -644,9 +748,11 @@
             "n_wall": 1287,
             "raw_values": {
               "TAWSSG": 856.460254,
+              "TAWSS_rel": 1.398142,
               "WSS_average_normalized_div": 0.023995,
               "Lambda2_average": 998.449003,
-              "OSI": 0.003965
+              "OSI": 0.003965,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -656,9 +762,11 @@
           "z": 43.5039,
           "values": [
             0.8092,
+            0.9924,
             0.855,
             0.6489,
-            0.5954
+            0.5954,
+            0.3435
           ],
           "attributes": {
             "node": 26,
@@ -668,9 +776,11 @@
             "n_wall": 1265,
             "raw_values": {
               "TAWSSG": 1249.697323,
+              "TAWSS_rel": 1.388782,
               "WSS_average_normalized_div": 0.018554,
               "Lambda2_average": 639.809143,
-              "OSI": 0.003126
+              "OSI": 0.003126,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -680,9 +790,11 @@
           "z": 43.3458,
           "values": [
             0.8779,
+            0.9695,
             0.8397,
             0.5802,
-            0.5115
+            0.5115,
+            0.3435
           ],
           "attributes": {
             "node": 27,
@@ -692,9 +804,11 @@
             "n_wall": 1257,
             "raw_values": {
               "TAWSSG": 1606.924363,
+              "TAWSS_rel": 1.322628,
               "WSS_average_normalized_div": 0.014673,
               "Lambda2_average": 395.969858,
-              "OSI": 0.002234
+              "OSI": 0.002234,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -704,9 +818,11 @@
           "z": 43.1842,
           "values": [
             0.8397,
+            0.9389,
             0.8168,
             0.5191,
-            0.458
+            0.458,
+            0.3435
           ],
           "attributes": {
             "node": 28,
@@ -716,9 +832,11 @@
             "n_wall": 1252,
             "raw_values": {
               "TAWSSG": 1400.693283,
+              "TAWSS_rel": 1.203906,
               "WSS_average_normalized_div": 0.011557,
               "Lambda2_average": 261.946699,
-              "OSI": 0.001787
+              "OSI": 0.001787,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -728,9 +846,11 @@
           "z": 43.0371,
           "values": [
             0.8244,
+            0.8473,
             0.8244,
             0.4275,
-            0.3588
+            0.3588,
+            0.3435
           ],
           "attributes": {
             "node": 29,
@@ -740,9 +860,11 @@
             "n_wall": 1249,
             "raw_values": {
               "TAWSSG": 1342.482184,
+              "TAWSS_rel": 1.100344,
               "WSS_average_normalized_div": 0.011849,
               "Lambda2_average": 131.246869,
-              "OSI": 0.001412
+              "OSI": 0.001412,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -752,9 +874,11 @@
           "z": 42.9062,
           "values": [
             0.7634,
+            0.3435,
             0.8092,
             0.4046,
-            0.3053
+            0.3053,
+            0.3435
           ],
           "attributes": {
             "node": 30,
@@ -764,9 +888,11 @@
             "n_wall": 1245,
             "raw_values": {
               "TAWSSG": 963.689966,
+              "TAWSS_rel": 0.991818,
               "WSS_average_normalized_div": 0.01099,
               "Lambda2_average": 110.211477,
-              "OSI": 0.001216
+              "OSI": 0.001216,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -776,9 +902,11 @@
           "z": 42.7564,
           "values": [
             0.5878,
+            0.1756,
             0.8015,
             0.3511,
-            0.2672
+            0.2672,
+            0.3435
           ],
           "attributes": {
             "node": 31,
@@ -788,9 +916,11 @@
             "n_wall": 1242,
             "raw_values": {
               "TAWSSG": 415.029962,
+              "TAWSS_rel": 0.948537,
               "WSS_average_normalized_div": 0.009537,
               "Lambda2_average": 47.021722,
-              "OSI": 0.001106
+              "OSI": 0.001106,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -800,9 +930,11 @@
           "z": 42.604,
           "values": [
             0.5802,
+            0.1221,
             0.7786,
             0.3053,
-            0.2443
+            0.2443,
+            0.7023
           ],
           "attributes": {
             "node": 32,
@@ -812,9 +944,11 @@
             "n_wall": 1245,
             "raw_values": {
               "TAWSSG": 413.005141,
+              "TAWSS_rel": 0.925231,
               "WSS_average_normalized_div": 0.003506,
               "Lambda2_average": -17.732491,
-              "OSI": 0.001049
+              "OSI": 0.001049,
+              "Lambda2_vortex": 17.732491
             }
           }
         },
@@ -824,9 +958,11 @@
           "z": 42.4456,
           "values": [
             0.4962,
+            0.0916,
             0.7557,
             0.2748,
-            0.2824
+            0.2824,
+            0.7328
           ],
           "attributes": {
             "node": 33,
@@ -836,9 +972,11 @@
             "n_wall": 1242,
             "raw_values": {
               "TAWSSG": 286.046568,
+              "TAWSS_rel": 0.91219,
               "WSS_average_normalized_div": -0.002168,
               "Lambda2_average": -34.75598,
-              "OSI": 0.001159
+              "OSI": 0.001159,
+              "Lambda2_vortex": 34.75598
             }
           }
         },
@@ -848,9 +986,11 @@
           "z": 42.2759,
           "values": [
             0.4427,
+            0.0763,
             0.7099,
             0.2519,
-            0.3435
+            0.3435,
+            0.7557
           ],
           "attributes": {
             "node": 34,
@@ -860,9 +1000,11 @@
             "n_wall": 1253,
             "raw_values": {
               "TAWSSG": 123.196781,
+              "TAWSS_rel": 0.904672,
               "WSS_average_normalized_div": -0.009131,
               "Lambda2_average": -75.519215,
-              "OSI": 0.001365
+              "OSI": 0.001365,
+              "Lambda2_vortex": 75.519215
             }
           }
         },
@@ -872,9 +1014,11 @@
           "z": 42.0688,
           "values": [
             0.3435,
+            0.1298,
             0.6794,
             0.2443,
-            0.3969
+            0.3969,
+            0.7634
           ],
           "attributes": {
             "node": 35,
@@ -884,9 +1028,11 @@
             "n_wall": 1273,
             "raw_values": {
               "TAWSSG": -119.422107,
+              "TAWSS_rel": 0.932751,
               "WSS_average_normalized_div": -0.018436,
               "Lambda2_average": -107.665975,
-              "OSI": 0.001562
+              "OSI": 0.001562,
+              "Lambda2_vortex": 107.665975
             }
           }
         },
@@ -896,9 +1042,11 @@
           "z": 41.8461,
           "values": [
             0.1985,
+            0.2824,
             0.6336,
             0.2366,
-            0.4275
+            0.4275,
+            0.771
           ],
           "attributes": {
             "node": 36,
@@ -908,9 +1056,11 @@
             "n_wall": 1262,
             "raw_values": {
               "TAWSSG": -549.67044,
+              "TAWSS_rel": 0.981483,
               "WSS_average_normalized_div": -0.031095,
               "Lambda2_average": -116.92308,
-              "OSI": 0.001646
+              "OSI": 0.001646,
+              "Lambda2_vortex": 116.92308
             }
           }
         },
@@ -920,9 +1070,11 @@
           "z": 41.6076,
           "values": [
             0.1756,
+            0.6947,
             0.5878,
             0.2214,
-            0.4046
+            0.4046,
+            0.7863
           ],
           "attributes": {
             "node": 37,
@@ -932,9 +1084,11 @@
             "n_wall": 1265,
             "raw_values": {
               "TAWSSG": -777.014006,
+              "TAWSS_rel": 1.048771,
               "WSS_average_normalized_div": -0.042929,
               "Lambda2_average": -197.37438,
-              "OSI": 0.001587
+              "OSI": 0.001587,
+              "Lambda2_vortex": 197.37438
             }
           }
         },
@@ -944,9 +1098,11 @@
           "z": 41.3374,
           "values": [
             0.2061,
+            0.8092,
             0.5344,
             0.2061,
-            0.4122
+            0.4122,
+            0.8015
           ],
           "attributes": {
             "node": 38,
@@ -956,9 +1112,11 @@
             "n_wall": 1275,
             "raw_values": {
               "TAWSSG": -504.916247,
+              "TAWSS_rel": 1.092402,
               "WSS_average_normalized_div": -0.05244,
               "Lambda2_average": -293.98106,
-              "OSI": 0.001613
+              "OSI": 0.001613,
+              "Lambda2_vortex": 293.98106
             }
           }
         },
@@ -968,9 +1126,11 @@
           "z": 41.051,
           "values": [
             0.4046,
+            0.8855,
             0.4198,
             0.1985,
-            0.4351
+            0.4351,
+            0.8092
           ],
           "attributes": {
             "node": 39,
@@ -980,9 +1140,11 @@
             "n_wall": 1271,
             "raw_values": {
               "TAWSSG": 27.361781,
+              "TAWSS_rel": 1.108336,
               "WSS_average_normalized_div": -0.068765,
               "Lambda2_average": -297.518143,
-              "OSI": 0.001675
+              "OSI": 0.001675,
+              "Lambda2_vortex": 297.518143
             }
           }
         },
@@ -992,9 +1154,11 @@
           "z": 40.7459,
           "values": [
             0.5725,
+            0.8244,
             0.3359,
             0.2137,
-            0.4656
+            0.4656,
+            0.7939
           ],
           "attributes": {
             "node": 40,
@@ -1004,9 +1168,11 @@
             "n_wall": 1262,
             "raw_values": {
               "TAWSSG": 367.179921,
+              "TAWSS_rel": 1.093791,
               "WSS_average_normalized_div": -0.099282,
               "Lambda2_average": -252.800558,
-              "OSI": 0.001828
+              "OSI": 0.001828,
+              "Lambda2_vortex": 252.800558
             }
           }
         },
@@ -1016,9 +1182,11 @@
           "z": 40.4525,
           "values": [
             0.6336,
+            0.6489,
             0.2366,
             0.229,
-            0.4962
+            0.4962,
+            0.7786
           ],
           "attributes": {
             "node": 41,
@@ -1028,9 +1196,11 @@
             "n_wall": 1249,
             "raw_values": {
               "TAWSSG": 585.021516,
+              "TAWSS_rel": 1.042497,
               "WSS_average_normalized_div": -0.127543,
               "Lambda2_average": -161.40525,
-              "OSI": 0.002065
+              "OSI": 0.002065,
+              "Lambda2_vortex": 161.40525
             }
           }
         },
@@ -1040,9 +1210,11 @@
           "z": 40.1414,
           "values": [
             0.7023,
+            0.3206,
             0.2595,
             0.2595,
-            0.5267
+            0.5267,
+            0.7481
           ],
           "attributes": {
             "node": 42,
@@ -1052,9 +1224,11 @@
             "n_wall": 1245,
             "raw_values": {
               "TAWSSG": 750.066839,
+              "TAWSS_rel": 0.987347,
               "WSS_average_normalized_div": -0.124808,
               "Lambda2_average": -53.365562,
-              "OSI": 0.002448
+              "OSI": 0.002448,
+              "Lambda2_vortex": 53.365562
             }
           }
         },
@@ -1064,9 +1238,11 @@
           "z": 39.8086,
           "values": [
             0.687,
+            0.1832,
             0.2443,
             0.3664,
-            0.5725
+            0.5725,
+            0.3435
           ],
           "attributes": {
             "node": 43,
@@ -1076,9 +1252,11 @@
             "n_wall": 1237,
             "raw_values": {
               "TAWSSG": 732.320169,
+              "TAWSS_rel": 0.953243,
               "WSS_average_normalized_div": -0.12599,
               "Lambda2_average": 54.750736,
-              "OSI": 0.003004
+              "OSI": 0.003004,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1088,9 +1266,11 @@
           "z": 39.4497,
           "values": [
             0.5267,
+            0.145,
             0.3206,
             0.4504,
-            0.6565
+            0.6565,
+            0.3435
           ],
           "attributes": {
             "node": 44,
@@ -1100,9 +1280,11 @@
             "n_wall": 1251,
             "raw_values": {
               "TAWSSG": 342.972459,
+              "TAWSS_rel": 0.937335,
               "WSS_average_normalized_div": -0.10872,
               "Lambda2_average": 175.905927,
-              "OSI": 0.0037
+              "OSI": 0.0037,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1112,9 +1294,11 @@
           "z": 39.0587,
           "values": [
             0.4504,
+            0.1603,
             0.3588,
             0.4809,
-            0.7176
+            0.7176,
+            0.3435
           ],
           "attributes": {
             "node": 45,
@@ -1124,9 +1308,11 @@
             "n_wall": 1258,
             "raw_values": {
               "TAWSSG": 159.970564,
+              "TAWSS_rel": 0.940729,
               "WSS_average_normalized_div": -0.092741,
               "Lambda2_average": 227.768151,
-              "OSI": 0.004104
+              "OSI": 0.004104,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1136,9 +1322,11 @@
           "z": 38.633,
           "values": [
             0.4275,
+            0.2595,
             0.5115,
             0.4962,
-            0.7328
+            0.7328,
+            0.3435
           ],
           "attributes": {
             "node": 46,
@@ -1148,9 +1336,11 @@
             "n_wall": 1268,
             "raw_values": {
               "TAWSSG": 69.720111,
+              "TAWSS_rel": 0.978438,
               "WSS_average_normalized_div": -0.05482,
               "Lambda2_average": 260.24961,
-              "OSI": 0.004185
+              "OSI": 0.004185,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1160,9 +1350,11 @@
           "z": 38.1803,
           "values": [
             0.5954,
+            0.687,
             0.5038,
             0.5115,
-            0.6489
+            0.6489,
+            0.3435
           ],
           "attributes": {
             "node": 47,
@@ -1172,9 +1364,11 @@
             "n_wall": 1275,
             "raw_values": {
               "TAWSSG": 462.534563,
+              "TAWSS_rel": 1.046848,
               "WSS_average_normalized_div": -0.055101,
               "Lambda2_average": 261.673134,
-              "OSI": 0.003627
+              "OSI": 0.003627,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1184,9 +1378,11 @@
           "z": 37.7025,
           "values": [
             0.6718,
+            0.626,
             0.5725,
             0.5725,
-            0.6031
+            0.6031,
+            0.3435
           ],
           "attributes": {
             "node": 48,
@@ -1196,9 +1392,11 @@
             "n_wall": 1281,
             "raw_values": {
               "TAWSSG": 706.350948,
+              "TAWSS_rel": 1.037248,
               "WSS_average_normalized_div": -0.046192,
               "Lambda2_average": 389.822806,
-              "OSI": 0.003252
+              "OSI": 0.003252,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1208,9 +1406,11 @@
           "z": 37.2204,
           "values": [
             0.626,
+            0.4962,
             0.6565,
             0.6107,
-            0.5802
+            0.5802,
+            0.3435
           ],
           "attributes": {
             "node": 49,
@@ -1220,9 +1420,11 @@
             "n_wall": 1279,
             "raw_values": {
               "TAWSSG": 565.502369,
+              "TAWSS_rel": 1.014559,
               "WSS_average_normalized_div": -0.026096,
               "Lambda2_average": 478.794038,
-              "OSI": 0.003062
+              "OSI": 0.003062,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1232,9 +1434,11 @@
           "z": 36.7378,
           "values": [
             0.6183,
+            0.3893,
             0.687,
             0.6336,
-            0.6107
+            0.6107,
+            0.3435
           ],
           "attributes": {
             "node": 50,
@@ -1244,9 +1448,11 @@
             "n_wall": 1279,
             "raw_values": {
               "TAWSSG": 554.238163,
+              "TAWSS_rel": 0.998126,
               "WSS_average_normalized_div": -0.017535,
               "Lambda2_average": 554.010151,
-              "OSI": 0.003254
+              "OSI": 0.003254,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1256,9 +1462,11 @@
           "z": 36.2415,
           "values": [
             0.6107,
+            0.3359,
             0.4504,
             0.626,
-            0.8779
+            0.8779,
+            0.3435
           ],
           "attributes": {
             "node": 51,
@@ -1268,9 +1476,11 @@
             "n_wall": 1281,
             "raw_values": {
               "TAWSSG": 521.698995,
+              "TAWSS_rel": 0.990404,
               "WSS_average_normalized_div": -0.062707,
               "Lambda2_average": 529.170426,
-              "OSI": 0.00695
+              "OSI": 0.00695,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1280,9 +1490,11 @@
           "z": 35.7441,
           "values": [
             0.7099,
+            0.2137,
             0.313,
             0.6031,
-            0.9389
+            0.9389,
+            0.3435
           ],
           "attributes": {
             "node": 52,
@@ -1292,9 +1504,11 @@
             "n_wall": 1292,
             "raw_values": {
               "TAWSSG": 838.430612,
+              "TAWSS_rel": 0.961468,
               "WSS_average_normalized_div": -0.117012,
               "Lambda2_average": 467.332524,
-              "OSI": 0.013911
+              "OSI": 0.013911,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1304,9 +1518,11 @@
           "z": 35.2456,
           "values": [
             0.7939,
+            0.0534,
             0.2977,
             0.5878,
-            0.9542
+            0.9542,
+            0.3435
           ],
           "attributes": {
             "node": 53,
@@ -1316,9 +1532,11 @@
             "n_wall": 1299,
             "raw_values": {
               "TAWSSG": 1185.128691,
+              "TAWSS_rel": 0.878356,
               "WSS_average_normalized_div": -0.118302,
               "Lambda2_average": 406.420933,
-              "OSI": 0.020549
+              "OSI": 0.020549,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1328,9 +1546,11 @@
           "z": 34.7509,
           "values": [
             0.6412,
+            0.0229,
             0.2901,
             0.5954,
-            0.9695
+            0.9695,
+            0.3435
           ],
           "attributes": {
             "node": 54,
@@ -1340,9 +1560,11 @@
             "n_wall": 1315,
             "raw_values": {
               "TAWSSG": 587.558074,
+              "TAWSS_rel": 0.842279,
               "WSS_average_normalized_div": -0.11918,
               "Lambda2_average": 421.757899,
-              "OSI": 0.024067
+              "OSI": 0.024067,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1352,9 +1574,11 @@
           "z": 34.2806,
           "values": [
             0.4885,
+            0.0611,
             0.2214,
             0.5649,
-            0.9771
+            0.9771,
+            0.3435
           ],
           "attributes": {
             "node": 55,
@@ -1364,9 +1588,11 @@
             "n_wall": 1315,
             "raw_values": {
               "TAWSSG": 284.309502,
+              "TAWSS_rel": 0.885832,
               "WSS_average_normalized_div": -0.136159,
               "Lambda2_average": 339.924313,
-              "OSI": 0.029483
+              "OSI": 0.029483,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1376,9 +1602,11 @@
           "z": 33.8177,
           "values": [
             0.5649,
+            0.084,
             0.229,
             0.5344,
-            1.0
+            1.0,
+            0.3435
           ],
           "attributes": {
             "node": 56,
@@ -1388,9 +1616,11 @@
             "n_wall": 1310,
             "raw_values": {
               "TAWSSG": 366.294576,
+              "TAWSS_rel": 0.911642,
               "WSS_average_normalized_div": -0.132976,
               "Lambda2_average": 283.746961,
-              "OSI": 0.034801
+              "OSI": 0.034801,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1400,9 +1630,11 @@
           "z": 33.3512,
           "values": [
             0.542,
+            0.1679,
             0.4809,
             0.5038,
-            0.9924
+            0.9924,
+            0.3435
           ],
           "attributes": {
             "node": 57,
@@ -1412,9 +1644,11 @@
             "n_wall": 1313,
             "raw_values": {
               "TAWSSG": 360.155312,
+              "TAWSS_rel": 0.944776,
               "WSS_average_normalized_div": -0.057258,
               "Lambda2_average": 260.620235,
-              "OSI": 0.032942
+              "OSI": 0.032942,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1424,9 +1658,11 @@
           "z": 32.9028,
           "values": [
             0.5496,
+            0.313,
             0.8779,
             0.4885,
-            0.9847
+            0.9847,
+            0.3435
           ],
           "attributes": {
             "node": 58,
@@ -1436,9 +1672,11 @@
             "n_wall": 1314,
             "raw_values": {
               "TAWSSG": 362.675684,
+              "TAWSS_rel": 0.987275,
               "WSS_average_normalized_div": 0.022566,
               "Lambda2_average": 235.324659,
-              "OSI": 0.030832
+              "OSI": 0.030832,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1448,9 +1686,11 @@
           "z": 32.449,
           "values": [
             0.3817,
+            0.5802,
             0.9389,
             0.4656,
-            0.9618
+            0.9618,
+            0.3435
           ],
           "attributes": {
             "node": 59,
@@ -1460,9 +1700,11 @@
             "n_wall": 1312,
             "raw_values": {
               "TAWSSG": -33.504644,
+              "TAWSS_rel": 1.030288,
               "WSS_average_normalized_div": 0.094461,
               "Lambda2_average": 204.11854,
-              "OSI": 0.022216
+              "OSI": 0.022216,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1472,9 +1714,11 @@
           "z": 31.9738,
           "values": [
             0.1832,
+            0.7405,
             0.9542,
             0.458,
-            0.9466
+            0.9466,
+            0.3435
           ],
           "attributes": {
             "node": 60,
@@ -1484,9 +1728,11 @@
             "n_wall": 1293,
             "raw_values": {
               "TAWSSG": -719.79426,
+              "TAWSS_rel": 1.055401,
               "WSS_average_normalized_div": 0.112423,
               "Lambda2_average": 182.091072,
-              "OSI": 0.014757
+              "OSI": 0.014757,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1496,9 +1742,11 @@
           "z": 31.5093,
           "values": [
             0.0763,
+            0.8168,
             0.9237,
             0.1908,
-            0.9084
+            0.9084,
+            0.8168
           ],
           "attributes": {
             "node": 61,
@@ -1508,9 +1756,11 @@
             "n_wall": 1285,
             "raw_values": {
               "TAWSSG": -2217.038497,
+              "TAWSS_rel": 1.093527,
               "WSS_average_normalized_div": 0.066726,
               "Lambda2_average": -379.61066,
-              "OSI": 0.010342
+              "OSI": 0.010342,
+              "Lambda2_vortex": 379.61066
             }
           }
         },
@@ -1520,9 +1770,11 @@
           "z": 31.0525,
           "values": [
             0.0534,
+            0.8321,
             0.5191,
             0.1069,
-            0.6947
+            0.6947,
+            0.9008
           ],
           "attributes": {
             "node": 62,
@@ -1532,9 +1784,11 @@
             "n_wall": 1270,
             "raw_values": {
               "TAWSSG": -2451.916701,
+              "TAWSS_rel": 1.097182,
               "WSS_average_normalized_div": -0.053573,
               "Lambda2_average": -2833.047974,
-              "OSI": 0.003977
+              "OSI": 0.003977,
+              "Lambda2_vortex": 2833.047974
             }
           }
         },
@@ -1544,9 +1798,11 @@
           "z": 30.5818,
           "values": [
             0.1069,
+            0.6718,
             0.3053,
             0.0916,
-            0.5344
+            0.5344,
+            0.916
           ],
           "attributes": {
             "node": 63,
@@ -1556,9 +1812,11 @@
             "n_wall": 1273,
             "raw_values": {
               "TAWSSG": -1777.178698,
+              "TAWSS_rel": 1.043724,
               "WSS_average_normalized_div": -0.117399,
               "Lambda2_average": -4027.891227,
-              "OSI": 0.002461
+              "OSI": 0.002461,
+              "Lambda2_vortex": 4027.891227
             }
           }
         },
@@ -1568,9 +1826,11 @@
           "z": 30.0925,
           "values": [
             0.1145,
+            0.6107,
             0.1832,
             0.0763,
-            0.5191
+            0.5191,
+            0.9313
           ],
           "attributes": {
             "node": 64,
@@ -1580,9 +1840,11 @@
             "n_wall": 1295,
             "raw_values": {
               "TAWSSG": -1738.448224,
+              "TAWSS_rel": 1.034214,
               "WSS_average_normalized_div": -0.163351,
               "Lambda2_average": -4244.925528,
-              "OSI": 0.002324
+              "OSI": 0.002324,
+              "Lambda2_vortex": 4244.925528
             }
           }
         },
@@ -1592,9 +1854,11 @@
           "z": 29.6004,
           "values": [
             0.1374,
+            0.5954,
             0.1298,
             0.0687,
-            0.5496
+            0.5496,
+            0.9389
           ],
           "attributes": {
             "node": 65,
@@ -1604,9 +1868,11 @@
             "n_wall": 1290,
             "raw_values": {
               "TAWSSG": -1280.49994,
+              "TAWSS_rel": 1.031163,
               "WSS_average_normalized_div": -0.192355,
               "Lambda2_average": -4279.255958,
-              "OSI": 0.002589
+              "OSI": 0.002589,
+              "Lambda2_vortex": 4279.255958
             }
           }
         },
@@ -1616,9 +1882,11 @@
           "z": 29.1173,
           "values": [
             0.1908,
+            0.6183,
             0.1069,
             0.084,
-            0.6183
+            0.6183,
+            0.9237
           ],
           "attributes": {
             "node": 66,
@@ -1628,9 +1896,11 @@
             "n_wall": 1279,
             "raw_values": {
               "TAWSSG": -690.660152,
+              "TAWSS_rel": 1.035378,
               "WSS_average_normalized_div": -0.19926,
               "Lambda2_average": -4178.842898,
-              "OSI": 0.003302
+              "OSI": 0.003302,
+              "Lambda2_vortex": 4178.842898
             }
           }
         },
@@ -1640,9 +1910,11 @@
           "z": 28.6602,
           "values": [
             0.458,
+            0.5344,
             0.145,
             0.0992,
-            0.7557
+            0.7557,
+            0.9084
           ],
           "attributes": {
             "node": 67,
@@ -1652,9 +1924,11 @@
             "n_wall": 1294,
             "raw_values": {
               "TAWSSG": 178.146054,
+              "TAWSS_rel": 1.02188,
               "WSS_average_normalized_div": -0.189153,
               "Lambda2_average": -3597.875934,
-              "OSI": 0.004245
+              "OSI": 0.004245,
+              "Lambda2_vortex": 3597.875934
             }
           }
         },
@@ -1664,9 +1938,11 @@
           "z": 28.2317,
           "values": [
             0.7328,
+            0.3969,
             0.0992,
             0.1145,
-            0.8168
+            0.8168,
+            0.8931
           ],
           "attributes": {
             "node": 68,
@@ -1676,9 +1952,11 @@
             "n_wall": 1306,
             "raw_values": {
               "TAWSSG": 858.174872,
+              "TAWSS_rel": 0.998287,
               "WSS_average_normalized_div": -0.206471,
               "Lambda2_average": -2428.60922,
-              "OSI": 0.005574
+              "OSI": 0.005574,
+              "Lambda2_vortex": 2428.60922
             }
           }
         },
@@ -1688,9 +1966,11 @@
           "z": 27.8702,
           "values": [
             0.8015,
+            0.4733,
             0.1527,
             0.1374,
-            0.8321
+            0.8321,
+            0.8702
           ],
           "attributes": {
             "node": 69,
@@ -1700,9 +1980,11 @@
             "n_wall": 1293,
             "raw_values": {
               "TAWSSG": 1213.091067,
+              "TAWSS_rel": 1.0075,
               "WSS_average_normalized_div": -0.184791,
               "Lambda2_average": -1232.269248,
-              "OSI": 0.005972
+              "OSI": 0.005972,
+              "Lambda2_vortex": 1232.269248
             }
           }
         },
@@ -1712,9 +1994,11 @@
           "z": 27.5878,
           "values": [
             0.8321,
+            0.4198,
             0.1374,
             0.5496,
-            0.855
+            0.855,
+            0.3435
           ],
           "attributes": {
             "node": 70,
@@ -1724,9 +2008,11 @@
             "n_wall": 1276,
             "raw_values": {
               "TAWSSG": 1378.265839,
+              "TAWSS_rel": 1.001204,
               "WSS_average_normalized_div": -0.191094,
               "Lambda2_average": 330.065354,
-              "OSI": 0.006586
+              "OSI": 0.006586,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1736,9 +2022,11 @@
           "z": 27.3653,
           "values": [
             0.7481,
+            0.2901,
             0.084,
             0.8015,
-            0.8855
+            0.8855,
+            0.3435
           ],
           "attributes": {
             "node": 71,
@@ -1748,9 +2036,11 @@
             "n_wall": 1269,
             "raw_values": {
               "TAWSSG": 920.715354,
+              "TAWSS_rel": 0.981745,
               "WSS_average_normalized_div": -0.214669,
               "Lambda2_average": 1774.735298,
-              "OSI": 0.007045
+              "OSI": 0.007045,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1760,9 +2050,11 @@
           "z": 27.2015,
           "values": [
             0.6489,
+            0.4046,
             0.0687,
             0.8779,
-            0.8626
+            0.8626,
+            0.3435
           ],
           "attributes": {
             "node": 72,
@@ -1772,9 +2064,11 @@
             "n_wall": 1265,
             "raw_values": {
               "TAWSSG": 624.805524,
+              "TAWSS_rel": 0.999581,
               "WSS_average_normalized_div": -0.216646,
               "Lambda2_average": 2741.220377,
-              "OSI": 0.00666
+              "OSI": 0.00666,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1784,9 +2078,11 @@
           "z": 27.1517,
           "values": [
             0.7176,
+            0.6031,
             0.1145,
             0.916,
-            0.8397
+            0.8397,
+            0.3435
           ],
           "attributes": {
             "node": 73,
@@ -1796,9 +2092,11 @@
             "n_wall": 1259,
             "raw_values": {
               "TAWSSG": 847.517903,
+              "TAWSS_rel": 1.031509,
               "WSS_average_normalized_div": -0.198682,
               "Lambda2_average": 3036.823826,
-              "OSI": 0.006147
+              "OSI": 0.006147,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1808,9 +2106,11 @@
           "z": 27.1686,
           "values": [
             0.8473,
+            0.7252,
             0.1603,
             0.9237,
-            0.8244
+            0.8244,
+            0.3435
           ],
           "attributes": {
             "node": 74,
@@ -1820,9 +2120,11 @@
             "n_wall": 1255,
             "raw_values": {
               "TAWSSG": 1431.796425,
+              "TAWSS_rel": 1.05527,
               "WSS_average_normalized_div": -0.177082,
               "Lambda2_average": 3148.860926,
-              "OSI": 0.005772
+              "OSI": 0.005772,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1832,9 +2134,11 @@
           "z": 27.2401,
           "values": [
             0.9237,
+            0.7786,
             0.2137,
             0.9618,
-            0.8092
+            0.8092,
+            0.3435
           ],
           "attributes": {
             "node": 75,
@@ -1844,9 +2148,11 @@
             "n_wall": 1239,
             "raw_values": {
               "TAWSSG": 2119.832186,
+              "TAWSS_rel": 1.070896,
               "WSS_average_normalized_div": -0.143986,
               "Lambda2_average": 3475.615701,
-              "OSI": 0.005565
+              "OSI": 0.005565,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1856,9 +2162,11 @@
           "z": 27.3786,
           "values": [
             0.9313,
+            0.7557,
             0.3435,
             0.9695,
-            0.7252
+            0.7252,
+            0.3435
           ],
           "attributes": {
             "node": 76,
@@ -1868,9 +2176,11 @@
             "n_wall": 1232,
             "raw_values": {
               "TAWSSG": 2142.859389,
+              "TAWSS_rel": 1.059588,
               "WSS_average_normalized_div": -0.097779,
               "Lambda2_average": 3574.151919,
-              "OSI": 0.004139
+              "OSI": 0.004139,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1880,9 +2190,11 @@
           "z": 27.5522,
           "values": [
             0.9389,
+            0.3664,
             0.2824,
             0.9466,
-            0.6336
+            0.6336,
+            0.3435
           ],
           "attributes": {
             "node": 77,
@@ -1892,9 +2204,11 @@
             "n_wall": 1229,
             "raw_values": {
               "TAWSSG": 2392.690189,
+              "TAWSS_rel": 0.995497,
               "WSS_average_normalized_div": -0.120217,
               "Lambda2_average": 3261.093701,
-              "OSI": 0.003575
+              "OSI": 0.003575,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1904,9 +2218,11 @@
           "z": 27.7876,
           "values": [
             0.7863,
+            0.0687,
             0.2061,
             0.9008,
-            0.7939
+            0.7939,
+            0.3435
           ],
           "attributes": {
             "node": 78,
@@ -1916,9 +2232,11 @@
             "n_wall": 1236,
             "raw_values": {
               "TAWSSG": 1177.795019,
+              "TAWSS_rel": 0.896682,
               "WSS_average_normalized_div": -0.151168,
               "Lambda2_average": 2970.019689,
-              "OSI": 0.005475
+              "OSI": 0.005475,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1928,9 +2246,11 @@
           "z": 28.0583,
           "values": [
             0.2137,
+            0.0382,
             0.3511,
             0.8931,
-            0.8473
+            0.8473,
+            0.3435
           ],
           "attributes": {
             "node": 79,
@@ -1940,9 +2260,11 @@
             "n_wall": 1239,
             "raw_values": {
               "TAWSSG": -472.572097,
+              "TAWSS_rel": 0.848863,
               "WSS_average_normalized_div": -0.096656,
               "Lambda2_average": 2935.64198,
-              "OSI": 0.006559
+              "OSI": 0.006559,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1952,9 +2274,11 @@
           "z": 28.3761,
           "values": [
             0.0687,
+            0.0992,
             0.6947,
             0.9313,
-            0.7863
+            0.7863,
+            0.3435
           ],
           "attributes": {
             "node": 80,
@@ -1964,9 +2288,11 @@
             "n_wall": 1225,
             "raw_values": {
               "TAWSSG": -2352.156351,
+              "TAWSS_rel": 0.920984,
               "WSS_average_normalized_div": -0.016616,
               "Lambda2_average": 3152.339882,
-              "OSI": 0.00547
+              "OSI": 0.00547,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -1976,9 +2302,11 @@
           "z": 28.7507,
           "values": [
             0.0458,
+            0.6412,
             0.6031,
             0.8855,
-            0.5649
+            0.5649,
+            0.3435
           ],
           "attributes": {
             "node": 81,
@@ -1988,9 +2316,11 @@
             "n_wall": 1217,
             "raw_values": {
               "TAWSSG": -2799.941095,
+              "TAWSS_rel": 1.04064,
               "WSS_average_normalized_div": -0.042516,
               "Lambda2_average": 2789.529215,
-              "OSI": 0.002962
+              "OSI": 0.002962,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2000,9 +2330,11 @@
           "z": 29.1627,
           "values": [
             0.0992,
+            0.7939,
             0.3969,
             0.8321,
-            0.4809
+            0.4809,
+            0.3435
           ],
           "attributes": {
             "node": 82,
@@ -2012,9 +2344,11 @@
             "n_wall": 1198,
             "raw_values": {
               "TAWSSG": -1786.173984,
+              "TAWSS_rel": 1.08473,
               "WSS_average_normalized_div": -0.076679,
               "Lambda2_average": 2338.360267,
-              "OSI": 0.001909
+              "OSI": 0.001909,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2024,9 +2358,11 @@
           "z": 29.5782,
           "values": [
             0.229,
+            0.9084,
             0.3664,
             0.8092,
-            0.3893
+            0.3893,
+            0.3435
           ],
           "attributes": {
             "node": 83,
@@ -2036,9 +2372,11 @@
             "n_wall": 1169,
             "raw_values": {
               "TAWSSG": -400.067748,
+              "TAWSS_rel": 1.139958,
               "WSS_average_normalized_div": -0.092455,
               "Lambda2_average": 1939.989691,
-              "OSI": 0.00153
+              "OSI": 0.00153,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2048,9 +2386,11 @@
           "z": 29.9896,
           "values": [
             0.6031,
+            0.9008,
             0.3817,
             0.7939,
-            0.374
+            0.374,
+            0.3435
           ],
           "attributes": {
             "node": 84,
@@ -2060,9 +2400,11 @@
             "n_wall": 1166,
             "raw_values": {
               "TAWSSG": 488.44674,
+              "TAWSS_rel": 1.138991,
               "WSS_average_normalized_div": -0.090195,
               "Lambda2_average": 1747.999581,
-              "OSI": 0.001498
+              "OSI": 0.001498,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2072,9 +2414,11 @@
           "z": 30.4009,
           "values": [
             0.7786,
+            0.8779,
             0.3893,
             0.8244,
-            0.3817
+            0.3817,
+            0.3435
           ],
           "attributes": {
             "node": 85,
@@ -2084,9 +2428,11 @@
             "n_wall": 1165,
             "raw_values": {
               "TAWSSG": 1104.53486,
+              "TAWSS_rel": 1.106121,
               "WSS_average_normalized_div": -0.078591,
               "Lambda2_average": 2024.076984,
-              "OSI": 0.001503
+              "OSI": 0.001503,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2096,9 +2442,11 @@
           "z": 30.8106,
           "values": [
             0.7405,
+            0.7328,
             0.4351,
             0.8702,
-            0.3664
+            0.3664,
+            0.3435
           ],
           "attributes": {
             "node": 86,
@@ -2108,9 +2456,11 @@
             "n_wall": 1164,
             "raw_values": {
               "TAWSSG": 870.092488,
+              "TAWSS_rel": 1.055354,
               "WSS_average_normalized_div": -0.066215,
               "Lambda2_average": 2669.548149,
-              "OSI": 0.001485
+              "OSI": 0.001485,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2120,9 +2470,11 @@
           "z": 31.2195,
           "values": [
             0.771,
+            0.5573,
             0.5496,
             0.9389,
-            0.3359
+            0.3359,
+            0.3435
           ],
           "attributes": {
             "node": 87,
@@ -2132,9 +2484,11 @@
             "n_wall": 1169,
             "raw_values": {
               "TAWSSG": 1001.500333,
+              "TAWSS_rel": 1.027707,
               "WSS_average_normalized_div": -0.049185,
               "Lambda2_average": 3231.317728,
-              "OSI": 0.001353
+              "OSI": 0.001353,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2144,9 +2498,11 @@
           "z": 31.6021,
           "values": [
             0.6565,
+            0.5725,
             0.6183,
             0.9542,
-            0.2901
+            0.2901,
+            0.3435
           ],
           "attributes": {
             "node": 88,
@@ -2156,9 +2512,11 @@
             "n_wall": 1162,
             "raw_values": {
               "TAWSSG": 650.904945,
+              "TAWSS_rel": 1.029289,
               "WSS_average_normalized_div": -0.038816,
               "Lambda2_average": 3466.937422,
-              "OSI": 0.001212
+              "OSI": 0.001212,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2168,9 +2526,11 @@
           "z": 31.9849,
           "values": [
             0.6641,
+            0.6641,
             0.6412,
             0.9084,
-            0.2595
+            0.2595,
+            0.3435
           ],
           "attributes": {
             "node": 89,
@@ -2180,9 +2540,11 @@
             "n_wall": 1168,
             "raw_values": {
               "TAWSSG": 679.8107,
+              "TAWSS_rel": 1.043461,
               "WSS_average_normalized_div": -0.02947,
               "Lambda2_average": 2996.810326,
-              "OSI": 0.001093
+              "OSI": 0.001093,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2192,9 +2554,11 @@
           "z": 32.3659,
           "values": [
             0.8168,
+            0.5649,
             0.4046,
             0.8397,
-            0.2366
+            0.2366,
+            0.3435
           ],
           "attributes": {
             "node": 90,
@@ -2204,9 +2568,11 @@
             "n_wall": 1169,
             "raw_values": {
               "TAWSSG": 1330.044465,
+              "TAWSS_rel": 1.027776,
               "WSS_average_normalized_div": -0.072111,
               "Lambda2_average": 2385.429416,
-              "OSI": 0.001016
+              "OSI": 0.001016,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2216,9 +2582,11 @@
           "z": 32.7331,
           "values": [
             0.8855,
+            0.3511,
             0.1985,
             0.7405,
-            0.2519
+            0.2519,
+            0.3435
           ],
           "attributes": {
             "node": 91,
@@ -2228,9 +2596,11 @@
             "n_wall": 1172,
             "raw_values": {
               "TAWSSG": 1635.782731,
+              "TAWSS_rel": 0.9921,
               "WSS_average_normalized_div": -0.15501,
               "Lambda2_average": 1473.514648,
-              "OSI": 0.001051
+              "OSI": 0.001051,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2240,9 +2610,11 @@
           "z": 33.0768,
           "values": [
             0.9542,
+            0.1069,
             0.1756,
             0.687,
-            0.3282
+            0.3282,
+            0.3435
           ],
           "attributes": {
             "node": 92,
@@ -2252,9 +2624,11 @@
             "n_wall": 1168,
             "raw_values": {
               "TAWSSG": 2633.825546,
+              "TAWSS_rel": 0.922007,
               "WSS_average_normalized_div": -0.168433,
               "Lambda2_average": 1057.961752,
-              "OSI": 0.001317
+              "OSI": 0.001317,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2264,9 +2638,11 @@
           "z": 33.3974,
           "values": [
             0.9084,
+            0.0305,
             0.374,
             0.8168,
-            0.4504
+            0.4504,
+            0.3435
           ],
           "attributes": {
             "node": 93,
@@ -2276,9 +2652,11 @@
             "n_wall": 1182,
             "raw_values": {
               "TAWSSG": 1935.390069,
+              "TAWSS_rel": 0.847495,
               "WSS_average_normalized_div": -0.092413,
               "Lambda2_average": 1997.421787,
-              "OSI": 0.001778
+              "OSI": 0.001778,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2288,9 +2666,11 @@
           "z": 33.6817,
           "values": [
             0.5191,
+            0.0458,
             0.7328,
             0.8473,
-            0.4733
+            0.4733,
+            0.3435
           ],
           "attributes": {
             "node": 94,
@@ -2300,9 +2680,11 @@
             "n_wall": 1197,
             "raw_values": {
               "TAWSSG": 341.845516,
+              "TAWSS_rel": 0.877854,
               "WSS_average_normalized_div": -0.00355,
               "Lambda2_average": 2425.301722,
-              "OSI": 0.001829
+              "OSI": 0.001829,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2312,9 +2694,11 @@
           "z": 33.956,
           "values": [
             0.6947,
+            0.1908,
             0.9313,
             0.8626,
-            0.4198
+            0.4198,
+            0.3435
           ],
           "attributes": {
             "node": 95,
@@ -2324,9 +2708,11 @@
             "n_wall": 1168,
             "raw_values": {
               "TAWSSG": 739.303997,
+              "TAWSS_rel": 0.954804,
               "WSS_average_normalized_div": 0.07948,
               "Lambda2_average": 2644.057921,
-              "OSI": 0.001627
+              "OSI": 0.001627,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2336,9 +2722,11 @@
           "z": 34.1724,
           "values": [
             0.8702,
+            0.4351,
             0.7863,
             0.7481,
-            0.2748
+            0.2748,
+            0.3435
           ],
           "attributes": {
             "node": 96,
@@ -2348,9 +2736,11 @@
             "n_wall": 1163,
             "raw_values": {
               "TAWSSG": 1566.944883,
+              "TAWSS_rel": 1.001938,
               "WSS_average_normalized_div": 0.004561,
               "Lambda2_average": 1511.744122,
-              "OSI": 0.001108
+              "OSI": 0.001108,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2360,9 +2750,11 @@
           "z": 34.3643,
           "values": [
             0.9008,
+            0.1985,
             0.1908,
             0.0534,
-            0.313
+            0.313,
+            0.9542
           ],
           "attributes": {
             "node": 97,
@@ -2372,9 +2764,11 @@
             "n_wall": 1192,
             "raw_values": {
               "TAWSSG": 1900.049305,
+              "TAWSS_rel": 0.956281,
               "WSS_average_normalized_div": -0.15695,
               "Lambda2_average": -8909.765333,
-              "OSI": 0.001244
+              "OSI": 0.001244,
+              "Lambda2_vortex": 8909.765333
             }
           }
         },
@@ -2384,9 +2778,11 @@
           "z": 34.548,
           "values": [
             0.2214,
+            0.1374,
             0.0916,
             0.0458,
-            0.5573
+            0.5573,
+            0.9618
           ],
           "attributes": {
             "node": 98,
@@ -2396,9 +2792,11 @@
             "n_wall": 1240,
             "raw_values": {
               "TAWSSG": -428.899486,
+              "TAWSS_rel": 0.933114,
               "WSS_average_normalized_div": -0.213759,
               "Lambda2_average": -11144.854993,
-              "OSI": 0.002869
+              "OSI": 0.002869,
+              "Lambda2_vortex": 11144.854993
             }
           }
         },
@@ -2408,9 +2806,11 @@
           "z": 34.6959,
           "values": [
             0.0611,
+            0.2519,
             0.8931,
             0.0076,
-            0.6412
+            0.6412,
+            1.0
           ],
           "attributes": {
             "node": 99,
@@ -2420,9 +2820,11 @@
             "n_wall": 1321,
             "raw_values": {
               "TAWSSG": -2358.761575,
+              "TAWSS_rel": 0.977845,
               "WSS_average_normalized_div": 0.026715,
               "Lambda2_average": -20667.901485,
-              "OSI": 0.003613
+              "OSI": 0.003613,
+              "Lambda2_vortex": 20667.901485
             }
           }
         },
@@ -2432,9 +2834,11 @@
           "z": 34.7936,
           "values": [
             0.0229,
+            0.3588,
             0.9618,
             0.0305,
-            0.6718
+            0.6718,
+            0.9771
           ],
           "attributes": {
             "node": 100,
@@ -2444,9 +2848,11 @@
             "n_wall": 1293,
             "raw_values": {
               "TAWSSG": -4193.339465,
+              "TAWSS_rel": 0.993418,
               "WSS_average_normalized_div": 0.119297,
               "Lambda2_average": -11615.704506,
-              "OSI": 0.003927
+              "OSI": 0.003927,
+              "Lambda2_vortex": 11615.704506
             }
           }
         },
@@ -2456,9 +2862,11 @@
           "z": 34.8965,
           "values": [
             0.0382,
+            0.3817,
             0.9771,
             0.4427,
-            0.626
+            0.626,
+            0.3435
           ],
           "attributes": {
             "node": 101,
@@ -2468,9 +2876,11 @@
             "n_wall": 1220,
             "raw_values": {
               "TAWSSG": -2944.017456,
+              "TAWSS_rel": 0.998062,
               "WSS_average_normalized_div": 0.279719,
               "Lambda2_average": 148.310957,
-              "OSI": 0.003485
+              "OSI": 0.003485,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2480,9 +2890,11 @@
           "z": 35.0094,
           "values": [
             0.4656,
+            0.5496,
             0.9695,
             0.4122,
-            0.5038
+            0.5038,
+            0.3435
           ],
           "attributes": {
             "node": 102,
@@ -2492,9 +2904,11 @@
             "n_wall": 1183,
             "raw_values": {
               "TAWSSG": 208.944545,
+              "TAWSS_rel": 1.027232,
               "WSS_average_normalized_div": 0.160709,
               "Lambda2_average": 113.213921,
-              "OSI": 0.002127
+              "OSI": 0.002127,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2504,9 +2918,11 @@
           "z": 35.1298,
           "values": [
             0.7557,
+            0.5115,
             0.9084,
             0.542,
-            0.3511
+            0.3511,
+            0.3435
           ],
           "attributes": {
             "node": 103,
@@ -2516,9 +2932,11 @@
             "n_wall": 1164,
             "raw_values": {
               "TAWSSG": 926.964881,
+              "TAWSS_rel": 1.016007,
               "WSS_average_normalized_div": 0.032831,
               "Lambda2_average": 293.857092,
-              "OSI": 0.001385
+              "OSI": 0.001385,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2528,9 +2946,11 @@
           "z": 35.209,
           "values": [
             0.4809,
+            0.4504,
             0.7252,
             0.5573,
-            0.229
+            0.229,
+            0.3435
           ],
           "attributes": {
             "node": 104,
@@ -2540,9 +2960,11 @@
             "n_wall": 1147,
             "raw_values": {
               "TAWSSG": 256.040625,
+              "TAWSS_rel": 1.004293,
               "WSS_average_normalized_div": -0.00487,
               "Lambda2_average": 333.175088,
-              "OSI": 0.00098
+              "OSI": 0.00098,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2552,9 +2974,11 @@
           "z": 35.2589,
           "values": [
             0.1221,
+            0.542,
             0.6489,
             0.3817,
-            0.2061
+            0.2061,
+            0.3435
           ],
           "attributes": {
             "node": 105,
@@ -2564,9 +2988,11 @@
             "n_wall": 1136,
             "raw_values": {
               "TAWSSG": -1538.436542,
+              "TAWSS_rel": 1.025414,
               "WSS_average_normalized_div": -0.028584,
               "Lambda2_average": 64.618282,
-              "OSI": 0.000761
+              "OSI": 0.000761,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2576,9 +3002,11 @@
           "z": 35.2714,
           "values": [
             0.0916,
+            0.8015,
             0.5649,
             0.1756,
-            0.1908
+            0.1908,
+            0.8321
           ],
           "attributes": {
             "node": 106,
@@ -2588,9 +3016,11 @@
             "n_wall": 1136,
             "raw_values": {
               "TAWSSG": -2120.771469,
+              "TAWSS_rel": 1.086059,
               "WSS_average_normalized_div": -0.047467,
               "Lambda2_average": -570.436339,
-              "OSI": 0.000607
+              "OSI": 0.000607,
+              "Lambda2_vortex": 570.436339
             }
           }
         },
@@ -2600,9 +3030,11 @@
           "z": 35.2836,
           "values": [
             0.1603,
+            0.916,
             0.458,
             0.1527,
-            0.1679
+            0.1679,
+            0.855
           ],
           "attributes": {
             "node": 107,
@@ -2612,9 +3044,11 @@
             "n_wall": 1120,
             "raw_values": {
               "TAWSSG": -990.674941,
+              "TAWSS_rel": 1.139991,
               "WSS_average_normalized_div": -0.062161,
               "Lambda2_average": -1171.105526,
-              "OSI": 0.000398
+              "OSI": 0.000398,
+              "Lambda2_vortex": 1171.105526
             }
           }
         },
@@ -2624,9 +3058,11 @@
           "z": 35.2995,
           "values": [
             0.5573,
+            0.9237,
             0.4962,
             0.1603,
-            0.1221
+            0.1221,
+            0.8473
           ],
           "attributes": {
             "node": 108,
@@ -2636,9 +3072,11 @@
             "n_wall": 1116,
             "raw_values": {
               "TAWSSG": 365.47597,
+              "TAWSS_rel": 1.145084,
               "WSS_average_normalized_div": -0.055855,
               "Lambda2_average": -945.715516,
-              "OSI": 0.000278
+              "OSI": 0.000278,
+              "Lambda2_vortex": 945.715516
             }
           }
         },
@@ -2648,9 +3086,11 @@
           "z": 35.2977,
           "values": [
             0.8626,
+            0.8397,
             0.5573,
             0.1679,
-            0.0992
+            0.0992,
+            0.8397
           ],
           "attributes": {
             "node": 109,
@@ -2660,9 +3100,11 @@
             "n_wall": 1107,
             "raw_values": {
               "TAWSSG": 1502.295552,
+              "TAWSS_rel": 1.100269,
               "WSS_average_normalized_div": -0.04859,
               "Lambda2_average": -737.731821,
-              "OSI": 0.00025
+              "OSI": 0.00025,
+              "Lambda2_vortex": 737.731821
             }
           }
         },
@@ -2672,9 +3114,11 @@
           "z": 35.2709,
           "values": [
             0.916,
+            0.6794,
             0.5802,
             0.3893,
-            0.1069
+            0.1069,
+            0.3435
           ],
           "attributes": {
             "node": 110,
@@ -2684,9 +3128,11 @@
             "n_wall": 1100,
             "raw_values": {
               "TAWSSG": 2040.189706,
+              "TAWSS_rel": 1.044625,
               "WSS_average_normalized_div": -0.044393,
               "Lambda2_average": 69.393912,
-              "OSI": 0.000263
+              "OSI": 0.000263,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2696,9 +3142,11 @@
           "z": 35.238,
           "values": [
             0.855,
+            0.2366,
             0.5267,
             0.7099,
-            0.1374
+            0.1374,
+            0.3435
           ],
           "attributes": {
             "node": 111,
@@ -2708,9 +3156,11 @@
             "n_wall": 1107,
             "raw_values": {
               "TAWSSG": 1463.453131,
+              "TAWSS_rel": 0.975192,
               "WSS_average_normalized_div": -0.053166,
               "Lambda2_average": 1255.24564,
-              "OSI": 0.00031
+              "OSI": 0.00031,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2720,9 +3170,11 @@
           "z": 35.2077,
           "values": [
             0.5344,
+            0.1527,
             0.4885,
             0.7634,
-            0.1527
+            0.1527,
+            0.3435
           ],
           "attributes": {
             "node": 112,
@@ -2732,9 +3184,11 @@
             "n_wall": 1114,
             "raw_values": {
               "TAWSSG": 347.963299,
+              "TAWSS_rel": 0.939848,
               "WSS_average_normalized_div": -0.056898,
               "Lambda2_average": 1680.385453,
-              "OSI": 0.000387
+              "OSI": 0.000387,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2744,9 +3198,11 @@
           "z": 35.2093,
           "values": [
             0.2366,
+            0.2061,
             0.4733,
             0.6412,
-            0.1756
+            0.1756,
+            0.3435
           ],
           "attributes": {
             "node": 113,
@@ -2756,9 +3212,11 @@
             "n_wall": 1114,
             "raw_values": {
               "TAWSSG": -267.074433,
+              "TAWSS_rel": 0.958558,
               "WSS_average_normalized_div": -0.059977,
               "Lambda2_average": 633.292312,
-              "OSI": 0.000408
+              "OSI": 0.000408,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2768,9 +3226,11 @@
           "z": 35.1901,
           "values": [
             0.1679,
+            0.2214,
             0.542,
             0.6947,
-            0.1603
+            0.1603,
+            0.3435
           ],
           "attributes": {
             "node": 114,
@@ -2780,9 +3240,11 @@
             "n_wall": 1114,
             "raw_values": {
               "TAWSSG": -863.018473,
+              "TAWSS_rel": 0.974102,
               "WSS_average_normalized_div": -0.051407,
               "Lambda2_average": 1079.008785,
-              "OSI": 0.000395
+              "OSI": 0.000395,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2792,9 +3254,11 @@
           "z": 35.1336,
           "values": [
             0.1298,
+            0.5038,
             0.5954,
             0.7328,
-            0.145
+            0.145,
+            0.3435
           ],
           "attributes": {
             "node": 115,
@@ -2804,9 +3268,11 @@
             "n_wall": 1097,
             "raw_values": {
               "TAWSSG": -1456.665386,
+              "TAWSS_rel": 1.01508,
               "WSS_average_normalized_div": -0.042602,
               "Lambda2_average": 1459.219459,
-              "OSI": 0.000347
+              "OSI": 0.000347,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2816,9 +3282,11 @@
           "z": 35.0908,
           "values": [
             0.145,
+            0.771,
             0.6641,
             0.6565,
-            0.1145
+            0.1145,
+            0.3435
           ],
           "attributes": {
             "node": 116,
@@ -2828,9 +3296,11 @@
             "n_wall": 1057,
             "raw_values": {
               "TAWSSG": -1139.138966,
+              "TAWSS_rel": 1.068949,
               "WSS_average_normalized_div": -0.02547,
               "Lambda2_average": 651.645595,
-              "OSI": 0.000274
+              "OSI": 0.000274,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2840,9 +3310,11 @@
           "z": 34.9998,
           "values": [
             0.9695,
+            0.7023,
             0.1221,
             0.1221,
-            0.2977
+            0.2977,
+            0.8855
           ],
           "attributes": {
             "node": 117,
@@ -2852,9 +3324,11 @@
             "n_wall": 1049,
             "raw_values": {
               "TAWSSG": 3963.77983,
+              "TAWSS_rel": 1.049697,
               "WSS_average_normalized_div": -0.197388,
               "Lambda2_average": -1288.062823,
-              "OSI": 0.001215
+              "OSI": 0.001215,
+              "Lambda2_vortex": 1288.062823
             }
           }
         },
@@ -2864,9 +3338,11 @@
           "z": 34.8526,
           "values": [
             0.9924,
+            0.1145,
             0.0229,
             0.1298,
-            0.5878
+            0.5878,
+            0.8779
           ],
           "attributes": {
             "node": 118,
@@ -2876,9 +3352,11 @@
             "n_wall": 1027,
             "raw_values": {
               "TAWSSG": 6051.598844,
+              "TAWSS_rel": 0.923594,
               "WSS_average_normalized_div": -0.494667,
               "Lambda2_average": -1250.312815,
-              "OSI": 0.00308
+              "OSI": 0.00308,
+              "Lambda2_vortex": 1250.312815
             }
           }
         },
@@ -2889,8 +3367,10 @@
           "values": [
             1.0,
             0.0153,
+            0.0153,
             0.145,
-            0.7786
+            0.7786,
+            0.8626
           ],
           "attributes": {
             "node": 119,
@@ -2900,9 +3380,11 @@
             "n_wall": 974,
             "raw_values": {
               "TAWSSG": 7010.491336,
+              "TAWSS_rel": 0.800196,
               "WSS_average_normalized_div": -0.511447,
               "Lambda2_average": -1180.687771,
-              "OSI": 0.00491
+              "OSI": 0.00491,
+              "Lambda2_vortex": 1180.687771
             }
           }
         },
@@ -2913,8 +3395,10 @@
           "values": [
             0.9847,
             0.0076,
+            0.0076,
             0.855,
-            0.8702
+            0.8702,
+            0.3435
           ],
           "attributes": {
             "node": 120,
@@ -2924,9 +3408,11 @@
             "n_wall": 809,
             "raw_values": {
               "TAWSSG": 5545.671938,
+              "TAWSS_rel": 0.707161,
               "WSS_average_normalized_div": -0.587525,
               "Lambda2_average": 2581.881534,
-              "OSI": 0.006668
+              "OSI": 0.006668,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -2936,9 +3422,11 @@
           "z": 33.9402,
           "values": [
             0.8931,
+            0.5878,
             0.9466,
             0.0611,
-            0.7099
+            0.7099,
+            0.9466
           ],
           "attributes": {
             "node": 121,
@@ -2948,9 +3436,11 @@
             "n_wall": 780,
             "raw_values": {
               "TAWSSG": 1849.99142,
+              "TAWSS_rel": 1.030636,
               "WSS_average_normalized_div": 0.100395,
               "Lambda2_average": -5449.532061,
-              "OSI": 0.004092
+              "OSI": 0.004092,
+              "Lambda2_vortex": 5449.532061
             }
           }
         },
@@ -2960,9 +3450,11 @@
           "z": 33.6149,
           "values": [
             0.9466,
+            0.8626,
             0.9847,
             0.1832,
-            0.7023
+            0.7023,
+            0.8244
           ],
           "attributes": {
             "node": 122,
@@ -2972,9 +3464,11 @@
             "n_wall": 525,
             "raw_values": {
               "TAWSSG": 2558.158729,
+              "TAWSS_rel": 1.104892,
               "WSS_average_normalized_div": 0.538138,
               "Lambda2_average": -394.299773,
-              "OSI": 0.00402
+              "OSI": 0.00402,
+              "Lambda2_vortex": 394.299773
             }
           }
         },
@@ -2984,9 +3478,11 @@
           "z": 33.2131,
           "values": [
             0.9771,
+            0.8931,
             1.0,
             0.0382,
-            0.4885
+            0.4885,
+            0.9695
           ],
           "attributes": {
             "node": 123,
@@ -2996,9 +3492,11 @@
             "n_wall": 352,
             "raw_values": {
               "TAWSSG": 5200.933971,
+              "TAWSS_rel": 1.131027,
               "WSS_average_normalized_div": 0.783808,
               "Lambda2_average": -11157.767601,
-              "OSI": 0.001916
+              "OSI": 0.001916,
+              "Lambda2_vortex": 11157.767601
             }
           }
         },
@@ -3008,9 +3506,11 @@
           "z": 32.7398,
           "values": [
             0.0153,
+            0.4885,
             0.9924,
             0.0153,
-            0.4427
+            0.4427,
+            0.9924
           ],
           "attributes": {
             "node": 124,
@@ -3020,9 +3520,11 @@
             "n_wall": 263,
             "raw_values": {
               "TAWSSG": -5104.264982,
+              "TAWSS_rel": 1.009628,
               "WSS_average_normalized_div": 0.610473,
               "Lambda2_average": -20251.829021,
-              "OSI": 0.001701
+              "OSI": 0.001701,
+              "Lambda2_vortex": 20251.829021
             }
           }
         },
@@ -3032,9 +3534,11 @@
           "z": 32.248,
           "values": [
             0.0305,
+            0.9313,
             0.0458,
             0.0229,
-            0.1985
+            0.1985,
+            0.9847
           ],
           "attributes": {
             "node": 125,
@@ -3044,9 +3548,11 @@
             "n_wall": 193,
             "raw_values": {
               "TAWSSG": -3117.763169,
+              "TAWSS_rel": 1.176298,
               "WSS_average_normalized_div": -0.287902,
               "Lambda2_average": -13651.372333,
-              "OSI": 0.000713
+              "OSI": 0.000713,
+              "Lambda2_vortex": 13651.372333
             }
           }
         },
@@ -3056,9 +3562,11 @@
           "z": 31.8024,
           "values": [
             0.9618,
+            0.7863,
             0.0763,
             0.9847,
-            0.2214
+            0.2214,
+            0.3435
           ],
           "attributes": {
             "node": 126,
@@ -3068,9 +3576,11 @@
             "n_wall": 213,
             "raw_values": {
               "TAWSSG": 3585.334809,
+              "TAWSS_rel": 1.083763,
               "WSS_average_normalized_div": -0.216357,
               "Lambda2_average": 20902.094146,
-              "OSI": 0.00086
+              "OSI": 0.00086,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -3080,9 +3590,11 @@
           "z": 31.4653,
           "values": [
             0.0076,
+            0.855,
             0.2519,
             1.0,
-            0.2137
+            0.2137,
+            0.3435
           ],
           "attributes": {
             "node": 127,
@@ -3092,9 +3604,11 @@
             "n_wall": 227,
             "raw_values": {
               "TAWSSG": -7992.337599,
+              "TAWSS_rel": 1.10284,
               "WSS_average_normalized_div": -0.125915,
               "Lambda2_average": 47153.32101,
-              "OSI": 0.000776
+              "OSI": 0.000776,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -3104,9 +3618,11 @@
           "z": 31.3263,
           "values": [
             0.1527,
+            0.9542,
             0.2672,
             0.9924,
-            0.1298
+            0.1298,
+            0.3435
           ],
           "attributes": {
             "node": 128,
@@ -3116,9 +3632,11 @@
             "n_wall": 192,
             "raw_values": {
               "TAWSSG": -1009.368855,
+              "TAWSS_rel": 1.247243,
               "WSS_average_normalized_div": -0.122228,
               "Lambda2_average": 26319.31522,
-              "OSI": 0.000304
+              "OSI": 0.000304,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -3128,9 +3646,11 @@
           "z": 31.2642,
           "values": [
             0.084,
+            0.9618,
             0.4122,
             0.9771,
-            0.084
+            0.084,
+            0.3435
           ],
           "attributes": {
             "node": 129,
@@ -3140,9 +3660,11 @@
             "n_wall": 175,
             "raw_values": {
               "TAWSSG": -2121.65248,
+              "TAWSS_rel": 1.255871,
               "WSS_average_normalized_div": -0.07135,
               "Lambda2_average": 15024.89317,
-              "OSI": 0.000214
+              "OSI": 0.000214,
+              "Lambda2_vortex": 0.0
             }
           }
         },
@@ -3152,9 +3674,11 @@
           "z": 31.3172,
           "values": [
             0.5038,
+            0.9771,
             0.4275,
             0.771,
-            0.0763
+            0.0763,
+            0.3435
           ],
           "attributes": {
             "node": 130,
@@ -3164,9 +3688,11 @@
             "n_wall": 176,
             "raw_values": {
               "TAWSSG": 317.752403,
+              "TAWSS_rel": 1.342633,
               "WSS_average_normalized_div": -0.067208,
               "Lambda2_average": 1718.735279,
-              "OSI": 0.00012
+              "OSI": 0.00012,
+              "Lambda2_vortex": 0.0
             }
           }
         }
