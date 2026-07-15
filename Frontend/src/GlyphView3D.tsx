@@ -111,6 +111,10 @@ const TARGET_EXTENT = 200;
 const RANDOM_SEED = 3601;
 const DEFAULT_SAMPLE_COUNT = 4;
 
+// Resolve a public/ asset against Vite's base path so fetches work both
+// locally (base "/") and on GitHub Pages (base "/Sail_General/").
+const asset = (p: string) => `${import.meta.env.BASE_URL}${p.replace(/^\//, "")}`;
+
 const AVAILABLE_DATASETS: DatasetConfig[] = [
   { name: "Turbulence tracers", path: "/turb_glyph.json", defaultSampleCount: DEFAULT_SAMPLE_COUNT },
   {
@@ -712,12 +716,12 @@ export default function GlyphView3D() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(dataset.path);
+        const res = await fetch(asset(dataset.path));
         if (!res.ok) throw new Error(`Dataset not found (${res.status})`);
         const json: GlyphDataset = await res.json();
         let geometryJson: AneurysmGeometry | null = null;
         if (dataset.geometryPath) {
-          const geometryRes = await fetch(dataset.geometryPath);
+          const geometryRes = await fetch(asset(dataset.geometryPath));
           if (!geometryRes.ok) throw new Error(`Geometry not found (${geometryRes.status})`);
           geometryJson = await geometryRes.json();
         }
