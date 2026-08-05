@@ -1,7 +1,7 @@
 {
   "meta": {
-    "title": "Aneurysm position, size, and true sac mesh",
-    "description": "Aneurysm sac geometry derived from the original wall surface. The mesh contains compacted triangles whose original vertices all satisfy DistanceToNeck < 0.",
+    "title": "Aneurysm sac surface and parent-vessel context",
+    "description": "Sac geometry uses wall triangles whose vertices satisfy DistanceToNeck < 0. The centerline marker is proximity-based, not an anatomical neck.",
     "unit": "millimeters",
     "source": {
       "surface": "C0099.vtp",
@@ -9,11 +9,7 @@
     },
     "branch": 1,
     "meshKind": "surface-triangles",
-    "sacCriterion": "DistanceToNeck < 0 at all three triangle vertices",
-    "nMeshVertices": 2345,
-    "nMeshFaces": 4578,
-    "nVesselMeshVertices": 46257,
-    "nVesselMeshFaces": 92220
+    "sacCriterion": "DistanceToNeck < 0 at all three triangle vertices"
   },
   "center": {
     "x": 24.8387,
@@ -40,13 +36,14 @@
     "meanRadiusFromCenter": 2.1733,
     "equivalentDiameterApprox": 6.3193
   },
-  "neck": {
+  "closestCenterlinePoint": {
     "x": 24.3988,
     "y": 30.0891,
     "z": 31.3172,
     "node": 130,
     "arclen": 65.0,
-    "dist_to_sac": 1.9756
+    "dist_to_sac": 1.9756,
+    "label": "Closest centerline point to sac (not anatomical neck)"
   },
   "mesh": {
     "vertices": [
@@ -39364,7 +39361,7 @@
     ]
   },
   "vessel": {
-    "description": "Non-sac vessel wall surface triangles from the original wall mesh. Sac triangles are excluded and stored separately in mesh.",
+    "description": "Non-sac vessel wall surface; sac triangles are stored separately.",
     "center": {
       "x": 15.2599,
       "y": 21.0618,
@@ -824315,9 +824312,7 @@
       53.315424
     ],
     "nWallPoints": 48492,
-    "nWallFaces": 96798,
-    "nVesselMeshVertices": 46257,
-    "nVesselMeshFaces": 92220
+    "nWallFaces": 96798
   },
   "nSacWallPoints": 2345
 }

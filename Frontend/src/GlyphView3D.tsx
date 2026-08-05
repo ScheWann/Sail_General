@@ -24,8 +24,11 @@ interface GlyphObject {
 
 interface GlyphDataset {
   meta?: Record<string, unknown> & {
+    caseType?: string;
     title?: string;
     description?: string;
+    interpretation?: string;
+    limitation?: string;
     unit?: string;
     // Channels encoded as |value| in `values`, with the sign in `point.sgn`.
     signedChannels?: string[];
@@ -45,13 +48,14 @@ interface AneurysmGeometry {
     meanRadiusFromCenter?: number;
     equivalentDiameterApprox?: number;
   };
-  neck?: {
+  closestCenterlinePoint?: {
     x: number;
     y: number;
     z: number;
     node?: number;
     arclen?: number;
     dist_to_sac?: number;
+    label?: string;
   };
   mesh?: {
     vertices: number[][];
@@ -112,6 +116,7 @@ interface DatasetConfig {
   defaultSampleCount?: number;
   // Point order is a time series (tracer paths), so playback along it is meaningful.
   supportsAnimation?: boolean;
+  defaultGamma?: number;
 }
 
 // Playback state is shared through a ref so advancing time never re-renders the
@@ -133,12 +138,14 @@ const AVAILABLE_DATASETS: DatasetConfig[] = [
     path: "/turb_glyph.json",
     defaultSampleCount: DEFAULT_SAMPLE_COUNT,
     supportsAnimation: true,
+    defaultGamma: 20,
   },
   {
-    name: "Aneurysm",
+    name: "Aneurysm-adjacent vessel",
     path: "/aneurysm_glyph.json",
     geometryPath: "/aneurysm_geometry.json",
     defaultSampleCount: 1,
+    defaultGamma: 1,
   },
 ];
 
@@ -160,7 +167,15 @@ function getChannelColor(index: number): string {
 }
 
 function getChannelDisplayName(name: string): string {
-  return name === "a_mag" ? "acceleration" : name;
+  const names: Record<string, string> = {
+    a_mag: "acceleration",
+    TAWSS: "TAWSS",
+    OSI: "OSI",
+    WSSG_magnitude: "WSSG magnitude",
+    Vortex_strength: "vortex strength (−λ₂)",
+    Curvature_magnitude: "curvature magnitude",
+  };
+  return names[name] ?? name;
 }
 
 // Signed channels (`meta.signedChannels`) put |value| in the fin length, so the
@@ -1005,7 +1020,9 @@ function AneurysmOverlay({
     [geometry.vessel?.mesh, transform],
   );
 
-  const neck = geometry.neck ? transformPoint(geometry.neck, transform) : null;
+  const closestPoint = geometry.closestCenterlinePoint
+    ? transformPoint(geometry.closestCenterlinePoint, transform)
+    : null;
 
   return (
     <group>
@@ -1052,8 +1069,8 @@ function AneurysmOverlay({
           />
         </mesh>
       )}
-      {neck && (
-        <group position={neck}>
+      {closestPoint && (
+        <group position={closestPoint}>
           <mesh>
             <sphereGeometry args={[3, 18, 18]} />
             <meshStandardMaterial
@@ -1085,8 +1102,8 @@ export default function GlyphView3D() {
   );
   const [sampleCount, setSampleCount] = useState(DEFAULT_SAMPLE_COUNT);
   const [gamma, setGamma] = useState(20);
-  const [showTube, setShowTube] = useState(true);
-  const [showLabels, setShowLabels] = useState(false);
+  const [showTube] = useState(true);
+  const [showLabels] = useState(false);
   const [showVessel, setShowVessel] = useState(true);
   const [selectMode, setSelectMode] = useState(false);
   const [hiddenObjectIds, setHiddenObjectIds] = useState<Set<number>>(
@@ -1148,6 +1165,7 @@ export default function GlyphView3D() {
             json.objects.length,
           ),
         );
+        setGamma(dataset.defaultGamma ?? 1);
         setShowVessel(true);
         setSelectMode(false);
         setHiddenObjectIds(new Set());
@@ -1766,6 +1784,23 @@ const overlayStyle: React.CSSProperties = {
   justifyContent: "center",
   zIndex: 10,
   background: "rgba(10,25,41,0.8)",
+};
+
+const caseInfoStyle: React.CSSProperties = {
+  position: "absolute",
+  left: 16,
+  bottom: 16,
+  zIndex: 5,
+  width: "min(430px, calc(100% - 32px))",
+  boxSizing: "border-box",
+  padding: "12px 14px",
+  border: "1px solid rgba(255,255,255,0.14)",
+  borderRadius: 8,
+  background: "rgba(8, 25, 38, 0.86)",
+  backdropFilter: "blur(7px)",
+  color: "rgba(224,235,240,0.86)",
+  font: "12px/1.45 system-ui, sans-serif",
+  pointerEvents: "none",
 };
 
 const selectionLayerStyle: React.CSSProperties = {
