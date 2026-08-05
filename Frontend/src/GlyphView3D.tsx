@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 
@@ -10,6 +10,9 @@ interface GlyphPoint {
   y: number;
   z: number;
   values: number[];
+  // Per-channel sign for channels whose `values` entry is a magnitude (see
+  // `meta.signedChannels`). +1/-1, absent or 1 for ordinary channels.
+  sgn?: number[];
   attributes?: Record<string, unknown>;
 }
 
@@ -24,6 +27,8 @@ interface GlyphDataset {
     title?: string;
     description?: string;
     unit?: string;
+    // Channels encoded as |value| in `values`, with the sign in `point.sgn`.
+    signedChannels?: string[];
   };
   channels: string[];
   objects: GlyphObject[];
@@ -87,6 +92,8 @@ interface CoordinateTransform {
 interface NodeData {
   position: [number, number, number];
   values: number[];
+  // Parallel to `values`; 1 for channels that carry no sign.
+  signs: number[];
 }
 
 interface SelectionRect {
@@ -103,6 +110,15 @@ interface DatasetConfig {
   path: string;
   geometryPath?: string;
   defaultSampleCount?: number;
+  // Point order is a time series (tracer paths), so playback along it is meaningful.
+  supportsAnimation?: boolean;
+}
+
+// Playback state is shared through a ref so advancing time never re-renders the
+// React tree — the reveal is applied straight to the three.js objects.
+interface AnimationConfig {
+  progressRef: React.MutableRefObject<number>;
+  active: boolean;
 }
 
 // World-space extent the sampled point clouds are scaled to, so camera framing
@@ -112,7 +128,12 @@ const RANDOM_SEED = 3601;
 const DEFAULT_SAMPLE_COUNT = 4;
 
 const AVAILABLE_DATASETS: DatasetConfig[] = [
-  { name: "Turbulence tracers", path: "/turb_glyph.json", defaultSampleCount: DEFAULT_SAMPLE_COUNT },
+  {
+    name: "Turbulence tracers",
+    path: "/turb_glyph.json",
+    defaultSampleCount: DEFAULT_SAMPLE_COUNT,
+    supportsAnimation: true,
+  },
   {
     name: "Aneurysm",
     path: "/aneurysm_glyph.json",
@@ -138,11 +159,52 @@ function getChannelColor(index: number): string {
   return CHANNEL_COLORS[index % CHANNEL_COLORS.length];
 }
 
+function getChannelDisplayName(name: string): string {
+  return name === "a_mag" ? "acceleration" : name;
+}
+
+// Signed channels (`meta.signedChannels`) put |value| in the fin length, so the
+// direction has to come from somewhere else. Negative beads keep the channel's
+// hue — the fin must stay identifiable as that channel — and drop saturation and
+// lightness. Hue is already spent on channel identity and lightness alone on the
+// per-node highlight patch (l * 1.5 below), so a negative fin still reads as
+// "darker version of this channel" under its own highlight.
+const NEGATIVE_SATURATION = 0.7;
+const NEGATIVE_LIGHTNESS = 0.42;
+
+function scaleHSL(base: THREE.Color, sFactor: number, lFactor: number) {
+  const hsl = { h: 0, s: 0, l: 0 };
+  base.getHSL(hsl);
+  return new THREE.Color().setHSL(hsl.h, hsl.s * sFactor, hsl.l * lFactor);
+}
+
+function getNegativeChannelColor(index: number): string {
+  const c = scaleHSL(
+    new THREE.Color(getChannelColor(index)),
+    NEGATIVE_SATURATION,
+    NEGATIVE_LIGHTNESS,
+  );
+  return `#${c.getHexString()}`;
+}
+
+// Channels kept out of the glyph and the legend for now. Channel indices stay
+// aligned with the dataset's `values` array — only display is suppressed, so
+// emptying this set brings them straight back.
+const HIDDEN_CHANNELS = new Set(["vortex_fraction", "helicity", ""]);
+
 const BACKBONE_COLOR = "#FFFFFF";
 const BEAD_COLOR = "#FFFFFF";
 const BACKBONE_RADIUS = 0.25;
 const ENDPOINT_MARKER_COLOR = "#999";
 const ENDPOINT_MARKER_SIZE = 5;
+
+// Seconds one full pass over a trajectory takes at 1x speed.
+const ANIMATION_DURATION = 12;
+const HEAD_COLOR = "#ffd166";
+
+function clamp01(value: number) {
+  return value < 0 ? 0 : value > 1 ? 1 : value;
+}
 
 function createSeededRandom(seed: number) {
   let state = seed >>> 0;
@@ -162,7 +224,9 @@ function sampleObjects(objects: GlyphObject[], count: number, seed: number) {
   return shuffled.slice(0, count);
 }
 
-function getCoordinateTransform(objects: GlyphObject[]): CoordinateTransform | null {
+function getCoordinateTransform(
+  objects: GlyphObject[],
+): CoordinateTransform | null {
   const min = [Infinity, Infinity, Infinity];
   const max = [-Infinity, -Infinity, -Infinity];
 
@@ -182,8 +246,13 @@ function getCoordinateTransform(objects: GlyphObject[]): CoordinateTransform | n
     return null;
   }
 
-  const center = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
-  const extent = Math.max(max[0] - min[0], max[1] - min[1], max[2] - min[2]) || 1;
+  const center = [
+    (min[0] + max[0]) / 2,
+    (min[1] + max[1]) / 2,
+    (min[2] + max[2]) / 2,
+  ];
+  const extent =
+    Math.max(max[0] - min[0], max[1] - min[1], max[2] - min[2]) || 1;
   return {
     center: center as [number, number, number],
     scale: TARGET_EXTENT / extent,
@@ -216,6 +285,7 @@ function objectsToNodeGroups(
         const v = p.values?.[i];
         return Number.isFinite(v) ? v : 0;
       }),
+      signs: channels.map((_, i) => ((p.sgn?.[i] ?? 1) < 0 ? -1 : 1)),
     })),
   );
 }
@@ -229,7 +299,10 @@ function makeSurfaceGeometry(
   const positions: number[] = [];
   for (const vertex of mesh.vertices) {
     if (vertex.length < 3) continue;
-    const [x, y, z] = transformPoint({ x: vertex[0], y: vertex[1], z: vertex[2] }, transform);
+    const [x, y, z] = transformPoint(
+      { x: vertex[0], y: vertex[1], z: vertex[2] },
+      transform,
+    );
     positions.push(x, y, z);
   }
 
@@ -240,7 +313,10 @@ function makeSurfaceGeometry(
   }
 
   const buffer = new THREE.BufferGeometry();
-  buffer.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  buffer.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
   buffer.setIndex(indices);
   buffer.computeVertexNormals();
   return buffer;
@@ -254,12 +330,14 @@ function GlyphPipeline({
   gamma = 1,
   opacity = 1,
   showTube = false,
+  animation,
 }: {
   nodes: NodeData[];
   enabledChannelIndices?: number[];
   gamma?: number;
   opacity?: number;
   showTube?: boolean;
+  animation?: AnimationConfig;
 }) {
   const totalChannels = nodes[0]?.values.length || 1;
   const activeChannelIndices =
@@ -299,11 +377,19 @@ function GlyphPipeline({
       if (tangent.lengthSq() > 1e-10) tangent.normalize();
     } else if (nodeIndex === 0 && nodes.length > 1) {
       const next = nodes[1].position;
-      tangent = new THREE.Vector3(next[0] - pos[0], next[1] - pos[1], next[2] - pos[2]);
+      tangent = new THREE.Vector3(
+        next[0] - pos[0],
+        next[1] - pos[1],
+        next[2] - pos[2],
+      );
       if (tangent.lengthSq() > 1e-10) tangent.normalize();
     } else if (nodeIndex === nodes.length - 1 && nodes.length > 1) {
       const prev = nodes[nodeIndex - 1].position;
-      tangent = new THREE.Vector3(pos[0] - prev[0], pos[1] - prev[1], pos[2] - prev[2]);
+      tangent = new THREE.Vector3(
+        pos[0] - prev[0],
+        pos[1] - prev[1],
+        pos[2] - prev[2],
+      );
       if (tangent.lengthSq() > 1e-10) tangent.normalize();
     }
 
@@ -311,7 +397,8 @@ function GlyphPipeline({
     const right = new THREE.Vector3();
     const up = new THREE.Vector3();
     right.crossVectors(tangent, globalUp);
-    if (right.lengthSq() < 1e-6) right.crossVectors(tangent, new THREE.Vector3(1, 0, 0));
+    if (right.lengthSq() < 1e-6)
+      right.crossVectors(tangent, new THREE.Vector3(1, 0, 0));
     if (right.lengthSq() > 1e-10) right.normalize();
     up.crossVectors(right, tangent);
     if (up.lengthSq() > 1e-10) up.normalize();
@@ -324,7 +411,9 @@ function GlyphPipeline({
       const angle = (i / numChannels) * Math.PI * 2;
       const cIdx = activeChannelIndices[i];
       const rawVal = node.values?.[cIdx];
-      const tv = Number.isFinite(rawVal) ? Math.pow(Math.max(0, rawVal), gamma) : 0;
+      const tv = Number.isFinite(rawVal)
+        ? Math.pow(Math.max(0, rawVal), gamma)
+        : 0;
 
       const bx = Math.cos(angle) * bRadius;
       const by = Math.sin(angle) * bRadius;
@@ -353,10 +442,52 @@ function GlyphPipeline({
 
   // Backbone connection skeleton
   const centerPts = nodes.map(
-    (b) => new THREE.Vector3(b.position[0] * scale, b.position[1] * scale, b.position[2] * scale),
+    (b) =>
+      new THREE.Vector3(
+        b.position[0] * scale,
+        b.position[1] * scale,
+        b.position[2] * scale,
+      ),
   );
-  const backboneCurve = new THREE.CatmullRomCurve3(centerPts, false, "catmullrom", 0.3);
-  const tubeGeo = new THREE.TubeGeometry(backboneCurve, nodes.length * 20, BACKBONE_RADIUS, 8, false);
+  const backboneCurve = new THREE.CatmullRomCurve3(
+    centerPts,
+    false,
+    "catmullrom",
+    0.3,
+  );
+  const tubeTubularSegments = nodes.length * 20;
+  const tubeRadialSegments = 8;
+
+  // The default arc-length table has 200 divisions — about two samples per node,
+  // too coarse both for TubeGeometry's own sampling and for tToU below.
+  backboneCurve.arcLengthDivisions = tubeTubularSegments;
+  backboneCurve.updateArcLengths();
+
+  // Playback progress is a fraction of the *parameter*, which for a Catmull-Rom
+  // through equally-spaced-in-time samples is a fraction of elapsed time. The
+  // ribbon and the head both live in that space. TubeGeometry does not: it
+  // samples via getPointAt, so its segments are spaced by arc length. Points are
+  // not equally spaced (spacing tracks particle speed), so the two parameters
+  // drift apart — on this data by up to 17% of the path. Convert before setting
+  // the tube's draw range.
+  const arcLengths = backboneCurve.getLengths(tubeTubularSegments);
+  const totalArcLength = arcLengths[arcLengths.length - 1] || 1;
+  const tToU = (t: number) => {
+    const x = clamp01(t) * tubeTubularSegments;
+    const i = Math.min(tubeTubularSegments - 1, Math.floor(x));
+    return (
+      (arcLengths[i] + (arcLengths[i + 1] - arcLengths[i]) * (x - i)) /
+      totalArcLength
+    );
+  };
+
+  const tubeGeo = new THREE.TubeGeometry(
+    backboneCurve,
+    tubeTubularSegments,
+    BACKBONE_RADIUS,
+    tubeRadialSegments,
+    false,
+  );
 
   // Continuous channel ribbon: one Catmull-Rom curve per channel through every
   // node (no per-node slicing → ribbon never breaks at node boundaries), plus a
@@ -375,60 +506,123 @@ function GlyphPipeline({
   const subDiv = 8;
   // One quad on each side of the node (node sits on the boundary between them).
   const highlightHalfWidth = 1;
+  const totalSamples = (nodes.length - 1) * subDiv + 1;
 
-  for (let ti = 0; ti < numChannels; ti++) {
+  // One continuous curve per channel through every node.
+  const channelCurves = activeChannelIndices.map((origIdx, ti) => {
     const allBaseline = nodes.map((_, i) => nodeVertices[i].baseline[ti]);
     const allActual = nodes.map((_, i) => nodeVertices[i].actual[ti]);
+    const bCurve = new THREE.CatmullRomCurve3(
+      allBaseline,
+      false,
+      "catmullrom",
+      0.3,
+    );
+    const aCurve = new THREE.CatmullRomCurve3(
+      allActual,
+      false,
+      "catmullrom",
+      0.3,
+    );
 
-    // One continuous curve through every node — no per-segment slicing needed.
-    const bCurve = new THREE.CatmullRomCurve3(allBaseline, false, "catmullrom", 0.3);
-    const aCurve = new THREE.CatmullRomCurve3(allActual, false, "catmullrom", 0.3);
-
-    const totalSamples = (nodes.length - 1) * subDiv + 1;
-    const bPts = bCurve.getPoints(totalSamples - 1);
-    const aPts = aCurve.getPoints(totalSamples - 1);
-
-    const origIdx = activeChannelIndices[ti];
     const tc = new THREE.Color(getChannelColor(origIdx));
-    const hsl = { h: 0, s: 0, l: 0 };
-    tc.getHSL(hsl);
-    const darkColor = new THREE.Color().setHSL(hsl.h, hsl.s, hsl.l * 1.5);
+    const nc = scaleHSL(tc, NEGATIVE_SATURATION, NEGATIVE_LIGHTNESS);
 
-    // Full ribbon (normal channel color)
-    for (let i = 0; i < bPts.length - 1; i++) {
-      const bl1 = bPts[i], bl2 = bPts[i + 1];
-      const ac1 = aPts[i], ac2 = aPts[i + 1];
+    return {
+      bPts: bCurve.getPoints(totalSamples - 1),
+      aPts: aCurve.getPoints(totalSamples - 1),
+      color: tc,
+      darkColor: scaleHSL(tc, 1, 1.5),
+      // Same pair for beads where this channel's value is negative.
+      negColor: nc,
+      negDarkColor: scaleHSL(nc, 1, 1.5),
+    };
+  });
+
+  // A bead's sign applies to the bead, so a ribbon quad takes the sign of the
+  // nearest bead: the colour flips midway between the two beads that differ.
+  const signAt = (nodeIndex: number, ci: number) =>
+    nodes[nodeIndex]?.signs?.[activeChannelIndices[ci]] ?? 1;
+
+  // Full ribbon (normal channel color). Emitted sample-major — all channels for
+  // sample i before sample i+1 — so an index draw range is a prefix in time.
+  for (let i = 0; i < totalSamples - 1; i++) {
+    const nearestNode = Math.min(
+      nodes.length - 1,
+      Math.round((i + 0.5) / subDiv),
+    );
+    for (let ci = 0; ci < channelCurves.length; ci++) {
+      const { bPts, aPts, negColor } = channelCurves[ci];
+      const color =
+        signAt(nearestNode, ci) < 0 ? negColor : channelCurves[ci].color;
+      const bl1 = bPts[i],
+        bl2 = bPts[i + 1];
+      const ac1 = aPts[i],
+        ac2 = aPts[i + 1];
       triVerts.push(
-        bl1.x, bl1.y, bl1.z, bl2.x, bl2.y, bl2.z,
-        ac1.x, ac1.y, ac1.z, ac2.x, ac2.y, ac2.z,
+        bl1.x,
+        bl1.y,
+        bl1.z,
+        bl2.x,
+        bl2.y,
+        bl2.z,
+        ac1.x,
+        ac1.y,
+        ac1.z,
+        ac2.x,
+        ac2.y,
+        ac2.z,
       );
-      for (let j = 0; j < 4; j++) triColors.push(tc.r, tc.g, tc.b);
+      for (let j = 0; j < 4; j++) triColors.push(color.r, color.g, color.b);
       triIdx.push(vi, vi + 1, vi + 2, vi + 1, vi + 3, vi + 2);
       vi += 4;
     }
+  }
 
-    // Darker highlight patch on the same ribbon surface at each node.
-    // Node bi sits at sample index (bi * subDiv) in the array.
-    for (let bi = 0; bi < nodes.length; bi++) {
-      const center = bi * subDiv;
-      const lo = Math.max(0, center - highlightHalfWidth);
-      const high = Math.min(bPts.length - 2, center + highlightHalfWidth - 1);
+  // Darker highlight patch on the same ribbon surface at each node, emitted
+  // node-major for the same reason. Node bi sits at sample index bi * subDiv.
+  const highlightIndexEnds: number[] = [];
+  for (let bi = 0; bi < nodes.length; bi++) {
+    const center = bi * subDiv;
+    const lo = Math.max(0, center - highlightHalfWidth);
+    const high = Math.min(totalSamples - 2, center + highlightHalfWidth - 1);
+    for (let ci = 0; ci < channelCurves.length; ci++) {
+      const { bPts, aPts, negDarkColor } = channelCurves[ci];
+      const darkColor =
+        signAt(bi, ci) < 0 ? negDarkColor : channelCurves[ci].darkColor;
       for (let i = lo; i <= high; i++) {
-        const bl1 = bPts[i], bl2 = bPts[i + 1];
-        const ac1 = aPts[i], ac2 = aPts[i + 1];
+        const bl1 = bPts[i],
+          bl2 = bPts[i + 1];
+        const ac1 = aPts[i],
+          ac2 = aPts[i + 1];
         hlVerts.push(
-          bl1.x, bl1.y, bl1.z, bl2.x, bl2.y, bl2.z,
-          ac1.x, ac1.y, ac1.z, ac2.x, ac2.y, ac2.z,
+          bl1.x,
+          bl1.y,
+          bl1.z,
+          bl2.x,
+          bl2.y,
+          bl2.z,
+          ac1.x,
+          ac1.y,
+          ac1.z,
+          ac2.x,
+          ac2.y,
+          ac2.z,
         );
-        for (let j = 0; j < 4; j++) hlColors.push(darkColor.r, darkColor.g, darkColor.b);
+        for (let j = 0; j < 4; j++)
+          hlColors.push(darkColor.r, darkColor.g, darkColor.b);
         hlIdx.push(hi, hi + 1, hi + 2, hi + 1, hi + 3, hi + 2);
         hi += 4;
       }
     }
+    highlightIndexEnds.push(hlIdx.length);
   }
 
   const triGeo = new THREE.BufferGeometry();
-  triGeo.setAttribute("position", new THREE.Float32BufferAttribute(triVerts, 3));
+  triGeo.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(triVerts, 3),
+  );
   triGeo.setAttribute("color", new THREE.Float32BufferAttribute(triColors, 3));
   triGeo.setIndex(triIdx);
   triGeo.computeVertexNormals();
@@ -439,22 +633,158 @@ function GlyphPipeline({
   hlGeo.setIndex(hlIdx);
   hlGeo.computeVertexNormals();
 
+  const animating = Boolean(animation?.active);
+  if (animating) {
+    // Start hidden so the first frame never flashes the finished trajectory.
+    triGeo.setDrawRange(0, 0);
+    hlGeo.setDrawRange(0, 0);
+    tubeGeo.setDrawRange(0, 0);
+  }
+
   return (
     <group>
       {/* Full ribbon — normal channel color */}
       <mesh geometry={triGeo}>
-        <meshBasicMaterial vertexColors transparent opacity={0.8 * opacity} side={THREE.DoubleSide} />
+        <meshBasicMaterial
+          vertexColors
+          transparent
+          opacity={0.8 * opacity}
+          side={THREE.DoubleSide}
+        />
       </mesh>
       {/* Per-node highlight — same ribbon surface, darker color */}
       <mesh geometry={hlGeo}>
-        <meshBasicMaterial vertexColors transparent={opacity < 1} opacity={opacity} side={THREE.DoubleSide} depthWrite={false} />
+        <meshBasicMaterial
+          vertexColors
+          transparent={opacity < 1}
+          opacity={opacity}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
       </mesh>
       {showTube && (
         <mesh geometry={tubeGeo}>
-          <meshBasicMaterial color={BACKBONE_COLOR} transparent={opacity < 1} opacity={opacity} />
+          <meshBasicMaterial
+            color={BACKBONE_COLOR}
+            transparent={opacity < 1}
+            opacity={opacity}
+          />
         </mesh>
       )}
+      {animating && animation && (
+        <>
+          <TrailReveal
+            animation={animation}
+            triGeo={triGeo}
+            hlGeo={hlGeo}
+            tubeGeo={tubeGeo}
+            reveal={{
+              totalSteps: totalSamples - 1,
+              ribbonIndicesPerStep: numChannels * 6,
+              highlightIndexEnds,
+              subDiv,
+              tubeIndicesPerStep: tubeRadialSegments * 6,
+              tubeTubularSegments,
+              tToU,
+            }}
+          />
+          <TrailHead
+            animation={animation}
+            curve={backboneCurve}
+            opacity={opacity}
+          />
+        </>
+      )}
     </group>
+  );
+}
+
+// Reveals the trajectory up to the current playback position by shrinking the
+// index draw range of each geometry — no rebuild, no React re-render per frame.
+function TrailReveal({
+  animation,
+  triGeo,
+  hlGeo,
+  tubeGeo,
+  reveal,
+}: {
+  animation: AnimationConfig;
+  triGeo: THREE.BufferGeometry;
+  hlGeo: THREE.BufferGeometry;
+  tubeGeo: THREE.BufferGeometry;
+  reveal: {
+    totalSteps: number;
+    ribbonIndicesPerStep: number;
+    highlightIndexEnds: number[];
+    subDiv: number;
+    tubeIndicesPerStep: number;
+    tubeTubularSegments: number;
+    // Parameter fraction -> arc-length fraction, the space TubeGeometry samples in.
+    tToU: (t: number) => number;
+  };
+}) {
+  useFrame(() => {
+    const progress = clamp01(animation.progressRef.current);
+    const steps = Math.round(progress * reveal.totalSteps);
+
+    triGeo.setDrawRange(0, steps * reveal.ribbonIndicesPerStep);
+
+    // A node's highlight patch straddles its sample, so it only appears once
+    // the head has moved one sample past it.
+    const nodesShown = Math.max(
+      0,
+      Math.min(
+        reveal.highlightIndexEnds.length,
+        Math.floor((steps - 1) / reveal.subDiv) + 1,
+      ),
+    );
+    hlGeo.setDrawRange(
+      0,
+      nodesShown > 0 ? reveal.highlightIndexEnds[nodesShown - 1] : 0,
+    );
+
+    tubeGeo.setDrawRange(
+      0,
+      Math.floor(reveal.tToU(progress) * reveal.tubeTubularSegments) *
+        reveal.tubeIndicesPerStep,
+    );
+  });
+
+  return null;
+}
+
+// Bright marker riding the head of the revealed trajectory.
+function TrailHead({
+  animation,
+  curve,
+  opacity = 1,
+}: {
+  animation: AnimationConfig;
+  curve: THREE.CatmullRomCurve3;
+  opacity?: number;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const scratch = useRef(new THREE.Vector3());
+
+  useFrame(() => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    curve.getPoint(clamp01(animation.progressRef.current), scratch.current);
+    mesh.position.copy(scratch.current);
+  });
+
+  return (
+    <mesh ref={meshRef}>
+      <sphereGeometry args={[2, 20, 20]} />
+      <meshStandardMaterial
+        color={HEAD_COLOR}
+        emissive={HEAD_COLOR}
+        emissiveIntensity={0.75}
+        transparent={opacity < 1}
+        opacity={opacity}
+        roughness={0.3}
+      />
+    </mesh>
   );
 }
 
@@ -511,7 +841,9 @@ function EndpointMarker({
         )}
         {showCone && (
           <mesh position={[0, -markerHeight / 2, 0]}>
-            <coneGeometry args={[ENDPOINT_MARKER_SIZE * 0.5, markerHeight, 6]} />
+            <coneGeometry
+              args={[ENDPOINT_MARKER_SIZE * 0.5, markerHeight, 6]}
+            />
             <meshStandardMaterial
               color={ENDPOINT_MARKER_COLOR}
               transparent={opacity < 1}
@@ -533,62 +865,118 @@ function ParticleSpheres({
   opacity = 1,
   showTube = false,
   showLabels = true,
+  animation,
 }: {
   nodes: NodeData[];
   opacity?: number;
   showTube?: boolean;
   showLabels?: boolean;
+  animation?: AnimationConfig;
 }) {
   const lastIndex = nodes.length - 1;
+  const nodeGroups = useRef<(THREE.Group | null)[]>([]);
+
+  // While animating, a node only exists once the head has reached it.
+  useFrame(() => {
+    if (!animation?.active) return;
+    const progress = clamp01(animation.progressRef.current);
+    for (let i = 0; i < nodeGroups.current.length; i++) {
+      const group = nodeGroups.current[i];
+      if (group)
+        group.visible = lastIndex <= 0 || i / lastIndex <= progress + 1e-6;
+    }
+  });
+
+  const animating = Boolean(animation?.active);
 
   return (
     <group>
       {nodes.map((node, i) => {
+        let content: React.ReactNode = null;
+
         if (i === 0) {
-          return (
+          content = (
             <EndpointMarker
-              key={i}
               label="s"
               position={node.position}
               targetPosition={nodes[1]?.position}
               opacity={opacity}
               showCone={!showTube}
-              showLabel={showLabels}
+              showLabel={showLabels && !animating}
             />
           );
-        }
-
-        if (i === lastIndex) {
-          return (
+        } else if (i === lastIndex) {
+          content = (
             <EndpointMarker
-              key={i}
               label="e"
               position={node.position}
               targetPosition={nodes[i - 1]?.position}
               opacity={opacity}
               showCone={!showTube}
-              showLabel={showLabels}
+              showLabel={showLabels && !animating}
             />
+          );
+        } else if (!showTube) {
+          content = (
+            <mesh position={node.position}>
+              <sphereGeometry args={[1, 16, 16]} />
+              <meshStandardMaterial
+                color={BEAD_COLOR}
+                emissive={BEAD_COLOR}
+                emissiveIntensity={0.18}
+                transparent
+                opacity={0.92 * opacity}
+              />
+            </mesh>
           );
         }
 
-        if (showTube) return null;
-
         return (
-          <mesh key={i} position={node.position}>
-            <sphereGeometry args={[1, 16, 16]} />
-            <meshStandardMaterial
-              color={BEAD_COLOR}
-              emissive={BEAD_COLOR}
-              emissiveIntensity={0.18}
-              transparent
-              opacity={0.92 * opacity}
-            />
-          </mesh>
+          <group
+            key={i}
+            ref={(el) => {
+              nodeGroups.current[i] = el;
+            }}
+            visible={!animating || i === 0}
+          >
+            {content}
+          </group>
         );
       })}
     </group>
   );
+}
+
+// Advances playback time. Lives inside the Canvas so it rides the render loop.
+function AnimationDriver({
+  progressRef,
+  playing,
+  speed,
+  loop,
+  onFinish,
+}: {
+  progressRef: React.MutableRefObject<number>;
+  playing: boolean;
+  speed: number;
+  loop: boolean;
+  onFinish: () => void;
+}) {
+  useFrame((_, delta) => {
+    if (!playing) return;
+    const next = progressRef.current + (delta * speed) / ANIMATION_DURATION;
+    if (next >= 1) {
+      if (loop) {
+        progressRef.current = next % 1;
+      } else {
+        progressRef.current = 1;
+        onFinish();
+      }
+      return;
+    }
+    progressRef.current = next;
+  });
+
+  return null;
 }
 
 function AneurysmOverlay({
@@ -603,8 +991,9 @@ function AneurysmOverlay({
   const center = transformPoint(geometry.center, transform);
   const radius =
     (geometry.size.maxRadiusFromCenter ??
-      (geometry.size.equivalentDiameterApprox ? geometry.size.equivalentDiameterApprox / 2 : 2)) *
-    transform.scale;
+      (geometry.size.equivalentDiameterApprox
+        ? geometry.size.equivalentDiameterApprox / 2
+        : 2)) * transform.scale;
 
   const sacMeshGeometry = useMemo(
     () => makeSurfaceGeometry(geometry.mesh, transform),
@@ -688,22 +1077,41 @@ export default function GlyphView3D() {
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const [datasetIdx, setDatasetIdx] = useState(0);
   const [data, setData] = useState<GlyphDataset | null>(null);
-  const [aneurysmGeometry, setAneurysmGeometry] = useState<AneurysmGeometry | null>(null);
+  const [aneurysmGeometry, setAneurysmGeometry] =
+    useState<AneurysmGeometry | null>(null);
   const [channels, setChannels] = useState<string[]>([]);
-  const [enabledChannels, setEnabledChannels] = useState<Set<number>>(new Set());
+  const [enabledChannels, setEnabledChannels] = useState<Set<number>>(
+    new Set(),
+  );
   const [sampleCount, setSampleCount] = useState(DEFAULT_SAMPLE_COUNT);
   const [gamma, setGamma] = useState(20);
   const [showTube, setShowTube] = useState(true);
-  const [showLabels, setShowLabels] = useState(true);
+  const [showLabels, setShowLabels] = useState(false);
   const [showVessel, setShowVessel] = useState(true);
   const [selectMode, setSelectMode] = useState(false);
-  const [hiddenObjectIds, setHiddenObjectIds] = useState<Set<number>>(new Set());
-  const [selectedObjectIds, setSelectedObjectIds] = useState<Set<number>>(new Set());
-  const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(null);
+  const [hiddenObjectIds, setHiddenObjectIds] = useState<Set<number>>(
+    new Set(),
+  );
+  const [selectedObjectIds, setSelectedObjectIds] = useState<Set<number>>(
+    new Set(),
+  );
+  const [selectionRect, setSelectionRect] = useState<SelectionRect | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const progressRef = useRef(0);
+  const [animate, setAnimate] = useState(false);
+  const [playing, setPlaying] = useState(false);
 
   const dataset = AVAILABLE_DATASETS[datasetIdx];
+
+  // Channels whose fin length is a magnitude; the toggle row shows both tones so
+  // the dark ribbon segments are readable as "negative" rather than as a bug.
+  const signedChannelSet = useMemo(
+    () => new Set(data?.meta?.signedChannels ?? []),
+    [data],
+  );
 
   // Load the dataset JSON whenever the selected dataset changes.
   useEffect(() => {
@@ -718,7 +1126,8 @@ export default function GlyphView3D() {
         let geometryJson: AneurysmGeometry | null = null;
         if (dataset.geometryPath) {
           const geometryRes = await fetch(dataset.geometryPath);
-          if (!geometryRes.ok) throw new Error(`Geometry not found (${geometryRes.status})`);
+          if (!geometryRes.ok)
+            throw new Error(`Geometry not found (${geometryRes.status})`);
           geometryJson = await geometryRes.json();
         }
         if (cancelled) return;
@@ -726,12 +1135,26 @@ export default function GlyphView3D() {
         setData(json);
         setAneurysmGeometry(geometryJson);
         setChannels(json.channels);
-        setEnabledChannels(new Set(json.channels.map((_, i) => i)));
-        setSampleCount(Math.min(dataset.defaultSampleCount ?? DEFAULT_SAMPLE_COUNT, json.objects.length));
+        setEnabledChannels(
+          new Set(
+            json.channels
+              .map((_, i) => i)
+              .filter((i) => !HIDDEN_CHANNELS.has(json.channels[i])),
+          ),
+        );
+        setSampleCount(
+          Math.min(
+            dataset.defaultSampleCount ?? DEFAULT_SAMPLE_COUNT,
+            json.objects.length,
+          ),
+        );
         setShowVessel(true);
         setSelectMode(false);
         setHiddenObjectIds(new Set());
         setSelectedObjectIds(new Set());
+        progressRef.current = 0;
+        setAnimate(false);
+        setPlaying(false);
       } catch (err) {
         if (!cancelled) {
           setAneurysmGeometry(null);
@@ -742,7 +1165,9 @@ export default function GlyphView3D() {
       }
     };
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [dataset]);
 
   const sampledObjects = useMemo(
@@ -773,8 +1198,30 @@ export default function GlyphView3D() {
     [enabledChannels],
   );
 
-  const hasVesselMesh = Boolean(aneurysmGeometry?.vessel?.mesh?.vertices?.length);
+  const hasVesselMesh = Boolean(
+    aneurysmGeometry?.vessel?.mesh?.vertices?.length,
+  );
   const supportsObjectSelection = (data?.objects.length ?? 0) > 1;
+  const supportsAnimation = Boolean(dataset.supportsAnimation && data);
+
+  const animation = useMemo<AnimationConfig>(
+    () => ({ progressRef, active: animate }),
+    [animate],
+  );
+
+  const toggleAnimate = useCallback((enabled: boolean) => {
+    progressRef.current = 0;
+    setAnimate(enabled);
+    setPlaying(enabled);
+  }, []);
+
+  const togglePlay = useCallback(() => {
+    setPlaying((prev) => {
+      // Restarting from the end rather than resuming a finished run.
+      if (!prev && progressRef.current >= 1) progressRef.current = 0;
+      return !prev;
+    });
+  }, []);
 
   const toggleChannel = useCallback((idx: number) => {
     setEnabledChannels((prev) => {
@@ -785,11 +1232,14 @@ export default function GlyphView3D() {
     });
   }, []);
 
-  const updateSampleCount = useCallback((value: number) => {
-    if (!Number.isFinite(value)) return;
-    const maxCount = data?.objects.length ?? DEFAULT_SAMPLE_COUNT;
-    setSampleCount(Math.max(1, Math.min(maxCount, Math.floor(value))));
-  }, [data]);
+  const updateSampleCount = useCallback(
+    (value: number) => {
+      if (!Number.isFinite(value)) return;
+      const maxCount = data?.objects.length ?? DEFAULT_SAMPLE_COUNT;
+      setSampleCount(Math.max(1, Math.min(maxCount, Math.floor(value))));
+    },
+    [data],
+  );
 
   const hideSelected = useCallback(() => {
     setHiddenObjectIds((prev) => {
@@ -816,91 +1266,113 @@ export default function GlyphView3D() {
     });
   }, []);
 
-  const selectItemsInRect = useCallback((rect: SelectionRect, additive: boolean) => {
-    const camera = cameraRef.current;
-    const viewport = viewportRef.current;
-    if (!camera || !viewport || rect.width < 4 || rect.height < 4) return;
+  const selectItemsInRect = useCallback(
+    (rect: SelectionRect, additive: boolean) => {
+      const camera = cameraRef.current;
+      const viewport = viewportRef.current;
+      if (!camera || !viewport || rect.width < 4 || rect.height < 4) return;
 
-    camera.updateMatrixWorld();
-    const point = new THREE.Vector3();
-    const nextSelected = additive ? new Set(selectedObjectIds) : new Set<number>();
+      camera.updateMatrixWorld();
+      const point = new THREE.Vector3();
+      const nextSelected = additive
+        ? new Set(selectedObjectIds)
+        : new Set<number>();
 
-    for (const { object, nodes } of visibleItems) {
-      let hits = 0;
-      let endpointHit = false;
+      for (const { object, nodes } of visibleItems) {
+        let hits = 0;
+        let endpointHit = false;
 
-      for (let i = 0; i < nodes.length; i++) {
-        const [x, y, z] = nodes[i].position;
-        point.set(x, y, z).project(camera);
-        if (point.z < -1 || point.z > 1) continue;
+        for (let i = 0; i < nodes.length; i++) {
+          const [x, y, z] = nodes[i].position;
+          point.set(x, y, z).project(camera);
+          if (point.z < -1 || point.z > 1) continue;
 
-        const sx = ((point.x + 1) / 2) * viewport.clientWidth;
-        const sy = ((-point.y + 1) / 2) * viewport.clientHeight;
-        const inside =
-          sx >= rect.x &&
-          sx <= rect.x + rect.width &&
-          sy >= rect.y &&
-          sy <= rect.y + rect.height;
+          const sx = ((point.x + 1) / 2) * viewport.clientWidth;
+          const sy = ((-point.y + 1) / 2) * viewport.clientHeight;
+          const inside =
+            sx >= rect.x &&
+            sx <= rect.x + rect.width &&
+            sy >= rect.y &&
+            sy <= rect.y + rect.height;
 
-        if (inside) {
-          hits += 1;
-          if (i === 0 || i === nodes.length - 1) endpointHit = true;
+          if (inside) {
+            hits += 1;
+            if (i === 0 || i === nodes.length - 1) endpointHit = true;
+          }
         }
+
+        if (endpointHit || hits >= 3) nextSelected.add(object.objectId);
       }
 
-      if (endpointHit || hits >= 3) nextSelected.add(object.objectId);
-    }
+      setSelectedObjectIds(nextSelected);
+    },
+    [selectedObjectIds, visibleItems],
+  );
 
-    setSelectedObjectIds(nextSelected);
-  }, [selectedObjectIds, visibleItems]);
+  const startSelection = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (event.button !== 0) return;
+      const viewport = viewportRef.current;
+      if (!viewport) return;
 
-  const startSelection = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
-    const viewport = viewportRef.current;
-    if (!viewport) return;
+      const bounds = viewport.getBoundingClientRect();
+      const x = event.clientX - bounds.left;
+      const y = event.clientY - bounds.top;
+      dragStartRef.current = { x, y };
+      setSelectionRect({ x, y, width: 0, height: 0 });
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    [],
+  );
 
-    const bounds = viewport.getBoundingClientRect();
-    const x = event.clientX - bounds.left;
-    const y = event.clientY - bounds.top;
-    dragStartRef.current = { x, y };
-    setSelectionRect({ x, y, width: 0, height: 0 });
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }, []);
+  const moveSelection = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      if (!dragStartRef.current) return;
+      const viewport = viewportRef.current;
+      if (!viewport) return;
 
-  const moveSelection = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragStartRef.current) return;
-    const viewport = viewportRef.current;
-    if (!viewport) return;
+      const bounds = viewport.getBoundingClientRect();
+      updateDragRect(event.clientX - bounds.left, event.clientY - bounds.top);
+    },
+    [updateDragRect],
+  );
 
-    const bounds = viewport.getBoundingClientRect();
-    updateDragRect(event.clientX - bounds.left, event.clientY - bounds.top);
-  }, [updateDragRect]);
+  const finishSelection = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const start = dragStartRef.current;
+      const viewport = viewportRef.current;
+      if (!start || !viewport) return;
 
-  const finishSelection = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-    const start = dragStartRef.current;
-    const viewport = viewportRef.current;
-    if (!start || !viewport) return;
+      const bounds = viewport.getBoundingClientRect();
+      const x = event.clientX - bounds.left;
+      const y = event.clientY - bounds.top;
+      const finalRect = {
+        x: Math.min(start.x, x),
+        y: Math.min(start.y, y),
+        width: Math.abs(x - start.x),
+        height: Math.abs(y - start.y),
+      };
 
-    const bounds = viewport.getBoundingClientRect();
-    const x = event.clientX - bounds.left;
-    const y = event.clientY - bounds.top;
-    const finalRect = {
-      x: Math.min(start.x, x),
-      y: Math.min(start.y, y),
-      width: Math.abs(x - start.x),
-      height: Math.abs(y - start.y),
-    };
-
-    selectItemsInRect(finalRect, event.shiftKey);
-    dragStartRef.current = null;
-    setSelectionRect(null);
-    event.currentTarget.releasePointerCapture(event.pointerId);
-  }, [selectItemsInRect]);
+      selectItemsInRect(finalRect, event.shiftKey);
+      dragStartRef.current = null;
+      setSelectionRect(null);
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    },
+    [selectItemsInRect],
+  );
 
   // ── Render ──
 
   return (
-    <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column", background: "#0a1929" }}>
+    <div
+      style={{
+        width: "100vw",
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        background: "#0a1929",
+      }}
+    >
       {/* ── Control bar ── */}
       <div
         style={{
@@ -947,35 +1419,69 @@ export default function GlyphView3D() {
               />
             </label>
 
-            <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
+            <div
+              style={{
+                width: 1,
+                height: 20,
+                background: "rgba(255,255,255,0.15)",
+              }}
+            />
           </>
         )}
 
         {/* Channel toggles */}
-        {channels.map((name, i) => (
-          <label
-            key={name}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              cursor: "pointer",
-              opacity: enabledChannels.has(i) ? 1 : 0.4,
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={enabledChannels.has(i)}
-              onChange={() => toggleChannel(i)}
-              style={{ accentColor: getChannelColor(i) }}
-            />
-            {name}
-          </label>
-        ))}
+        {channels.map((name, i) =>
+          HIDDEN_CHANNELS.has(name) ? null : (
+            <label
+              key={name}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                cursor: "pointer",
+                opacity: enabledChannels.has(i) ? 1 : 0.4,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={enabledChannels.has(i)}
+                onChange={() => toggleChannel(i)}
+                style={{ accentColor: getChannelColor(i) }}
+              />
+              {getChannelDisplayName(name)}
+              {signedChannelSet.has(name) && (
+                <span
+                  title={`${getChannelDisplayName(name)}: fin length is |value|; bright = positive, dark = negative`}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
+                >
+                  <span
+                    style={{
+                      width: 9,
+                      height: 9,
+                      borderRadius: 2,
+                      background: getChannelColor(i),
+                    }}
+                  />
+                  <span
+                    style={{
+                      width: 9,
+                      height: 9,
+                      borderRadius: 2,
+                      background: getNegativeChannelColor(i),
+                    }}
+                  />
+                  <span style={{ fontSize: 9, opacity: 0.6 }}>+/-</span>
+                </span>
+              )}
+            </label>
+          ),
+        )}
 
-        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
+        <div
+          style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }}
+        />
 
-        <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+        {/* <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
           <input
             type="checkbox"
             checked={showTube}
@@ -993,10 +1499,17 @@ export default function GlyphView3D() {
             style={{ accentColor: "#45b7d1" }}
           />
           Labels
-        </label>
+        </label> */}
 
         {hasVesselMesh && (
-          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              cursor: "pointer",
+            }}
+          >
             <input
               type="checkbox"
               checked={showVessel}
@@ -1009,8 +1522,6 @@ export default function GlyphView3D() {
 
         {supportsObjectSelection && (
           <>
-            <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
-
             <button
               type="button"
               onClick={() => setSelectMode((value) => !value)}
@@ -1043,7 +1554,9 @@ export default function GlyphView3D() {
           </>
         )}
 
-        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }} />
+        <div
+          style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }}
+        />
 
         {/* Gamma control — remaps each channel value as v^gamma */}
         <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -1051,23 +1564,81 @@ export default function GlyphView3D() {
           <input
             type="range"
             min={1}
-            max={50}
+            max={100}
             step={1}
             value={gamma}
             onChange={(e) => setGamma(Number(e.target.value))}
             style={{ width: 120, accentColor: "#45b7d1" }}
           />
-          <span style={{ width: 28, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+          <span
+            style={{
+              width: 28,
+              textAlign: "right",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
             {gamma.toFixed(1)}
           </span>
         </label>
+
+        {supportsAnimation && (
+          <>
+            <button
+              type="button"
+              aria-label={playing ? "Pause animation" : "Play animation"}
+              aria-pressed={playing}
+              title={playing ? "Pause" : "Play"}
+              onClick={() => (animate ? togglePlay() : toggleAnimate(true))}
+              style={{
+                width: 24,
+                height: 24,
+                padding: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                color: playing ? "#fff" : "rgba(255,255,255,0.75)",
+                background: playing ? "#1677ff" : "transparent",
+                border: playing
+                  ? "1px solid #1677ff"
+                  : "1px solid rgba(255,255,255,0.3)",
+                borderRadius: 4,
+                transition: "all 0.2s",
+              }}
+            >
+              {playing ? (
+                <svg
+                  viewBox="0 0 16 16"
+                  width="14"
+                  height="14"
+                  aria-hidden="true"
+                  fill="currentColor"
+                >
+                  <path d="M4.25 3h2.5v10h-2.5zM9.25 3h2.5v10h-2.5z" />
+                </svg>
+              ) : (
+                <svg
+                  viewBox="0 0 16 16"
+                  width="14"
+                  height="14"
+                  aria-hidden="true"
+                  fill="currentColor"
+                >
+                  <path d="M5 3.25a.75.75 0 0 1 1.14-.64l6 3.75a.75.75 0 0 1 0 1.28l-6 3.75A.75.75 0 0 1 5 10.75v-7.5Z" />
+                </svg>
+              )}
+            </button>
+          </>
+        )}
       </div>
 
       {/* ── 3D viewport ── */}
       <div ref={viewportRef} style={{ flex: 1, position: "relative" }}>
         {loading && (
           <div style={overlayStyle}>
-            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}>Loading 3D structure...</div>
+            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}>
+              Loading 3D structure...
+            </div>
           </div>
         )}
         {error && (
@@ -1084,6 +1655,15 @@ export default function GlyphView3D() {
         >
           <ambientLight intensity={0.6} />
           <directionalLight position={[100, 100, 100]} intensity={0.8} />
+          {animate && (
+            <AnimationDriver
+              progressRef={progressRef}
+              playing={playing}
+              speed={1}
+              loop={false}
+              onFinish={() => setPlaying(false)}
+            />
+          )}
           {visibleItems.map(({ object, nodes }) => {
             if (nodes.length <= 1) return null;
             const isSelected = selectedObjectIds.has(object.objectId);
@@ -1096,12 +1676,14 @@ export default function GlyphView3D() {
                   gamma={gamma}
                   opacity={opacity}
                   showTube={showTube}
+                  animation={animation}
                 />
                 <ParticleSpheres
                   nodes={nodes}
                   opacity={opacity}
                   showTube={showTube}
                   showLabels={showLabels}
+                  animation={animation}
                 />
               </group>
             );
