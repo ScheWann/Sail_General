@@ -40,56 +40,6 @@ interface GlyphDataset {
   objects: GlyphObject[];
 }
 
-interface AneurysmGeometry {
-  meta?: Record<string, unknown>;
-  center: { x: number; y: number; z: number };
-  size: {
-    bboxMin?: number[];
-    bboxMax?: number[];
-    extent?: number[];
-    maxRadiusFromCenter?: number;
-    meanRadiusFromCenter?: number;
-    equivalentDiameterApprox?: number;
-  };
-  closestCenterlinePoint?: {
-    x: number;
-    y: number;
-    z: number;
-    node?: number;
-    arclen?: number;
-    dist_to_sac?: number;
-    label?: string;
-  };
-  mesh?: {
-    vertices: number[][];
-    faces: number[][];
-    originalVertexIds?: number[];
-    distanceToNeck?: number[];
-  };
-  vessel?: {
-    description?: string;
-    center?: { x: number; y: number; z: number };
-    size?: {
-      bboxMin?: number[];
-      bboxMax?: number[];
-      extent?: number[];
-    };
-    mesh?: {
-      vertices: number[][];
-      faces: number[][];
-      originalVertexIds?: number[];
-      distanceToNeck?: number[];
-    };
-    fields?: string[];
-    distanceToNeckRange?: number[];
-    nWallPoints?: number;
-    nWallFaces?: number;
-    nVesselMeshVertices?: number;
-    nVesselMeshFaces?: number;
-  };
-  nSacWallPoints?: number;
-}
-
 interface SurfaceMesh {
   vertices: number[][];
   faces: number[][];
@@ -149,8 +99,6 @@ interface DatasetConfig {
   name: string;
   path: string;
   geometryPath?: string;
-  // Which overlay renders `geometryPath`; the two cases carry different payloads.
-  geometryKind?: "aneurysm" | "tract";
   // Label of the checkbox that toggles the surrounding anatomical context.
   contextLabel?: string;
   defaultSampleCount?: number;
@@ -203,19 +151,9 @@ const AVAILABLE_DATASETS: DatasetConfig[] = [
     defaultGamma: DEFAULT_GAMMA,
   },
   {
-    name: "Aneurysm branch glyphs",
-    path: "/aneurysm_glyph.json",
-    geometryPath: "/aneurysm_geometry.json",
-    geometryKind: "aneurysm",
-    contextLabel: "Vessel",
-    defaultSampleCount: 7,
-    defaultGamma: DEFAULT_GAMMA,
-  },
-  {
     name: "White-matter bundle profiles",
     path: "/wm_tract_glyph.json",
     geometryPath: "/wm_tract_geometry.json",
-    geometryKind: "tract",
     contextLabel: "Brain",
     defaultSampleCount: 8,
     defaultGamma: DEFAULT_GAMMA,
@@ -243,11 +181,6 @@ function getChannelColor(index: number): string {
 function getChannelDisplayName(name: string): string {
   const names: Record<string, string> = {
     a_mag: "acceleration",
-    TAWSS: "TAWSS",
-    OSI: "OSI",
-    WSSG_magnitude: "WSSG magnitude",
-    Vortex_strength: "vortex strength (−λ₂)",
-    Curvature_magnitude: "curvature magnitude",
     FA: "FA",
     MD: "MD",
     RD: "RD",
@@ -1104,81 +1037,6 @@ function AnimationDriver({
   return null;
 }
 
-function AneurysmOverlay({
-  geometry,
-  transform,
-  showVessel,
-}: {
-  geometry: AneurysmGeometry;
-  transform: CoordinateTransform;
-  showVessel: boolean;
-}) {
-  const center = transformPoint(geometry.center, transform);
-  const radius =
-    (geometry.size.maxRadiusFromCenter ??
-      (geometry.size.equivalentDiameterApprox
-        ? geometry.size.equivalentDiameterApprox / 2
-        : 2)) * transform.scale;
-
-  const sacMeshGeometry = useMemo(
-    () => makeSurfaceGeometry(geometry.mesh, transform),
-    [geometry.mesh, transform],
-  );
-
-  const vesselMeshGeometry = useMemo(
-    () => makeSurfaceGeometry(geometry.vessel?.mesh, transform),
-    [geometry.vessel?.mesh, transform],
-  );
-
-  return (
-    <group>
-      {showVessel && vesselMeshGeometry && (
-        <mesh geometry={vesselMeshGeometry}>
-          <meshStandardMaterial
-            color="#8ca3ad"
-            emissive="#32424a"
-            emissiveIntensity={0.08}
-            transparent
-            opacity={0.18}
-            roughness={0.62}
-            metalness={0.03}
-            side={THREE.DoubleSide}
-            depthWrite={false}
-          />
-        </mesh>
-      )}
-      {sacMeshGeometry ? (
-        <mesh geometry={sacMeshGeometry}>
-          <meshStandardMaterial
-            color="#e84a5f"
-            emissive="#e84a5f"
-            emissiveIntensity={0.18}
-            transparent
-            opacity={0.38}
-            roughness={0.42}
-            metalness={0.05}
-            side={THREE.DoubleSide}
-            depthWrite={false}
-          />
-        </mesh>
-      ) : (
-        <mesh position={center}>
-          <sphereGeometry args={[Math.max(radius, 1.5), 32, 18]} />
-          <meshStandardMaterial
-            color="#e84a5f"
-            emissive="#e84a5f"
-            emissiveIntensity={0.2}
-            transparent
-            opacity={0.22}
-            roughness={0.35}
-            depthWrite={false}
-          />
-        </mesh>
-      )}
-    </group>
-  );
-}
-
 // Translucent bundle envelopes plus the brain-mask isosurface. The envelope is
 // the spatial extent the glyph's core path summarizes, so a tube is drawn only
 // for bundles whose glyph is currently visible.
@@ -1281,9 +1139,7 @@ export default function GlyphView3D() {
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const [datasetIdx, setDatasetIdx] = useState(0);
   const [data, setData] = useState<GlyphDataset | null>(null);
-  const [geometry, setGeometry] = useState<
-    AneurysmGeometry | TractGeometry | null
-  >(null);
+  const [geometry, setGeometry] = useState<TractGeometry | null>(null);
   const [channels, setChannels] = useState<string[]>([]);
   const [enabledChannels, setEnabledChannels] = useState<Set<number>>(
     new Set(),
@@ -1324,14 +1180,14 @@ export default function GlyphView3D() {
     const load = async () => {
       setLoading(true);
       setError(null);
-      // The overlay is picked by the *dataset*, so a stale payload from the previous
-      // dataset would be read as the wrong shape until the fetch resolves.
+      // Drop the previous dataset's geometry so it is not drawn against the new
+      // glyphs while the fetch is in flight.
       setGeometry(null);
       try {
         const res = await fetch(dataset.path);
         if (!res.ok) throw new Error(`Dataset not found (${res.status})`);
         const json: GlyphDataset = await res.json();
-        let geometryJson: AneurysmGeometry | TractGeometry | null = null;
+        let geometryJson: TractGeometry | null = null;
         if (dataset.geometryPath) {
           const geometryRes = await fetch(dataset.geometryPath);
           if (!geometryRes.ok)
@@ -1407,15 +1263,10 @@ export default function GlyphView3D() {
     [enabledChannels],
   );
 
-  const isTractGeometry = dataset.geometryKind === "tract";
-  const aneurysmGeometry = isTractGeometry
-    ? null
-    : (geometry as AneurysmGeometry | null);
-  const tractGeometry = isTractGeometry ? (geometry as TractGeometry) : null;
+  const tractGeometry = geometry;
 
   const hasContextMesh = Boolean(
-    aneurysmGeometry?.vessel?.mesh?.vertices?.length ||
-      tractGeometry?.context?.mesh?.vertices?.length,
+    tractGeometry?.context?.mesh?.vertices?.length,
   );
   const visibleObjectIds = useMemo(
     () => new Set(visibleItems.map(({ object }) => object.objectId)),
@@ -1915,13 +1766,6 @@ export default function GlyphView3D() {
               </group>
             );
           })}
-          {aneurysmGeometry?.center && coordinateTransform && (
-            <AneurysmOverlay
-              geometry={aneurysmGeometry}
-              transform={coordinateTransform}
-              showVessel={showContext}
-            />
-          )}
           {tractGeometry && coordinateTransform && (
             <TractOverlay
               geometry={tractGeometry}
