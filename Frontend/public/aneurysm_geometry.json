@@ -1,13 +1,12 @@
 {
   "meta": {
-    "title": "Aneurysm sac surface and parent-vessel context",
-    "description": "Sac geometry uses wall triangles whose vertices satisfy DistanceToNeck < 0. The centerline marker is proximity-based, not an anatomical neck.",
+    "title": "Aneurysm sac and parent-vessel surface context",
+    "description": "Surface context only; the connected glyph paths are stored in aneurysm_glyph.json.",
     "unit": "millimeters",
     "source": {
       "surface": "C0099.vtp",
       "centerline": "centerlines.vtp"
     },
-    "branch": 1,
     "meshKind": "surface-triangles",
     "sacCriterion": "DistanceToNeck < 0 at all three triangle vertices"
   },
@@ -35,15 +34,6 @@
     "maxRadiusFromCenter": 3.1597,
     "meanRadiusFromCenter": 2.1733,
     "equivalentDiameterApprox": 6.3193
-  },
-  "closestCenterlinePoint": {
-    "x": 24.3988,
-    "y": 30.0891,
-    "z": 31.3172,
-    "node": 130,
-    "arclen": 65.0,
-    "dist_to_sac": 1.9756,
-    "label": "Closest centerline point to sac (not anatomical neck)"
   },
   "mesh": {
     "vertices": [

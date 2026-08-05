@@ -1,7 +1,10 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+
+// drei forwards the underlying three-stdlib controls instance.
+type OrbitControlsHandle = React.ComponentRef<typeof OrbitControls>;
 
 // ── Data types ──────────────────────────────────────────────────────────────
 
@@ -87,6 +90,39 @@ interface AneurysmGeometry {
   nSacWallPoints?: number;
 }
 
+interface SurfaceMesh {
+  vertices: number[][];
+  faces: number[][];
+}
+
+// White-matter case: one translucent envelope per fiber bundle plus a brain-mask
+// isosurface for anatomical context. Bundle envelopes are keyed to the glyph
+// objects by `objectId`, so hiding a bundle hides its tube too.
+interface TractGeometry {
+  meta?: Record<string, unknown> & {
+    caseType?: string;
+    title?: string;
+    description?: string;
+  };
+  bundles: {
+    objectId: number;
+    key?: string;
+    label?: string;
+    nStreamlines?: number;
+    mesh: SurfaceMesh;
+  }[];
+  context?: {
+    description?: string;
+    // Outer brain-mask hull: an envelope, no internal structure.
+    mesh?: SurfaceMesh;
+    // White-matter boundary: the folded surface the bundles actually terminate on.
+    whiteMatter?: {
+      description?: string;
+      mesh?: SurfaceMesh;
+    };
+  };
+}
+
 interface CoordinateTransform {
   center: [number, number, number];
   scale: number;
@@ -113,11 +149,33 @@ interface DatasetConfig {
   name: string;
   path: string;
   geometryPath?: string;
+  // Which overlay renders `geometryPath`; the two cases carry different payloads.
+  geometryKind?: "aneurysm" | "tract";
+  // Label of the checkbox that toggles the surrounding anatomical context.
+  contextLabel?: string;
   defaultSampleCount?: number;
   // Point order is a time series (tracer paths), so playback along it is meaningful.
   supportsAnimation?: boolean;
+  // Rubber-band selection of individual objects. Only worth offering where the objects
+  // are an interchangeable population; the other cases have a handful of named paths.
+  supportsSelection?: boolean;
   defaultGamma?: number;
+  // Initial camera placement and orbit axis; see `CameraSetup`.
+  camera?: CameraSetup;
 }
+
+// OrbitControls turns horizontal dragging into rotation about the camera's up vector.
+// With the default +Y up, dragging left/right on RAS anatomical data (superior = +Z)
+// rolls the volume about its front-back axis instead of spinning it about the vertical
+// axis, which is close to unusable on a brain. Cases with a real up axis declare it.
+interface CameraSetup {
+  position: [number, number, number];
+  up: [number, number, number];
+}
+
+const DEFAULT_CAMERA: CameraSetup = { position: [0, 0, 500], up: [0, 1, 0] };
+// Posterior-superior three-quarter view, superior axis up.
+const RAS_CAMERA: CameraSetup = { position: [0, -470, 170], up: [0, 0, 1] };
 
 // Playback state is shared through a ref so advancing time never re-renders the
 // React tree — the reveal is applied straight to the three.js objects.
@@ -131,6 +189,9 @@ interface AnimationConfig {
 const TARGET_EXTENT = 200;
 const RANDOM_SEED = 3601;
 const DEFAULT_SAMPLE_COUNT = 4;
+// Channel values are rank-normalized to [0,1], so v^gamma pushes everything below the top
+// decile down: the fins that stay long are the ones carrying an extreme value.
+const DEFAULT_GAMMA = 20;
 
 const AVAILABLE_DATASETS: DatasetConfig[] = [
   {
@@ -138,14 +199,27 @@ const AVAILABLE_DATASETS: DatasetConfig[] = [
     path: "/turb_glyph.json",
     defaultSampleCount: DEFAULT_SAMPLE_COUNT,
     supportsAnimation: true,
-    defaultGamma: 20,
+    supportsSelection: true,
+    defaultGamma: DEFAULT_GAMMA,
   },
   {
-    name: "Aneurysm-adjacent vessel",
+    name: "Aneurysm branch glyphs",
     path: "/aneurysm_glyph.json",
     geometryPath: "/aneurysm_geometry.json",
-    defaultSampleCount: 1,
-    defaultGamma: 1,
+    geometryKind: "aneurysm",
+    contextLabel: "Vessel",
+    defaultSampleCount: 7,
+    defaultGamma: DEFAULT_GAMMA,
+  },
+  {
+    name: "White-matter bundle profiles",
+    path: "/wm_tract_glyph.json",
+    geometryPath: "/wm_tract_geometry.json",
+    geometryKind: "tract",
+    contextLabel: "Brain",
+    defaultSampleCount: 8,
+    defaultGamma: DEFAULT_GAMMA,
+    camera: RAS_CAMERA,
   },
 ];
 
@@ -174,6 +248,13 @@ function getChannelDisplayName(name: string): string {
     WSSG_magnitude: "WSSG magnitude",
     Vortex_strength: "vortex strength (−λ₂)",
     Curvature_magnitude: "curvature magnitude",
+    FA: "FA",
+    MD: "MD",
+    RD: "RD",
+    AD: "AD",
+    fiber_density: "fiber density",
+    curvature: "bundle curvature",
+    dispersion: "core distance",
   };
   return names[name] ?? name;
 }
@@ -205,7 +286,7 @@ function getNegativeChannelColor(index: number): string {
 // Channels kept out of the glyph and the legend for now. Channel indices stay
 // aligned with the dataset's `values` array — only display is suppressed, so
 // emptying this set brings them straight back.
-const HIDDEN_CHANNELS = new Set(["vortex_fraction", "helicity", ""]);
+const HIDDEN_CHANNELS = new Set(["vortex_fraction", "helicity", "curvature", "MD"]);
 
 const BACKBONE_COLOR = "#FFFFFF";
 const BEAD_COLOR = "#FFFFFF";
@@ -470,8 +551,10 @@ function GlyphPipeline({
     "catmullrom",
     0.3,
   );
-  const tubeTubularSegments = nodes.length * 20;
-  const tubeRadialSegments = 8;
+  // 8 segments per node still follows the curve at this radius, and costs a third of
+  // the triangles the backbone used to spend across every object in the scene.
+  const tubeTubularSegments = nodes.length * 8;
+  const tubeRadialSegments = 6;
 
   // The default arc-length table has 200 divisions — about two samples per node,
   // too coarse both for TubeGeometry's own sampling and for tToU below.
@@ -962,6 +1045,33 @@ function ParticleSpheres({
   );
 }
 
+// Applies the case's camera placement and orbit axis, and re-frames when the case
+// changes. `setup` comes from the dataset table, so it only changes with the dataset.
+function CameraRig({
+  setup,
+  controlsRef,
+}: {
+  setup: CameraSetup;
+  controlsRef: React.MutableRefObject<OrbitControlsHandle | null>;
+}) {
+  const camera = useThree((state) => state.camera);
+
+  useEffect(() => {
+    camera.up.set(...setup.up);
+    camera.position.set(...setup.position);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+    // OrbitControls caches the spherical coordinates it derived from the old camera.
+    const controls = controlsRef.current;
+    if (controls) {
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+  }, [camera, controlsRef, setup]);
+
+  return null;
+}
+
 // Advances playback time. Lives inside the Canvas so it rides the render loop.
 function AnimationDriver({
   progressRef,
@@ -1020,10 +1130,6 @@ function AneurysmOverlay({
     [geometry.vessel?.mesh, transform],
   );
 
-  const closestPoint = geometry.closestCenterlinePoint
-    ? transformPoint(geometry.closestCenterlinePoint, transform)
-    : null;
-
   return (
     <group>
       {showVessel && vesselMeshGeometry && (
@@ -1069,18 +1175,98 @@ function AneurysmOverlay({
           />
         </mesh>
       )}
-      {closestPoint && (
-        <group position={closestPoint}>
-          <mesh>
-            <sphereGeometry args={[3, 18, 18]} />
+    </group>
+  );
+}
+
+// Translucent bundle envelopes plus the brain-mask isosurface. The envelope is
+// the spatial extent the glyph's core path summarizes, so a tube is drawn only
+// for bundles whose glyph is currently visible.
+function TractOverlay({
+  geometry,
+  transform,
+  showContext,
+  visibleObjectIds,
+}: {
+  geometry: TractGeometry;
+  transform: CoordinateTransform;
+  showContext: boolean;
+  visibleObjectIds: Set<number>;
+}) {
+  const contextGeometry = useMemo(
+    () => makeSurfaceGeometry(geometry.context?.mesh, transform),
+    [geometry.context?.mesh, transform],
+  );
+
+  const whiteMatterGeometry = useMemo(
+    () => makeSurfaceGeometry(geometry.context?.whiteMatter?.mesh, transform),
+    [geometry.context?.whiteMatter?.mesh, transform],
+  );
+
+  const bundleGeometries = useMemo(
+    () =>
+      (geometry.bundles ?? []).map((bundle) => ({
+        objectId: bundle.objectId,
+        geometry: makeSurfaceGeometry(bundle.mesh, transform),
+      })),
+    [geometry.bundles, transform],
+  );
+
+  return (
+    <group>
+      {showContext && contextGeometry && (
+        <mesh geometry={contextGeometry} renderOrder={-2}>
+          <meshStandardMaterial
+            color="#9fb4c7"
+            emissive="#2a3946"
+            emissiveIntensity={0.1}
+            transparent
+            opacity={0.05}
+            roughness={0.85}
+            metalness={0.02}
+            side={THREE.BackSide}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+      {/* The hull alone reads as a featureless blob. The white-matter boundary is what
+          carries recognizable anatomy — gyral folding, the interhemispheric fissure, the
+          callosal arch — so it is drawn solidly enough to be read. Front faces only: the
+          near-side folds are the recognizable ones, and one layer of translucency keeps
+          the bundles inside legible. It writes no depth and renders first, so the glyphs
+          are never occluded by it. */}
+      {showContext && whiteMatterGeometry && (
+        <mesh geometry={whiteMatterGeometry} renderOrder={-1}>
+          <meshStandardMaterial
+            color="#b9c9d6"
+            emissive="#1b2732"
+            emissiveIntensity={0.25}
+            transparent
+            opacity={0.3}
+            roughness={0.72}
+            metalness={0.04}
+            side={THREE.FrontSide}
+            depthWrite={false}
+            flatShading
+          />
+        </mesh>
+      )}
+      {bundleGeometries.map(({ objectId, geometry: mesh }) =>
+        mesh && visibleObjectIds.has(objectId) ? (
+          <mesh key={objectId} geometry={mesh}>
             <meshStandardMaterial
-              color="#ffffff"
-              emissive="#ffffff"
-              emissiveIntensity={0.45}
-              roughness={0.3}
+              color="#7fd1c4"
+              emissive="#7fd1c4"
+              emissiveIntensity={0.12}
+              transparent
+              opacity={0.16}
+              roughness={0.55}
+              metalness={0.05}
+              side={THREE.DoubleSide}
+              depthWrite={false}
             />
           </mesh>
-        </group>
+        ) : null,
       )}
     </group>
   );
@@ -1091,20 +1277,22 @@ function AneurysmOverlay({
 export default function GlyphView3D() {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const cameraRef = useRef<THREE.Camera | null>(null);
+  const orbitControlsRef = useRef<OrbitControlsHandle | null>(null);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const [datasetIdx, setDatasetIdx] = useState(0);
   const [data, setData] = useState<GlyphDataset | null>(null);
-  const [aneurysmGeometry, setAneurysmGeometry] =
-    useState<AneurysmGeometry | null>(null);
+  const [geometry, setGeometry] = useState<
+    AneurysmGeometry | TractGeometry | null
+  >(null);
   const [channels, setChannels] = useState<string[]>([]);
   const [enabledChannels, setEnabledChannels] = useState<Set<number>>(
     new Set(),
   );
   const [sampleCount, setSampleCount] = useState(DEFAULT_SAMPLE_COUNT);
-  const [gamma, setGamma] = useState(20);
+  const [gamma, setGamma] = useState(DEFAULT_GAMMA);
   const [showTube] = useState(true);
   const [showLabels] = useState(false);
-  const [showVessel, setShowVessel] = useState(true);
+  const [showContext, setShowContext] = useState(true);
   const [selectMode, setSelectMode] = useState(false);
   const [hiddenObjectIds, setHiddenObjectIds] = useState<Set<number>>(
     new Set(),
@@ -1136,11 +1324,14 @@ export default function GlyphView3D() {
     const load = async () => {
       setLoading(true);
       setError(null);
+      // The overlay is picked by the *dataset*, so a stale payload from the previous
+      // dataset would be read as the wrong shape until the fetch resolves.
+      setGeometry(null);
       try {
         const res = await fetch(dataset.path);
         if (!res.ok) throw new Error(`Dataset not found (${res.status})`);
         const json: GlyphDataset = await res.json();
-        let geometryJson: AneurysmGeometry | null = null;
+        let geometryJson: AneurysmGeometry | TractGeometry | null = null;
         if (dataset.geometryPath) {
           const geometryRes = await fetch(dataset.geometryPath);
           if (!geometryRes.ok)
@@ -1150,7 +1341,7 @@ export default function GlyphView3D() {
         if (cancelled) return;
 
         setData(json);
-        setAneurysmGeometry(geometryJson);
+        setGeometry(geometryJson);
         setChannels(json.channels);
         setEnabledChannels(
           new Set(
@@ -1165,8 +1356,8 @@ export default function GlyphView3D() {
             json.objects.length,
           ),
         );
-        setGamma(dataset.defaultGamma ?? 1);
-        setShowVessel(true);
+        setGamma(dataset.defaultGamma ?? DEFAULT_GAMMA);
+        setShowContext(true);
         setSelectMode(false);
         setHiddenObjectIds(new Set());
         setSelectedObjectIds(new Set());
@@ -1175,7 +1366,7 @@ export default function GlyphView3D() {
         setPlaying(false);
       } catch (err) {
         if (!cancelled) {
-          setAneurysmGeometry(null);
+          setGeometry(null);
           setError(err instanceof Error ? err.message : String(err));
         }
       } finally {
@@ -1216,10 +1407,24 @@ export default function GlyphView3D() {
     [enabledChannels],
   );
 
-  const hasVesselMesh = Boolean(
-    aneurysmGeometry?.vessel?.mesh?.vertices?.length,
+  const isTractGeometry = dataset.geometryKind === "tract";
+  const aneurysmGeometry = isTractGeometry
+    ? null
+    : (geometry as AneurysmGeometry | null);
+  const tractGeometry = isTractGeometry ? (geometry as TractGeometry) : null;
+
+  const hasContextMesh = Boolean(
+    aneurysmGeometry?.vessel?.mesh?.vertices?.length ||
+      tractGeometry?.context?.mesh?.vertices?.length,
   );
-  const supportsObjectSelection = (data?.objects.length ?? 0) > 1;
+  const visibleObjectIds = useMemo(
+    () => new Set(visibleItems.map(({ object }) => object.objectId)),
+    [visibleItems],
+  );
+  // Sampling how many objects to draw is useful everywhere; picking individual ones out of
+  // the scene is only offered where the dataset opts in.
+  const supportsSampling = (data?.objects.length ?? 0) > 1;
+  const supportsSelection = Boolean(dataset.supportsSelection && supportsSampling);
   const supportsAnimation = Boolean(dataset.supportsAnimation && data);
 
   const animation = useMemo<AnimationConfig>(
@@ -1422,7 +1627,7 @@ export default function GlyphView3D() {
           </select>
         </label>
 
-        {supportsObjectSelection && (
+        {supportsSampling && (
           <>
             <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
               Counts
@@ -1519,7 +1724,7 @@ export default function GlyphView3D() {
           Labels
         </label> */}
 
-        {hasVesselMesh && (
+        {hasContextMesh && (
           <label
             style={{
               display: "flex",
@@ -1530,15 +1735,15 @@ export default function GlyphView3D() {
           >
             <input
               type="checkbox"
-              checked={showVessel}
-              onChange={(e) => setShowVessel(e.target.checked)}
+              checked={showContext}
+              onChange={(e) => setShowContext(e.target.checked)}
               style={{ accentColor: "#8ca3ad" }}
             />
-            Vessel
+            {dataset.contextLabel ?? "Context"}
           </label>
         )}
 
-        {supportsObjectSelection && (
+        {supportsSelection && (
           <>
             <button
               type="button"
@@ -1673,6 +1878,10 @@ export default function GlyphView3D() {
         >
           <ambientLight intensity={0.6} />
           <directionalLight position={[100, 100, 100]} intensity={0.8} />
+          <CameraRig
+            setup={dataset.camera ?? DEFAULT_CAMERA}
+            controlsRef={orbitControlsRef}
+          />
           {animate && (
             <AnimationDriver
               progressRef={progressRef}
@@ -1706,20 +1915,29 @@ export default function GlyphView3D() {
               </group>
             );
           })}
-          {aneurysmGeometry && coordinateTransform && (
+          {aneurysmGeometry?.center && coordinateTransform && (
             <AneurysmOverlay
               geometry={aneurysmGeometry}
               transform={coordinateTransform}
-              showVessel={showVessel}
+              showVessel={showContext}
+            />
+          )}
+          {tractGeometry && coordinateTransform && (
+            <TractOverlay
+              geometry={tractGeometry}
+              transform={coordinateTransform}
+              showContext={showContext}
+              visibleObjectIds={visibleObjectIds}
             />
           )}
           <OrbitControls
-            enableZoom={!supportsObjectSelection || !selectMode}
-            enablePan={!supportsObjectSelection || !selectMode}
-            enableRotate={!supportsObjectSelection || !selectMode}
+            ref={orbitControlsRef}
+            enableZoom={!supportsSelection || !selectMode}
+            enablePan={!supportsSelection || !selectMode}
+            enableRotate={!supportsSelection || !selectMode}
           />
         </Canvas>
-        {supportsObjectSelection && selectMode && (
+        {supportsSelection && selectMode && (
           <div
             style={selectionLayerStyle}
             onPointerDown={startSelection}
@@ -1784,23 +2002,6 @@ const overlayStyle: React.CSSProperties = {
   justifyContent: "center",
   zIndex: 10,
   background: "rgba(10,25,41,0.8)",
-};
-
-const caseInfoStyle: React.CSSProperties = {
-  position: "absolute",
-  left: 16,
-  bottom: 16,
-  zIndex: 5,
-  width: "min(430px, calc(100% - 32px))",
-  boxSizing: "border-box",
-  padding: "12px 14px",
-  border: "1px solid rgba(255,255,255,0.14)",
-  borderRadius: 8,
-  background: "rgba(8, 25, 38, 0.86)",
-  backdropFilter: "blur(7px)",
-  color: "rgba(224,235,240,0.86)",
-  font: "12px/1.45 system-ui, sans-serif",
-  pointerEvents: "none",
 };
 
 const selectionLayerStyle: React.CSSProperties = {
