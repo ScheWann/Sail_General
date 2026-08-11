@@ -1,0 +1,77 @@
+{
+  "created": "2026-08-06T15:15:06",
+  "atlas": "HCP842 (dipy fetch_bundle_atlas_hcp842), 79 bundles",
+  "method": "affine whole_brain_slr, voxel Dice on a 2 mm grid",
+  "reconstruction": "408062b95014d00a51654650d8d8d546aff51300af265127df1e5348a5ab3aa4",
+  "registrationDice": {
+    "before": 0.5425,
+    "after": 0.5802,
+    "displacedControl": 0.3784
+  },
+  "bundles": {
+    "cc_forceps_minor": {
+      "impliedModel": "CC_ForcepsMinor",
+      "impliedDice": 0.0,
+      "bestMatch": "CCMid",
+      "bestDice": 0.3784,
+      "runnerUp": "PPT_R (0.15)",
+      "verdict": "contradicted"
+    },
+    "cc_body_motor": {
+      "impliedModel": "CCMid",
+      "impliedDice": 0.3214,
+      "bestMatch": "CCMid",
+      "bestDice": 0.3214,
+      "runnerUp": "PPT_R (0.18)",
+      "verdict": "supported"
+    },
+    "cc_parietal": {
+      "impliedModel": "CCMid",
+      "impliedDice": 0.0783,
+      "bestMatch": "PPT_R",
+      "bestDice": 0.1535,
+      "runnerUp": "PPT_L (0.15)",
+      "verdict": "unmatched"
+    },
+    "cc_forceps_major": {
+      "impliedModel": "CC_ForcepsMajor",
+      "impliedDice": 0.2734,
+      "bestMatch": "CC_ForcepsMajor",
+      "bestDice": 0.2734,
+      "runnerUp": "IFOF_R (0.06)",
+      "verdict": "supported"
+    },
+    "cingulum_l": {
+      "impliedModel": "C_L",
+      "impliedDice": 0.3877,
+      "bestMatch": "C_L",
+      "bestDice": 0.3877,
+      "runnerUp": "CCMid (0.05)",
+      "verdict": "supported"
+    },
+    "cingulum_r": {
+      "impliedModel": "C_R",
+      "impliedDice": 0.4083,
+      "bestMatch": "C_R",
+      "bestDice": 0.4083,
+      "runnerUp": "CCMid (0.08)",
+      "verdict": "supported"
+    },
+    "thalamo_prec_l": {
+      "impliedModel": "CT_L",
+      "impliedDice": 0.0789,
+      "bestMatch": "PPT_L",
+      "bestDice": 0.217,
+      "runnerUp": "CST_L (0.19)",
+      "verdict": "unmatched"
+    },
+    "thalamo_prec_r": {
+      "impliedModel": "CT_R",
+      "impliedDice": 0.0635,
+      "bestMatch": "PPT_R",
+      "bestDice": 0.202,
+      "runnerUp": "CST_R (0.15)",
+      "verdict": "unmatched"
+    }
+  }
+}
