@@ -13,10 +13,24 @@ interface GlyphPoint {
   y: number;
   z: number;
   values: number[];
+  // The same channels in physical units, where the export ships them. `values` is a
+  // within-export percentile and deliberately flattens magnitude; `raw` is what the
+  // log encoding is computed from. See `LogBounds`.
+  raw?: number[];
   // Per-channel sign for channels whose `values` entry is a magnitude (see
   // `meta.signedChannels`). +1/-1, absent or 1 for ordinary channels.
   sgn?: number[];
   attributes?: Record<string, unknown>;
+}
+
+// Per-channel bounds for mapping log10(raw) onto [0,1], as published in
+// `meta.logNormalization`. The bounds are percentiles of the raw distribution rather
+// than its min/max, so a single extreme node cannot compress every other fin.
+interface LogBounds {
+  log10Lo: number;
+  log10Hi: number;
+  clipPercentiles?: number[];
+  formula?: string;
 }
 
 interface GlyphObject {
@@ -35,6 +49,22 @@ interface GlyphDataset {
     unit?: string;
     // Channels encoded as |value| in `values`, with the sign in `point.sgn`.
     signedChannels?: string[];
+    // Bounds for the alternative log encoding, keyed by channel name. Present only
+    // where the export also ships `point.raw`.
+    logNormalization?: Record<string, LogBounds>;
+    channelUnits?: Record<string, string>;
+    // What each fin means, written by the notebook that produced the file. This is
+    // the authority for legend text: the same channel name means different things in
+    // different cases ("curvature" is a particle path's bending in one export and a
+    // fiber bundle's in another), so a name-keyed table in the viewer cannot be right
+    // for both.
+    channelInfo?: Record<
+      string,
+      { label?: string; raw?: string; description?: string }
+    >;
+    // Channels the producing notebook measured but deliberately did not give a fin,
+    // with the reason. Keyed by channel name; the value is the explanation.
+    diagnosticChannels?: Record<string, string>;
   };
   channels: string[];
   objects: GlyphObject[];
@@ -137,14 +167,31 @@ interface AnimationConfig {
 const TARGET_EXTENT = 200;
 const RANDOM_SEED = 3601;
 const DEFAULT_SAMPLE_COUNT = 4;
-// Channel values are rank-normalized to [0,1], so v^gamma pushes everything below the top
-// decile down: the fins that stay long are the ones carrying an extreme value.
+// How a channel value becomes a fin length. The two encodings answer different questions
+// and the export ships the inputs for both, so the viewer switches between them:
+//
+//   percentile — `point.values`, the rank of the measurement among all exported nodes.
+//                Comparable across channels (0.9 is "top 10 %" on every fin) but it
+//                compresses the tail: the 99th percentile and the maximum both sit near
+//                1.0 even when they differ by a factor of five.
+//   log        — log10(`point.raw`) mapped between `meta.logNormalization` bounds. Keeps
+//                ratios visible, but a value only means something within its own channel.
+//
+// A linear map of `raw` is not offered: these channels are heavy-tailed enough that it
+// would leave most fins too short to see.
+type Encoding = "percentile" | "log";
+
+// Percentile values are uniform on [0,1], so v^gamma is what pushes everything below the
+// top decile down and leaves the extremes long.
 const DEFAULT_GAMMA = 20;
+// The log encoding already carries magnitude in the value itself, so the default leaves it
+// alone: fin length is exactly `meta.logNormalization.formula`. Gamma stays adjustable.
+const DEFAULT_LOG_GAMMA = 1;
 
 const AVAILABLE_DATASETS: DatasetConfig[] = [
   {
     name: "Turbulence tracers",
-    path: "/turb_glyph.json",
+    path: "/turb_glyph_full.json",
     defaultSampleCount: DEFAULT_SAMPLE_COUNT,
     supportsAnimation: true,
     supportsSelection: true,
@@ -178,18 +225,49 @@ function getChannelColor(index: number): string {
   return CHANNEL_COLORS[index % CHANNEL_COLORS.length];
 }
 
-function getChannelDisplayName(name: string): string {
-  const names: Record<string, string> = {
-    a_mag: "acceleration",
-    FA: "FA",
-    MD: "MD",
-    RD: "RD",
-    AD: "AD",
-    fiber_density: "fiber density",
-    curvature: "bundle curvature",
-    dispersion: "core distance",
-  };
-  return names[name] ?? name;
+// Last resort only, for exports that carry no `meta.channelInfo`. Deliberately free
+// of case-specific wording: a name-keyed table is shared by every dataset, so it can
+// only be trusted to expand an abbreviation, never to say what a channel measures.
+const FALLBACK_CHANNEL_NAMES: Record<string, string> = {
+  a_mag: "acceleration",
+  fiber_density: "fiber density",
+  support_fraction: "support fraction",
+};
+
+function channelLabel(name: string, meta?: GlyphDataset["meta"]): string {
+  const published = meta?.channelInfo?.[name]?.label;
+  // The published label names the encoding as well ("FA percentile"), but the
+  // encoding is already shown once by the fin-length toggle, so the per-channel
+  // label drops it rather than repeating it on every fin -- and rather than
+  // asserting "percentile" while the log encoding is active.
+  if (published) return published.replace(/\s*percentile\s*$/i, "");
+  return FALLBACK_CHANNEL_NAMES[name] ?? name;
+}
+
+function channelTooltip(
+  name: string,
+  meta: GlyphDataset["meta"] | undefined,
+  encoding: Encoding,
+): string {
+  const info = meta?.channelInfo?.[name];
+  const unit = info?.raw ?? meta?.channelUnits?.[name];
+  const encodes =
+    encoding === "log"
+      ? "fin length = log of the measurement, scaled between the published bounds"
+      : "fin length = percentile of the measurement among all exported nodes";
+  return [info?.description, unit && `measured in ${unit}`, encodes]
+    .filter(Boolean)
+    .join(" — ");
+}
+
+// Channels the export itself marks as measured-but-not-drawn. `meta.diagnosticChannels`
+// is the producing notebook's own record of what it chose not to give a fin, and why;
+// the fallback covers older exports that predate that field.
+const LEGACY_HIDDEN_CHANNELS = new Set(["vortex_fraction", "helicity"]);
+
+function hiddenChannelSet(data: GlyphDataset | null): Set<string> {
+  const declared = Object.keys(data?.meta?.diagnosticChannels ?? {});
+  return new Set([...declared, ...LEGACY_HIDDEN_CHANNELS]);
 }
 
 // Signed channels (`meta.signedChannels`) put |value| in the fin length, so the
@@ -215,11 +293,6 @@ function getNegativeChannelColor(index: number): string {
   );
   return `#${c.getHexString()}`;
 }
-
-// Channels kept out of the glyph and the legend for now. Channel indices stay
-// aligned with the dataset's `values` array — only display is suppressed, so
-// emptying this set brings them straight back.
-const HIDDEN_CHANNELS = new Set(["vortex_fraction", "helicity", "curvature", "MD"]);
 
 const BACKBONE_COLOR = "#FFFFFF";
 const BEAD_COLOR = "#FFFFFF";
@@ -300,20 +373,41 @@ function transformPoint(
   ];
 }
 
+// `logBounds` is parallel to `channels`; a null entry means that channel has no published
+// bounds and falls back to its percentile, so a partially annotated dataset degrades
+// per channel instead of failing.
+function encodeValue(
+  point: GlyphPoint,
+  channelIndex: number,
+  encoding: Encoding,
+  logBounds: (LogBounds | null)[] | null,
+): number {
+  if (encoding === "log") {
+    const bounds = logBounds?.[channelIndex];
+    const raw = point.raw?.[channelIndex];
+    if (bounds && Number.isFinite(raw) && (raw as number) > 0) {
+      const span = bounds.log10Hi - bounds.log10Lo;
+      if (span > 0)
+        return clamp01((Math.log10(raw as number) - bounds.log10Lo) / span);
+    }
+  }
+  const v = point.values?.[channelIndex];
+  return Number.isFinite(v) ? v : 0;
+}
+
 function objectsToNodeGroups(
   objects: GlyphObject[],
   channels: string[],
   transform: CoordinateTransform | null,
+  encoding: Encoding = "percentile",
+  logBounds: (LogBounds | null)[] | null = null,
 ): NodeData[][] {
   if (!transform) return objects.map(() => []);
 
   return objects.map((object) =>
     object.points.map((p) => ({
       position: transformPoint(p, transform),
-      values: channels.map((_, i) => {
-        const v = p.values?.[i];
-        return Number.isFinite(v) ? v : 0;
-      }),
+      values: channels.map((_, i) => encodeValue(p, i, encoding, logBounds)),
       signs: channels.map((_, i) => ((p.sgn?.[i] ?? 1) < 0 ? -1 : 1)),
     })),
   );
@@ -1146,6 +1240,7 @@ export default function GlyphView3D() {
   );
   const [sampleCount, setSampleCount] = useState(DEFAULT_SAMPLE_COUNT);
   const [gamma, setGamma] = useState(DEFAULT_GAMMA);
+  const [encoding, setEncoding] = useState<Encoding>("percentile");
   const [showTube] = useState(true);
   const [showLabels] = useState(false);
   const [showContext, setShowContext] = useState(true);
@@ -1169,6 +1264,8 @@ export default function GlyphView3D() {
 
   // Channels whose fin length is a magnitude; the toggle row shows both tones so
   // the dark ribbon segments are readable as "negative" rather than as a bug.
+  const hiddenChannels = useMemo(() => hiddenChannelSet(data), [data]);
+
   const signedChannelSet = useMemo(
     () => new Set(data?.meta?.signedChannels ?? []),
     [data],
@@ -1203,7 +1300,7 @@ export default function GlyphView3D() {
           new Set(
             json.channels
               .map((_, i) => i)
-              .filter((i) => !HIDDEN_CHANNELS.has(json.channels[i])),
+              .filter((i) => !hiddenChannelSet(json).has(json.channels[i])),
           ),
         );
         setSampleCount(
@@ -1213,6 +1310,7 @@ export default function GlyphView3D() {
           ),
         );
         setGamma(dataset.defaultGamma ?? DEFAULT_GAMMA);
+        setEncoding("percentile");
         setShowContext(true);
         setSelectMode(false);
         setHiddenObjectIds(new Set());
@@ -1245,9 +1343,31 @@ export default function GlyphView3D() {
     [sampledObjects],
   );
 
+  // The log encoding needs both halves of the export: published bounds for every channel
+  // and a physical value on the points themselves. Without both, the toggle is not shown
+  // rather than silently drawing percentiles under a "log" label.
+  const logBounds = useMemo(() => {
+    const published = data?.meta?.logNormalization;
+    if (!published || !channels.length) return null;
+    const bounds = channels.map((name) => published[name] ?? null);
+    return bounds.some((b) => b) ? bounds : null;
+  }, [data, channels]);
+
+  const supportsLogEncoding = useMemo(
+    () => Boolean(logBounds && data?.objects?.[0]?.points?.[0]?.raw?.length),
+    [logBounds, data],
+  );
+
   const sampledNodes = useMemo(
-    () => objectsToNodeGroups(sampledObjects, channels, coordinateTransform),
-    [coordinateTransform, sampledObjects, channels],
+    () =>
+      objectsToNodeGroups(
+        sampledObjects,
+        channels,
+        coordinateTransform,
+        encoding,
+        logBounds,
+      ),
+    [coordinateTransform, sampledObjects, channels, encoding, logBounds],
   );
 
   const visibleItems = useMemo(
@@ -1275,6 +1395,22 @@ export default function GlyphView3D() {
   // Sampling how many objects to draw is useful everywhere; picking individual ones out of
   // the scene is only offered where the dataset opts in.
   const supportsSampling = (data?.objects.length ?? 0) > 1;
+  // Gamma is calibrated to the encoding it acts on — v^20 keeps the top decile of a
+  // uniform percentile, and would erase a log encoding whose median already sits near
+  // 0.5 — so it follows the switch instead of carrying over.
+  const selectEncoding = useCallback(
+    (next: Encoding) => {
+      if (next === encoding) return;
+      setEncoding(next);
+      setGamma(
+        next === "log"
+          ? DEFAULT_LOG_GAMMA
+          : (dataset.defaultGamma ?? DEFAULT_GAMMA),
+      );
+    },
+    [encoding, dataset],
+  );
+
   const supportsSelection = Boolean(dataset.supportsSelection && supportsSampling);
   const supportsAnimation = Boolean(dataset.supportsAnimation && data);
 
@@ -1505,9 +1641,10 @@ export default function GlyphView3D() {
 
         {/* Channel toggles */}
         {channels.map((name, i) =>
-          HIDDEN_CHANNELS.has(name) ? null : (
+          hiddenChannels.has(name) ? null : (
             <label
               key={name}
+              title={channelTooltip(name, data?.meta, encoding)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -1522,10 +1659,10 @@ export default function GlyphView3D() {
                 onChange={() => toggleChannel(i)}
                 style={{ accentColor: getChannelColor(i) }}
               />
-              {getChannelDisplayName(name)}
+              {channelLabel(name, data?.meta)}
               {signedChannelSet.has(name) && (
                 <span
-                  title={`${getChannelDisplayName(name)}: fin length is |value|; bright = positive, dark = negative`}
+                  title={`${channelLabel(name, data?.meta)}: fin length is |value|; bright = positive, dark = negative`}
                   style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
                 >
                   <span
@@ -1631,6 +1768,46 @@ export default function GlyphView3D() {
         <div
           style={{ width: 1, height: 20, background: "rgba(255,255,255,0.15)" }}
         />
+
+        {/* What a fin length means. Only offered where the export ships both the
+            percentile and a physical value with published log bounds. */}
+        {supportsLogEncoding && (
+          <>
+            <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              Fin length
+              <span style={{ display: "inline-flex", gap: 4 }}>
+                <button
+                  type="button"
+                  aria-pressed={encoding === "percentile"}
+                  onClick={() => selectEncoding("percentile")}
+                  title="Rank of the measurement among all exported nodes. Comparable across channels; compresses the extreme tail."
+                  style={
+                    encoding === "percentile" ? activeButtonStyle : buttonStyle
+                  }
+                >
+                  Percentile
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={encoding === "log"}
+                  onClick={() => selectEncoding("log")}
+                  title="log10 of the physical value, mapped between the bounds in meta.logNormalization. Keeps magnitude ratios visible; comparable only within a channel."
+                  style={encoding === "log" ? activeButtonStyle : buttonStyle}
+                >
+                  log(raw)
+                </button>
+              </span>
+            </label>
+
+            <div
+              style={{
+                width: 1,
+                height: 20,
+                background: "rgba(255,255,255,0.15)",
+              }}
+            />
+          </>
+        )}
 
         {/* Gamma control — remaps each channel value as v^gamma */}
         <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
