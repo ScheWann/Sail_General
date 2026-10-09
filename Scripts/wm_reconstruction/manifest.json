@@ -1,0 +1,237 @@
+{
+  "created": "2026-08-06T14:12:49",
+  "dipy_version": "1.11.0",
+  "note": "The streamlines that this export is computed from. dipy's deterministic_tracking is not reproducible run to run, so the tractogram cannot be regenerated; these are the actual streamlines, kept so that the glyph, the geometry and the validation all describe one and the same reconstruction.",
+  "n_whole_brain_streamlines": 301662,
+  "n_whole_brain_sample": 20000,
+  "parameters": {
+    "tracking": {
+      "model": "CsaOdf sh_order_max=6",
+      "seed_density": 2,
+      "gfa_threshold": 0.25,
+      "step_size": 0.5,
+      "max_angle": 30,
+      "min_len": 20,
+      "max_len": 400,
+      "random_seed": 42
+    },
+    "bundles": {
+      "n_nodes": 60,
+      "roi_dilation": 2,
+      "qb_threshold": 8.0,
+      "mdf_radius_mm": 12.0,
+      "hemi_margin_mm": 6.0,
+      "min_len_mm": 40.0,
+      "max_len_mm": 220.0,
+      "min_streamlines": 40,
+      "orientation": "node 0 at the first waypoint ROI"
+    }
+  },
+  "sha256": "408062b95014d00a51654650d8d8d546aff51300af265127df1e5348a5ab3aa4",
+  "bundles": {
+    "cc_forceps_minor": {
+      "n_streamlines": 3833,
+      "label": "CC forceps minor (frontal)",
+      "via": "L rostral-middle / superior frontal -> CC -> R rostral-middle / superior frontal",
+      "ends": [
+        "L rostral-middle / superior frontal cortex",
+        "R rostral-middle / superior frontal cortex"
+      ],
+      "atlas_model": "CC_ForcepsMinor",
+      "waypoints": [
+        [
+          9,
+          11
+        ],
+        [
+          2
+        ],
+        [
+          52,
+          54
+        ]
+      ],
+      "side": null,
+      "exclude": []
+    },
+    "cc_body_motor": {
+      "n_streamlines": 3597,
+      "label": "CC body (motor/premotor)",
+      "via": "L caudal-middle-frontal / precentral / paracentral -> CC -> R homologue",
+      "ends": [
+        "L caudal-middle-frontal / precentral / paracentral cortex",
+        "R caudal-middle-frontal / precentral / paracentral cortex"
+      ],
+      "atlas_model": "CCMid",
+      "waypoints": [
+        [
+          10,
+          12,
+          13
+        ],
+        [
+          2
+        ],
+        [
+          53,
+          55,
+          56
+        ]
+      ],
+      "side": null,
+      "exclude": []
+    },
+    "cc_parietal": {
+      "n_streamlines": 4020,
+      "label": "CC parietal (mid-posterior)",
+      "via": "L postcentral / superior-parietal / precuneus -> CC -> R homologue",
+      "ends": [
+        "L postcentral / superior-parietal / precuneus",
+        "R postcentral / superior-parietal / precuneus"
+      ],
+      "atlas_model": "CCMid",
+      "waypoints": [
+        [
+          28,
+          31,
+          32
+        ],
+        [
+          2
+        ],
+        [
+          71,
+          74,
+          75
+        ]
+      ],
+      "side": null,
+      "exclude": []
+    },
+    "cc_forceps_major": {
+      "n_streamlines": 512,
+      "label": "CC forceps major (occipital)",
+      "via": "L cuneus / lateral-occipital / pericalcarine / lingual -> CC -> R homologue",
+      "ends": [
+        "L cuneus / lateral-occipital / pericalcarine / lingual",
+        "R cuneus / lateral-occipital / pericalcarine / lingual"
+      ],
+      "atlas_model": "CC_ForcepsMajor",
+      "waypoints": [
+        [
+          33,
+          34,
+          35,
+          36
+        ],
+        [
+          2
+        ],
+        [
+          76,
+          77,
+          78,
+          79
+        ]
+      ],
+      "side": null,
+      "exclude": []
+    },
+    "cingulum_l": {
+      "n_streamlines": 586,
+      "label": "Left cingulum",
+      "via": "L caudal-anterior-cingulate -> L posterior-cingulate, callosum excluded",
+      "ends": [
+        "L caudal anterior cingulate (anterior end)",
+        "L posterior cingulate (posterior end)"
+      ],
+      "atlas_model": "C_L",
+      "waypoints": [
+        [
+          16
+        ],
+        [
+          17
+        ]
+      ],
+      "side": "L",
+      "exclude": [
+        [
+          2
+        ]
+      ]
+    },
+    "cingulum_r": {
+      "n_streamlines": 561,
+      "label": "Right cingulum",
+      "via": "R caudal-anterior-cingulate -> R posterior-cingulate, callosum excluded",
+      "ends": [
+        "R caudal anterior cingulate (anterior end)",
+        "R posterior cingulate (posterior end)"
+      ],
+      "atlas_model": "C_R",
+      "waypoints": [
+        [
+          59
+        ],
+        [
+          60
+        ]
+      ],
+      "side": "R",
+      "exclude": [
+        [
+          2
+        ]
+      ]
+    },
+    "thalamo_prec_l": {
+      "n_streamlines": 482,
+      "label": "Left thalamo-precentral",
+      "via": "L thalamus proper -> L precentral, callosum excluded",
+      "ends": [
+        "L thalamus proper (subcortical end)",
+        "L precentral cortex (cortical end)"
+      ],
+      "atlas_model": "CT_L",
+      "waypoints": [
+        [
+          41
+        ],
+        [
+          12
+        ]
+      ],
+      "side": "L",
+      "exclude": [
+        [
+          2
+        ]
+      ]
+    },
+    "thalamo_prec_r": {
+      "n_streamlines": 298,
+      "label": "Right thalamo-precentral",
+      "via": "R thalamus proper -> R precentral, callosum excluded",
+      "ends": [
+        "R thalamus proper (subcortical end)",
+        "R precentral cortex (cortical end)"
+      ],
+      "atlas_model": "CT_R",
+      "waypoints": [
+        [
+          84
+        ],
+        [
+          55
+        ]
+      ],
+      "side": "R",
+      "exclude": [
+        [
+          2
+        ]
+      ]
+    }
+  }
+}
